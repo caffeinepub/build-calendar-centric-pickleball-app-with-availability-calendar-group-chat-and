@@ -10,8 +10,6 @@ import { useAddAvailability, useGetCallerAvailability } from '../hooks/useQuerie
 import { getDayId, formatDate } from '../lib/date';
 
 const TIME_OPTIONS = [
-  '6:00 AM',
-  '7:00 AM',
   '8:00 AM',
   '9:00 AM',
   '10:00 AM',
@@ -26,7 +24,6 @@ const TIME_OPTIONS = [
   '7:00 PM',
   '8:00 PM',
   '9:00 PM',
-  '10:00 PM',
 ];
 
 export default function AddAvailabilityPage() {

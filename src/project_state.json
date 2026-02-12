@@ -1,18 +1,24 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Update the app branding by replacing the current logo asset with a provided URL everywhere the logo appears.",
-  "architectural_notes": [
-    "App logo should be sourced from a specific external URL and used consistently across all screens/locations where the logo appears."
-  ],
+  "summary": "New project",
+  "architectural_notes": [],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-replace-the-current-app-logo-currently-referenced-as-assets-generated-somers-scheduler-logo-dim-512x512-png-everywhere-it-appears-in-the-ui-with-this-exact-url-https-blob-caffeine-ai-v1-blob-blob-hash-sha256-3a5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf-owner-id-bjzp7-xyaaa-aaaaf-qbsta-cai-project-id-0198d89b-d4eb-711d-abfd-9b50202a1152-update-all-logo-render-locations-e-g-login-screen-and-top-bar-header-so-the-same-url-is-used-consistently",
-      "title": "Replace the current app logo (currently referenced as `/assets/generated/somers-scheduler-logo.dim_512x512.png`) everywhere it appears in the UI with this exact URL: https://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152. Update all logo render locations (e.g., login screen and top bar header) so the same URL is used consistently.",
+      "id": "feature-increase-the-chat-box-and-only-the-chat-box-message-header-sizing-so-that-each-message-shows-a-25px-x-25px-profile-picture-and-a-14px-display-name-without-changing-avatar-name-sizing-anywhere-else-in-the-app",
+      "title": "Increase the chat box (and only the chat box) message header sizing so that each message shows a 25px x 25px profile picture and a 14px display name, without changing avatar/name sizing anywhere else in the app.",
       "reqIds": [
         "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-availability-start-time-dropdown-options-to-span-8-00-am-through-9-00-pm-inclusive",
+      "title": "Update the availability start-time dropdown options to span 8:00 AM through 9:00 PM (inclusive).",
+      "reqIds": [
+        "REQ-2"
       ],
       "version": 1
     }
@@ -20,12 +26,24 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Replace the app logo everywhere (login screen and all other locations) with the provided logo URL",
+      "summary": "Increase chat box display name font size to 14px (chat-only)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Increase chat box profile picture size to 25px x 25px (chat-only)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Extend availability dropdown time options to cover 8am–9pm",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Replace Somers Scheduler logo everywhere with provided URL",
+  "projectName": "Chat box avatar/name sizing updates and extend availability time dropdown to 8am–9pm",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

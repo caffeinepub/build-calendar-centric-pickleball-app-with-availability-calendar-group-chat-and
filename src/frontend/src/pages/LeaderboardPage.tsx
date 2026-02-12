@@ -1,19 +1,23 @@
 import { useState } from 'react';
-import { Trophy, Plus, Minus } from 'lucide-react';
+import { Trophy, Plus, Minus, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { useGetLeaderboard, useRecordWin, useRecordLoss } from '../hooks/useQueries';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { useGetLeaderboard, useRecordDailyWin, useRecordDailyLoss, useGetCallerAvailableDays } from '../hooks/useQueries';
 import { useUserDirectoryWithAvatars } from '../hooks/useUserDirectory';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import AvatarName from '../components/user/AvatarName';
+import { formatDayId } from '../lib/date';
+import { toast } from 'sonner';
 
-type TimeFilter = 'weekly' | 'monthly' | 'all-time';
+type TimeFilter = 'weekly' | 'monthly' | 'all';
 
 export default function LeaderboardPage() {
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all-time');
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -26,7 +30,7 @@ export default function LeaderboardPage() {
         <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="weekly">Weekly</TabsTrigger>
           <TabsTrigger value="monthly">Monthly</TabsTrigger>
-          <TabsTrigger value="all-time">All Time</TabsTrigger>
+          <TabsTrigger value="all">All Time</TabsTrigger>
         </TabsList>
 
         <TabsContent value="weekly">
@@ -35,8 +39,8 @@ export default function LeaderboardPage() {
         <TabsContent value="monthly">
           <LeaderboardTable timeFilter="monthly" />
         </TabsContent>
-        <TabsContent value="all-time">
-          <LeaderboardTable timeFilter="all-time" />
+        <TabsContent value="all">
+          <LeaderboardTable timeFilter="all" />
         </TabsContent>
       </Tabs>
     </div>
@@ -48,17 +52,42 @@ function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
   const principals = leaderboard.map(([principal]) => principal);
   const { data: userDirectory, isLoading: isLoadingDirectory } = useUserDirectoryWithAvatars(principals);
   const { identity } = useInternetIdentity();
-  const { mutate: recordWin, isPending: isRecordingWin } = useRecordWin();
-  const { mutate: recordLoss, isPending: isRecordingLoss } = useRecordLoss();
+  const { data: availableDays = [], isLoading: isLoadingDays } = useGetCallerAvailableDays();
+  const { mutate: recordWin, isPending: isRecordingWin, error: winError } = useRecordDailyWin();
+  const { mutate: recordLoss, isPending: isRecordingLoss, error: lossError } = useRecordDailyLoss();
+  
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   const callerPrincipal = identity?.getPrincipal().toString();
 
   const handleRecordWin = () => {
-    recordWin();
+    if (!selectedDay) {
+      toast.error('Please select a date first');
+      return;
+    }
+    recordWin(BigInt(selectedDay), {
+      onSuccess: () => {
+        toast.success('Win recorded successfully!');
+      },
+      onError: (error: any) => {
+        toast.error(error?.message || 'Failed to record win. Make sure you are marked available for this date.');
+      },
+    });
   };
 
   const handleRecordLoss = () => {
-    recordLoss();
+    if (!selectedDay) {
+      toast.error('Please select a date first');
+      return;
+    }
+    recordLoss(BigInt(selectedDay), {
+      onSuccess: () => {
+        toast.success('Loss recorded successfully!');
+      },
+      onError: (error: any) => {
+        toast.error(error?.message || 'Failed to record loss. Make sure you are marked available for this date.');
+      },
+    });
   };
 
   if (isLoading) {
@@ -82,10 +111,67 @@ function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
     );
   }
 
+  const hasAvailableDays = availableDays.length > 0;
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Rankings</CardTitle>
+        {callerPrincipal && (
+          <div className="pt-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <Calendar className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm font-medium">Select a date to record results:</span>
+            </div>
+            
+            {isLoadingDays ? (
+              <div className="text-sm text-muted-foreground">Loading your available dates...</div>
+            ) : !hasAvailableDays ? (
+              <Alert>
+                <AlertDescription>
+                  You must add availability on the Calendar page before you can record wins or losses.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Select value={selectedDay || ''} onValueChange={setSelectedDay}>
+                  <SelectTrigger className="w-full max-w-xs">
+                    <SelectValue placeholder="Choose an available date" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableDays.map((day) => (
+                      <SelectItem key={day.toString()} value={day.toString()}>
+                        {formatDayId(day)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="gap-2"
+                    onClick={handleRecordWin}
+                    disabled={!selectedDay || isRecordingWin || isRecordingLoss}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Win
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2"
+                    onClick={handleRecordLoss}
+                    disabled={!selectedDay || isRecordingWin || isRecordingLoss}
+                  >
+                    <Minus className="h-4 w-4" />
+                    Loss
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         <Table>
@@ -95,10 +181,9 @@ function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
               <TableHead>Player</TableHead>
               <TableHead className="text-right">Wins</TableHead>
               <TableHead className="text-right">Losses</TableHead>
-              <TableHead className="text-right">Win %</TableHead>
               <TableHead className="text-right">Games</TableHead>
+              <TableHead className="text-right">Win %</TableHead>
               <TableHead className="text-right">Streak</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -109,7 +194,6 @@ function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
               const winPercentage = stats.totalGames > 0
                 ? ((Number(stats.wins) / Number(stats.totalGames)) * 100).toFixed(1)
                 : '0.0';
-              const isCurrentUser = callerPrincipal === principal.toString();
               
               return (
                 <TableRow key={principal.toString()}>
@@ -128,37 +212,13 @@ function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
                   </TableCell>
                   <TableCell className="text-right">{stats.wins.toString()}</TableCell>
                   <TableCell className="text-right">{stats.losses.toString()}</TableCell>
-                  <TableCell className="text-right">{winPercentage}%</TableCell>
                   <TableCell className="text-right">{stats.totalGames.toString()}</TableCell>
+                  <TableCell className="text-right">{winPercentage}%</TableCell>
                   <TableCell className="text-right">
                     {Number(stats.streak) !== 0 && (
                       <Badge variant={Number(stats.streak) > 0 ? 'default' : 'destructive'}>
                         {Number(stats.streak) > 0 ? '+' : ''}{stats.streak.toString()}
                       </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {isCurrentUser && (
-                      <div className="flex gap-1 justify-end">
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="h-8 w-8"
-                          onClick={handleRecordWin}
-                          disabled={isRecordingWin || isRecordingLoss}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="h-8 w-8"
-                          onClick={handleRecordLoss}
-                          disabled={isRecordingWin || isRecordingLoss}
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                      </div>
                     )}
                   </TableCell>
                 </TableRow>

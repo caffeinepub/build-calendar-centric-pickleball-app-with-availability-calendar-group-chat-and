@@ -2,13 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-replace-the-current-app-logo-currently-referenced-as-assets-generated-somers-scheduler-logo-dim-512x512-png-everywhere-it-appears-in-the-ui-with-this-exact-url-https-blob-caffeine-ai-v1-blob-blob-hash-sha256-3a5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf-owner-id-bjzp7-xyaaa-aaaaf-qbsta-cai-project-id-0198d89b-d4eb-711d-abfd-9b50202a1152-update-all-logo-render-locations-e-g-login-screen-and-top-bar-header-so-the-same-url-is-used-consistently",
-      "featureTitle": "Replace the current app logo (currently referenced as `/assets/generated/somers-scheduler-logo.dim_512x512.png`) everywhere it appears in the UI with this exact URL: https://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152. Update all logo render locations (e.g., login screen and top bar header) so the same URL is used consistently.",
+      "featureId": "feature-increase-the-chat-box-and-only-the-chat-box-message-header-sizing-so-that-each-message-shows-a-25px-x-25px-profile-picture-and-a-14px-display-name-without-changing-avatar-name-sizing-anywhere-else-in-the-app",
+      "featureTitle": "Increase the chat box (and only the chat box) message header sizing so that each message shows a 25px x 25px profile picture and a 14px display name, without changing avatar/name sizing anywhere else in the app.",
       "files": [
-        "frontend/src/components/auth/LoginScreen.tsx",
-        "frontend/src/components/branding/AppLogo.tsx",
-        "frontend/src/components/layout/TopBar.tsx",
-        "frontend/src/lib/branding.ts"
+        "frontend/src/components/chat/ChatPanel.tsx",
+        "frontend/src/components/user/AvatarName.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -21,6 +19,26 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-availability-start-time-dropdown-options-to-span-8-00-am-through-9-00-pm-inclusive",
+      "featureTitle": "Update the availability start-time dropdown options to span 8:00 AM through 9:00 PM (inclusive).",
+      "files": [
+        "frontend/src/pages/AddAvailabilityPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
       ],
       "confidence": "high"
     }

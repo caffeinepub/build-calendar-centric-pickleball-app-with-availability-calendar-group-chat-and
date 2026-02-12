@@ -1,37 +1,42 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Replace Somers Scheduler logo with provided blob URL across UI",
+  "title": "Chat header sizing scoped to chat panel + availability time range update",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Centralize the app logo source and update all UI logo render locations to use the provided blob URL consistently.",
+      "summary": "Adjust chat message header to use a 25x25 avatar and 14px display name only within the chat message list, leaving all other avatar/name sizing unchanged.",
       "acceptanceCriteria": [
-        "Login screen logo renders using the provided blob URL (no remaining reference to `/assets/generated/somers-scheduler-logo.dim_512x512.png` for the logo).",
-        "Top bar/header logo renders using the provided blob URL (no remaining reference to `/assets/generated/somers-scheduler-logo.dim_512x512.png` for the logo).",
-        "A project-wide search shows no remaining usage of `/assets/generated/somers-scheduler-logo.dim_512x512.png` for app branding/logo rendering (excluding unrelated assets).",
-        "Logo alt text remains in English (e.g., \"Somers Scheduler\")."
+        "In the chat message list (frontend/src/components/chat/ChatPanel.tsx), each message renders the sender avatar at exactly 25x25 pixels.",
+        "In the chat message list, the sender display name renders at 14px font size.",
+        "Avatar/name sizing in other areas that use AvatarName (e.g., day detail page and any other pages/components) remains unchanged from current behavior."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/lib/branding.ts",
-          "operation": "create",
-          "description": "Create a single source of truth for branding constants, including the app logo URL set to `https://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152` and a stable English alt text (e.g., \"Somers Scheduler\")."
-        },
-        {
-          "path": "frontend/src/components/branding/AppLogo.tsx",
-          "operation": "create",
-          "description": "Add a small reusable AppLogo component that reads the logo URL and alt text from `frontend/src/lib/branding.ts` and renders the logo image for use in multiple UI locations (do not modify any files under `frontend/src/components/ui`)."
-        },
-        {
-          "path": "frontend/src/components/auth/LoginScreen.tsx",
+          "path": "frontend/src/components/user/AvatarName.tsx",
           "operation": "modify",
-          "description": "Replace the login screen logo `<img>` currently using `/assets/generated/somers-scheduler-logo.dim_512x512.png` with the new AppLogo (or branding constant) so it renders from the provided blob URL; keep alt text in English. Ensure no other logo references remain in this file."
+          "description": "Add optional, backwards-compatible style override props (e.g., avatarClassName and nameClassName) so callers can request specific avatar and display-name sizing without changing existing default size behavior elsewhere."
         },
         {
-          "path": "frontend/src/components/layout/TopBar.tsx",
+          "path": "frontend/src/components/chat/ChatPanel.tsx",
           "operation": "modify",
-          "description": "Replace the top bar/header logo `<img>` currently using `/assets/generated/somers-scheduler-logo.dim_512x512.png` with the new AppLogo (or branding constant) so it renders from the provided blob URL; keep alt text in English. Also perform a local check within this file to ensure there are no remaining references to the old generated logo path."
+          "description": "Update chat message header rendering to pass AvatarName override props to enforce an exact 25x25 avatar and 14px display name for chat messages only (keep other AvatarName usages unchanged)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Restrict availability start-time dropdown options to 8:00 AM through 9:00 PM inclusive, while preserving and labeling any existing legacy time value outside the range.",
+      "acceptanceCriteria": [
+        "On the Add/Edit Availability page (frontend/src/pages/AddAvailabilityPage.tsx), the selectable TIME_OPTIONS start at \"8:00 AM\" and end at \"9:00 PM\".",
+        "Times earlier than 8:00 AM and later than 9:00 PM are not shown as normal dropdown options.",
+        "If an existing availability has a legacy time value outside the new range, that value still appears as a selectable \"(legacy)\" option, and the form can be saved without losing it."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AddAvailabilityPage.tsx",
+          "operation": "modify",
+          "description": "Update TIME_OPTIONS to include only 8:00 AM through 9:00 PM (inclusive) and keep the existing legacy-value insertion behavior so out-of-range stored times remain selectable and saveable with a \"(legacy)\" label."
         }
       ]
     }

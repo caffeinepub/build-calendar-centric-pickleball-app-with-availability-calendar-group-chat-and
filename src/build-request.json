@@ -1,37 +1,53 @@
 {
   "kind": "build_request",
-  "title": "Replace Somers Scheduler logo everywhere with provided URL",
+  "title": "Chat box avatar/name sizing updates and extend availability time dropdown to 8am–9pm",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Replace the current app logo (currently referenced as `/assets/generated/somers-scheduler-logo.dim_512x512.png`) everywhere it appears in the UI with this exact URL: https://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152. Update all logo render locations (e.g., login screen and top bar header) so the same URL is used consistently.",
+      "text": "Increase the chat box (and only the chat box) message header sizing so that each message shows a 25px x 25px profile picture and a 14px display name, without changing avatar/name sizing anywhere else in the app.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6",
-          "msg-8"
+          "msg-4"
         ],
         "quotes": [
-          "Can we please replace that with the following url https://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152",
-          "Everywhere"
+          "2)only chat box",
+          "Also can we increase display name to 14px and have the profile picture be 25px by 25px."
         ]
       },
       "acceptanceCriteria": [
-        "Login screen logo renders using the provided blob URL (no remaining reference to `/assets/generated/somers-scheduler-logo.dim_512x512.png` for the logo).",
-        "Top bar/header logo renders using the provided blob URL (no remaining reference to `/assets/generated/somers-scheduler-logo.dim_512x512.png` for the logo).",
-        "A project-wide search shows no remaining usage of `/assets/generated/somers-scheduler-logo.dim_512x512.png` for app branding/logo rendering (excluding unrelated assets).",
-        "Logo alt text remains in English (e.g., \"Somers Scheduler\")."
+        "In the chat message list (frontend/src/components/chat/ChatPanel.tsx), each message renders the sender avatar at exactly 25x25 pixels.",
+        "In the chat message list, the sender display name renders at 14px font size.",
+        "Avatar/name sizing in other areas that use AvatarName (e.g., day detail page and any other pages/components) remains unchanged from current behavior."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Update the availability start-time dropdown options to span 8:00 AM through 9:00 PM (inclusive).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "1)lets go from 8am - 9pm"
+        ]
+      },
+      "acceptanceCriteria": [
+        "On the Add/Edit Availability page (frontend/src/pages/AddAvailabilityPage.tsx), the selectable TIME_OPTIONS start at \"8:00 AM\" and end at \"9:00 PM\".",
+        "Times earlier than 8:00 AM and later than 9:00 PM are not shown as normal dropdown options.",
+        "If an existing availability has a legacy time value outside the new range, that value still appears as a selectable \"(legacy)\" option, and the form can be saved without losing it."
       ]
     }
   ],
   "constraints": [
-    "Do not modify any files under `frontend/src/components/ui` (compose existing UI components instead).",
-    "Do not modify the Internet Identity hooks in the immutable paths (e.g., `frontend/src/hooks/useInternetIdentity.ts(x)` and `frontend/src/hooks/useActor.ts`)."
+    "Do not edit files in frontend immutablePaths (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or any sources under frontend/src/components/ui).",
+    "Keep backend as single-actor Motoko; do not introduce additional backend services."
   ],
   "nonGoals": [
-    "Generating a new logo image file in `frontend/public/assets/generated` (the logo must be loaded from the provided URL).",
-    "Changing the app name text, page title, or any non-logo branding elements."
+    "Do not change global avatar sizing rules for AvatarName across the entire app.",
+    "Do not change the backend availability data model or how availability times are stored; only adjust the frontend dropdown options."
   ],
   "imageRequirements": {
     "required": [],

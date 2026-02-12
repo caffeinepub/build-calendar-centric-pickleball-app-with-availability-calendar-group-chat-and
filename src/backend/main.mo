@@ -5,7 +5,6 @@ import Order "mo:core/Order";
 import Time "mo:core/Time";
 import Int "mo:core/Int";
 import Nat "mo:core/Nat";
-import Iter "mo:core/Iter";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
 
@@ -13,9 +12,6 @@ import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
-
-
-
 
 actor {
   let accessControlState = AccessControl.initState();
@@ -41,17 +37,22 @@ actor {
       streak : Int;
     };
 
-    public func compareByWinPercentage(a : (Principal, T), b : (Principal, T)) : Order.Order {
-      let aPercentage = calculateWinPercentage(a.1.wins, a.1.losses);
-      let bPercentage = calculateWinPercentage(b.1.wins, b.1.losses);
+    public func compareByScore(a : (Principal, T), b : (Principal, T)) : Order.Order {
+      let aScore = calculateScore(a.1.wins, a.1.losses);
+      let bScore = calculateScore(b.1.wins, b.1.losses);
 
-      switch (Int.compare(bPercentage, aPercentage)) {
+      switch (Int.compare(bScore, aScore)) {
         case (#equal) {
           Int.compare(b.1.wins, a.1.wins);
         };
         case (order) { order };
       };
     };
+  };
+
+  public type DailyLog = {
+    wins : Nat;
+    losses : Nat;
   };
 
   type Availability = {
@@ -75,6 +76,7 @@ actor {
   let userStats = Map.empty<Principal, UserStats.T>();
   let availabilities = Map.empty<(Principal, Int), Availability>();
   let chatMessages = Map.empty<Int, (Principal, Text, Int)>();
+  let dailyLogs = Map.empty<(Principal, Int), DailyLog>();
   var messageCounter : Int = 0;
 
   public shared ({ caller }) func recordLoginTime() : async () {
@@ -143,14 +145,15 @@ actor {
     loginRecords.toArray();
   };
 
-  public query ({ caller }) func getTopPlayersByWinPercentage(limit : Nat) : async [(Principal, UserStats.T)] {
+  public query ({ caller }) func getTopPlayersByScore(limit : Nat, timeframe : Text) : async [(Principal, UserStats.T)] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view stats");
     };
 
-    let sortedLeaderboard = userStats.entries().toArray().sort(
-      UserStats.compareByWinPercentage
+    let filteredStats = userStats.entries().toArray().map(
+      func(entry) { filterStatsForTimeframe(entry, timeframe) }
     );
+    let sortedLeaderboard = filteredStats.sort(UserStats.compareByScore);
 
     Array.tabulate(
       Nat.min(sortedLeaderboard.size(), limit),
@@ -158,7 +161,7 @@ actor {
     );
   };
 
-  public query ({ caller }) func getWinPercentageLeaderboardWithStats() : async [
+  public query ({ caller }) func getScoreLeaderboardWithStats() : async [
     (Principal, UserStats.T, Int)
   ] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
@@ -168,7 +171,7 @@ actor {
     let leaderboardArray = userStats.entries().toArray();
     let leaderboardWithStats = leaderboardArray.map(
       func((id, stats)) {
-        (id, stats, calculateWinPercentage(stats.wins, stats.losses));
+        (id, stats, calculateScore(stats.wins, stats.losses));
       }
     );
 
@@ -278,73 +281,97 @@ actor {
       Runtime.trap("Unauthorized: Only users can view leaderboard");
     };
 
-    let sortedLeaderboard = userStats.entries().toArray().sort(
-      func(a, b) { UserStats.compareByWinPercentage(a, b) }
-    );
-
-    sortedLeaderboard;
+    userStats.entries().toArray().sort(UserStats.compareByScore);
   };
 
-  public shared ({ caller }) func recordWin() : async () {
+  public shared ({ caller }) func recordDailyWin(day : Int) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can update stats");
+      Runtime.trap("Unauthorized: Only users can record daily wins");
     };
 
-    ensureUserStatsInitialized(caller);
-
-    let currentStats = switch (userStats.get(caller)) {
-      case (null) {
-        {
-          wins = 0;
-          losses = 0;
-          totalGames = 0;
-          streak = 0;
-        };
-      };
-      case (?stats) { stats };
+    if (not hasAvailabilityInternal(caller, day)) {
+      Runtime.trap("You can only record wins on days you have marked as available");
     };
 
-    let newStats = {
-      wins = currentStats.wins + 1;
-      losses = currentStats.losses;
-      totalGames = currentStats.totalGames + 1;
-      streak = if (currentStats.streak >= 0) {
-        currentStats.streak + 1;
-      } else {
-        1;
-      };
-    };
-
-    userStats.add(caller, newStats);
+    updateDailyLog(caller, day, true);
   };
 
-  public shared ({ caller }) func recordLoss() : async () {
+  public shared ({ caller }) func recordDailyLoss(day : Int) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can update stats");
+      Runtime.trap("Unauthorized: Only users can record daily losses");
     };
 
-    ensureUserStatsInitialized(caller);
+    if (not hasAvailabilityInternal(caller, day)) {
+      Runtime.trap("You can only record losses on days you have marked as available");
+    };
 
-    let currentStats = switch (userStats.get(caller)) {
-      case (null) {
-        {
-          wins = 0;
-          losses = 0;
-          totalGames = 0;
-          streak = 0;
-        };
+    updateDailyLog(caller, day, false);
+  };
+
+  func updateDailyLog(user : Principal, day : Int, isWin : Bool) {
+    let currentLog = switch (dailyLogs.get((user, day))) {
+      case (null) { { wins = 0; losses = 0 } };
+      case (?log) { log };
+    };
+
+    let updatedLog = {
+      wins = if (isWin) { currentLog.wins + 1 } else {
+        currentLog.wins;
       };
-      case (?stats) { stats };
+      losses = if (isWin) { currentLog.losses } else {
+        currentLog.losses + 1;
+      };
     };
 
-    let newStats = {
-      wins = currentStats.wins;
-      losses = currentStats.losses + 1;
-      totalGames = currentStats.totalGames + 1;
-      streak = if (currentStats.streak > 0) { -1 } else { currentStats.streak - 1 };
+    dailyLogs.add((user, day), updatedLog);
+
+    updateOverallStats(user);
+  };
+
+  func updateOverallStats(user : Principal) {
+    var totalWins = 0;
+    var totalLosses = 0;
+
+    for (((principal, _), log) in dailyLogs.entries()) {
+      if (principal == user) {
+        totalWins += log.wins;
+        totalLosses += log.losses;
+      };
     };
 
-    userStats.add(caller, newStats);
+    let totalGames = totalWins + totalLosses;
+
+    let stats = {
+      wins = totalWins;
+      losses = totalLosses;
+      totalGames;
+      streak = calculateStreak(user);
+    };
+    userStats.add(user, stats);
+  };
+
+  func calculateStreak(user : Principal) : Int {
+    var streak = 0;
+    var foundWin = false;
+
+    let dailyLogsArray = dailyLogs.entries().toArray();
+
+    for (((principal, _), log) in dailyLogsArray.values()) {
+      if (principal == user) {
+        if (log.wins > 0) {
+          if (not foundWin) {
+            foundWin := true;
+            streak := 1;
+          } else {
+            switch (streak) {
+              case (-1) { return 1 };
+              case (_) { streak += 1 };
+            };
+          };
+        } else if (log.losses > 0) { return -1 };
+      };
+    };
+    streak;
   };
 
   public shared ({ caller }) func addAvailability(day : Int, time : Text, notes : ?Text) : async () {
@@ -379,9 +406,13 @@ actor {
       Runtime.trap("Unauthorized: Only users can check availability");
     };
 
+    hasAvailabilityInternal(caller, day);
+  };
+
+  func hasAvailabilityInternal(user : Principal, day : Int) : Bool {
     availabilities.keys().any(
-      func((_, d)) {
-        d == day;
+      func((principal, d)) {
+        principal == user and d == day;
       }
     );
   };
@@ -422,15 +453,61 @@ actor {
     );
   };
 
-  func calculateWinPercentage(wins : Nat, losses : Nat) : Int {
-    switch (wins, losses) {
-      case (0, 0) { 0 };
-      case (wins, 0) { 100 };
-      case (_, _) {
-        let winsFloat = wins.toInt() * 100;
-        let totalGamesFloat = (wins + losses).toInt() : Int;
-        winsFloat / totalGamesFloat;
+  func calculateScore(wins : Nat, losses : Nat) : Int {
+    let games = wins + losses;
+    let winsWeighted = wins * 100;
+    let numerator = winsWeighted + 5 * 100;
+    let denominator = (games + 10).toInt() : Int;
+
+    if (denominator == 0) { return 0 };
+
+    numerator / denominator;
+  };
+
+  func filterStatsForTimeframe(entry : (Principal, UserStats.T), timeframe : Text) : (Principal, UserStats.T) {
+    let (principal, stats) = entry;
+    let now = Time.now();
+    let oneDayNanos = 24 * 60 * 60 * 1_000_000_000 : Int;
+    let daysInTimeframe : ?Nat = switch (timeframe) {
+      case ("weekly") { ?7 };
+      case ("monthly") { ?30 };
+      case ("all") { null };
+      case (_) { ?30 };
+    };
+
+    var filteredWins = 0;
+    var filteredLosses = 0;
+
+    for (((logPrincipal, day), log) in dailyLogs.entries()) {
+      if (principal == logPrincipal) {
+        let dayTimestamp = getDayTimestamp(day);
+        let withinTimeframe = switch (daysInTimeframe) {
+          case (null) {
+            true;
+          };
+          case (?days) {
+            (now - dayTimestamp <= (days.toInt() : Int * oneDayNanos));
+          };
+        };
+        if (withinTimeframe) {
+          filteredWins += log.wins;
+          filteredLosses += log.losses;
+        };
       };
     };
+
+    let filteredStats = {
+      wins = filteredWins;
+      losses = filteredLosses;
+      totalGames = filteredWins + filteredLosses;
+      streak = stats.streak;
+    };
+
+    (principal, filteredStats);
+  };
+
+  func getDayTimestamp(day : Int) : Int {
+    let dayTimestampNanos = 24 * 60 * 60 * 1_000_000_000 : Int;
+    dayTimestampNanos * day;
   };
 };

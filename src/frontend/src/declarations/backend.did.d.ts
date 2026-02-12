@@ -78,18 +78,18 @@ export interface _SERVICE {
     [bigint],
     Array<[Principal, string, bigint]>
   >,
-  'getTopPlayersByWinPercentage' : ActorMethod<[bigint], Array<[Principal, T]>>,
-  'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
-  'getUserStats' : ActorMethod<[Principal], [] | [T]>,
-  'getWinPercentageLeaderboardWithStats' : ActorMethod<
+  'getScoreLeaderboardWithStats' : ActorMethod<
     [],
     Array<[Principal, T, bigint]>
   >,
+  'getTopPlayersByScore' : ActorMethod<[bigint, string], Array<[Principal, T]>>,
+  'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'getUserStats' : ActorMethod<[Principal], [] | [T]>,
   'hasAvailability' : ActorMethod<[bigint], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'recordDailyLoss' : ActorMethod<[bigint], undefined>,
+  'recordDailyWin' : ActorMethod<[bigint], undefined>,
   'recordLoginTime' : ActorMethod<[], undefined>,
-  'recordLoss' : ActorMethod<[], undefined>,
-  'recordWin' : ActorMethod<[], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'sendMessage' : ActorMethod<[string], undefined>,
   'updateCallerStats' : ActorMethod<[T], undefined>,

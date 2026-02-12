@@ -143,15 +143,15 @@ export interface backendInterface {
     getDayAvailability(day: bigint): Promise<Array<[Principal, Availability]>>;
     getLeaderboard(timeFilter: string): Promise<Array<[Principal, T]>>;
     getRecentMessages(limit: bigint): Promise<Array<[Principal, string, bigint]>>;
-    getTopPlayersByWinPercentage(limit: bigint): Promise<Array<[Principal, T]>>;
+    getScoreLeaderboardWithStats(): Promise<Array<[Principal, T, bigint]>>;
+    getTopPlayersByScore(limit: bigint, timeframe: string): Promise<Array<[Principal, T]>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUserStats(user: Principal): Promise<T | null>;
-    getWinPercentageLeaderboardWithStats(): Promise<Array<[Principal, T, bigint]>>;
     hasAvailability(day: bigint): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
+    recordDailyLoss(day: bigint): Promise<void>;
+    recordDailyWin(day: bigint): Promise<void>;
     recordLoginTime(): Promise<void>;
-    recordLoss(): Promise<void>;
-    recordWin(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     sendMessage(message: string): Promise<void>;
     updateCallerStats(stats: T): Promise<void>;
@@ -481,17 +481,31 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async getTopPlayersByWinPercentage(arg0: bigint): Promise<Array<[Principal, T]>> {
+    async getScoreLeaderboardWithStats(): Promise<Array<[Principal, T, bigint]>> {
         if (this.processError) {
             try {
-                const result = await this.actor.getTopPlayersByWinPercentage(arg0);
+                const result = await this.actor.getScoreLeaderboardWithStats();
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getTopPlayersByWinPercentage(arg0);
+            const result = await this.actor.getScoreLeaderboardWithStats();
+            return result;
+        }
+    }
+    async getTopPlayersByScore(arg0: bigint, arg1: string): Promise<Array<[Principal, T]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getTopPlayersByScore(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getTopPlayersByScore(arg0, arg1);
             return result;
         }
     }
@@ -523,20 +537,6 @@ export class Backend implements backendInterface {
             return from_candid_opt_n21(this._uploadFile, this._downloadFile, result);
         }
     }
-    async getWinPercentageLeaderboardWithStats(): Promise<Array<[Principal, T, bigint]>> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getWinPercentageLeaderboardWithStats();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getWinPercentageLeaderboardWithStats();
-            return result;
-        }
-    }
     async hasAvailability(arg0: bigint): Promise<boolean> {
         if (this.processError) {
             try {
@@ -565,6 +565,34 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async recordDailyLoss(arg0: bigint): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.recordDailyLoss(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.recordDailyLoss(arg0);
+            return result;
+        }
+    }
+    async recordDailyWin(arg0: bigint): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.recordDailyWin(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.recordDailyWin(arg0);
+            return result;
+        }
+    }
     async recordLoginTime(): Promise<void> {
         if (this.processError) {
             try {
@@ -576,34 +604,6 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.recordLoginTime();
-            return result;
-        }
-    }
-    async recordLoss(): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.recordLoss();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.recordLoss();
-            return result;
-        }
-    }
-    async recordWin(): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.recordWin();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.recordWin();
             return result;
         }
     }

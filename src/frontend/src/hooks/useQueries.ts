@@ -81,6 +81,33 @@ export function useGetCallerAvailability(day: bigint | null) {
   });
 }
 
+export function useGetCallerAvailableDays() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<bigint[]>({
+    queryKey: ['callerAvailableDays'],
+    queryFn: async () => {
+      if (!actor) return [];
+      const allAvailabilities = await actor.getAllAvailabilities();
+      const callerPrincipal = (await actor.getCallerUserProfile()) ? 'caller' : null;
+      
+      // Filter to get only caller's availabilities
+      const callerDays: bigint[] = [];
+      for (const [principal, day] of allAvailabilities) {
+        // Check if this is the caller by attempting to get their availability
+        const callerAvail = await actor.getCallerAvailability(day);
+        if (callerAvail !== null && !callerDays.includes(day)) {
+          callerDays.push(day);
+        }
+      }
+      
+      // Sort days in descending order (most recent first)
+      return callerDays.sort((a, b) => Number(b) - Number(a));
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
 export function useAddAvailability() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -94,6 +121,7 @@ export function useAddAvailability() {
       queryClient.invalidateQueries({ queryKey: ['hasAvailability'] });
       queryClient.invalidateQueries({ queryKey: ['dayAvailability', variables.day.toString()] });
       queryClient.invalidateQueries({ queryKey: ['callerAvailability', variables.day.toString()] });
+      queryClient.invalidateQueries({ queryKey: ['callerAvailableDays'] });
     },
   });
 }
@@ -111,6 +139,7 @@ export function useDeleteCallerDayAvailability() {
       queryClient.invalidateQueries({ queryKey: ['hasAvailability'] });
       queryClient.invalidateQueries({ queryKey: ['dayAvailability', day.toString()] });
       queryClient.invalidateQueries({ queryKey: ['callerAvailability', day.toString()] });
+      queryClient.invalidateQueries({ queryKey: ['callerAvailableDays'] });
     },
   });
 }
@@ -157,14 +186,14 @@ export function useGetCallerStats() {
   });
 }
 
-export function useRecordWin() {
+export function useRecordDailyWin() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (day: bigint) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.recordWin();
+      return actor.recordDailyWin(day);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['callerStats'] });
@@ -173,14 +202,14 @@ export function useRecordWin() {
   });
 }
 
-export function useRecordLoss() {
+export function useRecordDailyLoss() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (day: bigint) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.recordLoss();
+      return actor.recordDailyLoss(day);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['callerStats'] });

@@ -10,15 +10,21 @@ import { useUserDirectoryWithAvatars } from '../../hooks/useUserDirectory';
 import { formatTime } from '../../lib/date';
 import AvatarName from '../user/AvatarName';
 
+const DEFAULT_VISIBLE_MESSAGES = 10;
+
 export default function ChatPanel() {
   const [message, setMessage] = useState('');
   const [shouldScrollToTop, setShouldScrollToTop] = useState(false);
+  const [showAllMessages, setShowAllMessages] = useState(false);
   const { data: messages = [], isLoading } = useGetRecentMessages(50);
   const { mutate: sendMessage, isPending } = useSendMessage();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const principals = messages.map(([principal]) => principal);
   const { data: userDirectory, isLoading: isLoadingDirectory } = useUserDirectoryWithAvatars(principals);
+
+  const hasMoreMessages = messages.length > DEFAULT_VISIBLE_MESSAGES;
+  const displayedMessages = showAllMessages ? messages : messages.slice(0, DEFAULT_VISIBLE_MESSAGES);
 
   useEffect(() => {
     if (scrollRef.current && shouldScrollToTop) {
@@ -51,13 +57,21 @@ export default function ChatPanel() {
     });
   };
 
+  const toggleShowAllMessages = () => {
+    setShowAllMessages(!showAllMessages);
+    if (showAllMessages) {
+      // When collapsing, scroll to top to show newest messages
+      setShouldScrollToTop(true);
+    }
+  };
+
   return (
-    <Card className="h-[300px]">
-      <CardHeader className="pb-3">
+    <Card className="flex flex-col h-full">
+      <CardHeader className="pb-3 flex-shrink-0">
         <CardTitle className="text-base">Group Chat</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col h-[calc(100%-4.5rem)]">
-        <ScrollArea className="flex-1 pr-4" ref={scrollRef}>
+      <CardContent className="flex flex-col flex-1 min-h-0">
+        <ScrollArea className="flex-1 pr-4 min-h-0" ref={scrollRef}>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="text-center">
@@ -71,7 +85,31 @@ export default function ChatPanel() {
             </div>
           ) : (
             <div className="space-y-2">
-              {messages.map(([principal, text, timestamp], index) => {
+              {hasMoreMessages && !showAllMessages && (
+                <div className="flex justify-center pb-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleShowAllMessages}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Show older messages ({messages.length - DEFAULT_VISIBLE_MESSAGES} more)
+                  </Button>
+                </div>
+              )}
+              {hasMoreMessages && showAllMessages && (
+                <div className="flex justify-center pb-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleShowAllMessages}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Hide older messages
+                  </Button>
+                </div>
+              )}
+              {displayedMessages.map(([principal, text, timestamp], index) => {
                 const userEntry = userDirectory?.get(principal.toString());
                 const displayName = userEntry?.displayName || 'Loading...';
                 const avatarUrl = userEntry?.avatarUrl;
@@ -87,12 +125,14 @@ export default function ChatPanel() {
                           avatarUrl={avatarUrl}
                           size="sm"
                           isLoading={isLoadingDirectory}
+                          avatarClassName="h-[25px] w-[25px] text-[10px]"
+                          nameClassName="text-sm"
                         />
                         <span className="text-[10px] text-muted-foreground leading-tight whitespace-nowrap">
                           {formatTime(timestamp)}
                         </span>
                       </div>
-                      <p className="text-xs leading-snug">{text}</p>
+                      <p className="text-sm leading-snug">{text}</p>
                     </div>
                   </div>
                 );
@@ -101,13 +141,13 @@ export default function ChatPanel() {
           )}
         </ScrollArea>
 
-        <form onSubmit={handleSubmit} className="mt-3 flex gap-2">
+        <form onSubmit={handleSubmit} className="mt-3 flex gap-2 flex-shrink-0">
           <Input
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Type a message..."
             disabled={isPending}
-            className="text-xs"
+            className="text-sm"
           />
           <Button type="submit" size="icon" disabled={!message.trim() || isPending}>
             <Send className="h-4 w-4" />

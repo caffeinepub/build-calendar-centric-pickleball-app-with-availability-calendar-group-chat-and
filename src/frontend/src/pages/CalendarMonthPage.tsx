@@ -70,7 +70,9 @@ export default function CalendarMonthPage() {
         </CardContent>
       </Card>
 
-      <ChatPanel />
+      <div style={{ height: 'clamp(400px, calc(100vh - 700px), 667px)' }}>
+        <ChatPanel />
+      </div>
     </div>
   );
 }

@@ -8,6 +8,8 @@ interface AvatarNameProps {
   avatarUrl?: string;
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
+  avatarClassName?: string;
+  nameClassName?: string;
 }
 
 export default function AvatarName({
@@ -16,6 +18,8 @@ export default function AvatarName({
   avatarUrl,
   size = 'md',
   isLoading = false,
+  avatarClassName,
+  nameClassName,
 }: AvatarNameProps) {
   const sizeClasses = {
     sm: 'h-5 w-5 text-[10px]',
@@ -35,7 +39,7 @@ export default function AvatarName({
 
   return (
     <div className="flex items-center gap-2">
-      <Avatar className={sizeClasses[size]}>
+      <Avatar className={avatarClassName || sizeClasses[size]}>
         {avatarUrl && !isLoading && (
           <AvatarImage src={avatarUrl} alt={displayName} />
         )}
@@ -43,7 +47,7 @@ export default function AvatarName({
           {initials}
         </AvatarFallback>
       </Avatar>
-      <span className={textSizeClasses[size]}>{isLoading ? 'Loading...' : displayName}</span>
+      <span className={nameClassName || textSizeClasses[size]}>{isLoading ? 'Loading...' : displayName}</span>
     </div>
   );
 }
