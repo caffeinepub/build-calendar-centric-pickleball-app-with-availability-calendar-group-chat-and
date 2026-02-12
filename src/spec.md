@@ -1,11 +1,10 @@
 # Specification
 
 ## Summary
-**Goal:** Fix the post-login flow so the app reliably transitions from splash + Internet Identity login to the main calendar + chat screen without getting stuck on an infinite full-screen loader, and show a clear error state when initialization fails.
+**Goal:** Improve the monthly calendar layout by repositioning the availability indicator within each day cell and widening the month grid so day numbers remain readable.
 
 **Planned changes:**
-- Update the post-login navigation/loading flow so that after successful Internet Identity login and proceeding past splash, the main calendar + chat screen renders instead of an indefinite “Loading...” spinner.
-- Add explicit, user-visible error handling in the authentication gate for cases where actor initialization or current user profile initialization fails or stalls, including a clear recovery action (e.g., Retry and/or Reload).
-- Implement the fixes by adjusting usage patterns and UI behavior in editable components (e.g., App/pages/components) without modifying the immutable auth/actor hook files.
+- In the monthly calendar view (CalendarMonthPage), move the availability indicator dot from the top row (near the date number) to the bottom area of the day cell while keeping existing availability tinting and the “today” highlight behavior unchanged.
+- Slightly increase the effective width of the monthly calendar component and its 7-column day grid to prevent day numbers from being clipped, including handling very small screens via horizontal overflow/scrolling rather than cutting off content.
 
-**User-visible outcome:** After logging in and continuing past the splash page, the user sees the main calendar + group chat screen without needing a manual refresh; if initialization cannot complete, the user sees an English error message with a working recovery button instead of a permanent loading screen.
+**User-visible outcome:** In the month view, day numbers are fully readable and not cut off, and availability is still clearly indicated—now via a dot positioned at the bottom of each relevant day cell.

@@ -1,30 +1,29 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-12T12:43:29.252Z",
-  "summary": "Diff updates AuthGate in frontend/src/App.tsx to avoid indefinite full-screen loading after login by not blocking on profile loading, adds a 10s initialization timeout, and introduces a user-visible error UI with Retry/Reload actions via a new AuthGateErrorState component.",
+  "generatedAt": "2026-02-12T13:30:10.570Z",
+  "summary": "REQ-1 and REQ-2 appear implemented in CalendarMonthPage by repositioning the availability dot to the bottom of the day cell and adding horizontal overflow + a minimum grid width to prevent day-number clipping. However, the diff also introduces an embedded ChatPanel on the month view, which is explicitly a non-goal (chat-related layout changes).",
   "missing_requirements": [],
   "hallucinated_features": [
     {
-      "description": "Project tracking/state metadata updated/introduced (project_state.json) which is not part of the requested frontend AuthGate/login flow fix.",
-      "reason": "BuildRequest requirements are strictly about fixing post-login loading/navigation and adding AuthGate error handling; it does not request adding/updating project state metadata files.",
+      "description": "Embedded chat panel added to the monthly calendar view (CalendarMonthPage).",
+      "reason": "BuildRequest explicitly lists chat-related layout/ordering changes as a non-goal; adding ChatPanel to this page changes chat layout/presence on the month view and is not requested by REQ-1/REQ-2.",
       "evidence": [
-        "project_state.json"
+        "frontend/src/pages/CalendarMonthPage.tsx (imports ChatPanel and renders <ChatPanel />)"
       ]
     },
     {
-      "description": "Frontend summary/metadata file updated (frontend-file-summaries.txt) which is not requested by the BuildRequest.",
-      "reason": "BuildRequest does not mention generating or modifying repository summary files; changes appear ancillary to implementation.",
+      "description": "Day cell sizing/layout changes beyond indicator position (responsive min-heights, padding, flex layout).",
+      "reason": "REQ-1 only asks to move the availability indicator; these additional structural/layout changes to day cells were not explicitly requested (even if they may be incidental to achieving the UI goals).",
       "evidence": [
-        "frontend-file-summaries.txt"
+        "frontend/src/pages/CalendarMonthPage.tsx (DayCell: min-h classes, flex flex-col justify-between p-3)"
       ]
     }
   ],
-  "confidence": 0.72,
+  "confidence": 0.78,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/App.tsx",
-    "frontend/src/components/auth/AuthGateErrorState.tsx",
+    "frontend/src/pages/CalendarMonthPage.tsx",
     "project_state.json"
   ]
 }

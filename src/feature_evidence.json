@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-post-login-navigation-loading-flow-so-that-after-the-user-logs-in-and-proceeds-past-the-splash-page-the-app-renders-the-main-calendar-chat-screen-instead-of-getting-stuck-on-a-full-screen-loading-spinner",
-      "featureTitle": "Fix the post-login navigation/loading flow so that after the user logs in and proceeds past the splash page, the app renders the main calendar + chat screen instead of getting stuck on a full-screen \"Loading...\" spinner.",
+      "featureId": "feature-in-the-main-monthly-calendar-view-move-the-availability-indicator-the-small-dot-that-appears-when-at-least-one-user-has-selected-availability-for-that-date-to-the-bottom-area-of-each-day-cell-so-it-no-longer-sits-next-to-the-date-number",
+      "featureTitle": "In the main monthly calendar view, move the availability indicator (the small dot that appears when at least one user has selected availability for that date) to the bottom area of each day cell, so it no longer sits next to the date number.",
       "files": [
-        "frontend/src/App.tsx"
+        "frontend/src/pages/CalendarMonthPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -21,11 +21,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-explicit-user-visible-error-handling-for-the-authentication-gate-so-that-if-profile-initialization-current-user-profile-fetch-or-actor-initialization-fails-or-stalls-the-ui-shows-an-english-error-state-with-a-clear-recovery-action-e-g-retry-and-or-reload-instead-of-silently-remaining-on-the-loading-screen",
-      "featureTitle": "Add explicit, user-visible error handling for the authentication gate so that if profile initialization (current user profile fetch) or actor initialization fails or stalls, the UI shows an English error state with a clear recovery action (e.g., retry and/or reload) instead of silently remaining on the loading screen.",
+      "featureId": "feature-slightly-increase-the-width-of-the-main-monthly-calendar-component-and-the-7-column-day-grid-so-that-numeric-day-labels-are-not-visually-cut-off-ensure-the-month-view-remains-usable-on-smaller-screens-e-g-allow-appropriate-horizontal-space-scrolling-rather-than-clipping",
+      "featureTitle": "Slightly increase the width of the main monthly calendar component and the 7-column day grid so that numeric day labels are not visually cut off; ensure the month view remains usable on smaller screens (e.g., allow appropriate horizontal space/scrolling rather than clipping).",
       "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/auth/AuthGateErrorState.tsx"
+        "frontend/src/pages/CalendarMonthPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",

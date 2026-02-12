@@ -1,42 +1,37 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Unblock AuthGate after login and add explicit initialization error states",
+  "title": "Calendar month view layout tweaks (indicator positioning + wider month grid)",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Ensure authenticated users proceed past the splash/login flow to the main Calendar + Chat screen without getting stuck on the AuthGate full-screen loader.",
+      "summary": "Move the month-view availability dot indicator to the bottom of each day cell while preserving existing tints and today highlight styling.",
       "acceptanceCriteria": [
-        "After a successful Internet Identity login and proceeding past the splash page, the user sees the main screen containing the calendar and the group chat (as currently shown on the Calendar page) without an infinite loading spinner.",
-        "The app no longer blocks indefinitely on the full-screen loader in AuthGate.",
-        "Manual refresh is not required to reach the main calendar + chat screen."
+        "On the month view (CalendarMonthPage), for dates with availability, the indicator renders at the bottom of the day cell (not in the top row next to the numeric date).",
+        "The numeric date label remains clearly readable and is not overlapped by the indicator across common viewport sizes.",
+        "Existing visual behaviors remain intact: background tint for days with availability and the 'today' border highlight still work as before."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/pages/CalendarMonthPage.tsx",
           "operation": "modify",
-          "description": "Adjust AuthGate gating so the router (and thus the CalendarMonthPage with embedded ChatPanel) reliably renders after login. Replace the current unconditional full-screen loading block (based on actorFetching/profileLoading) with a bounded/defensive flow that (a) does not keep the entire app behind an infinite spinner and (b) only blocks when strictly necessary (e.g., initial identity boot), while allowing the main calendar+chat route to render once authenticated even if optional queries are still resolving. Align the profile-setup gating with the authorization component guidance (actor dependency + isFetched) to avoid blocking rendering. Verify the component's usage instructions before implementing."
+          "description": "Update DayCell layout so the date number remains in the top area and the availability indicator dot is rendered in a dedicated bottom area (e.g., bottom-aligned row/slot) within the day cell, ensuring the dot no longer sits next to the date number while keeping existing conditional styles for availability tint and today border."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Add a user-visible AuthGate error state with recovery actions when actor/profile initialization fails or stalls, instead of silently showing the loading spinner indefinitely.",
+      "summary": "Increase the effective width of the month grid so day numbers are not clipped, using horizontal overflow/scrolling on small screens instead of clipping.",
       "acceptanceCriteria": [
-        "If actor/profile initialization cannot complete, the user sees an English error message on screen (not only in console).",
-        "The error state provides a working recovery action (at minimum: a Retry button that re-attempts initialization, or a Reload button).",
-        "In normal conditions, the error state does not appear and the main calendar + chat screen loads as expected."
+        "In the month view, day numbers are not clipped/cut off at typical narrow and mid-size viewports.",
+        "The calendar and the grid have increased effective width (component and grid), without breaking the 7-column layout.",
+        "No horizontal clipping occurs inside the card content; if horizontal overflow is necessary on very small screens, the user can access all columns without content being cut off."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/auth/AuthGateErrorState.tsx",
-          "operation": "create",
-          "description": "Create a small, reusable AuthGate error UI that displays an English message explaining that initialization failed or is taking too long, plus recovery actions (Retry to re-attempt initialization; Reload to refresh the app). Build the UI using existing shadcn-ui primitives already in use (e.g., Card/Button) for consistency. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/pages/CalendarMonthPage.tsx",
           "operation": "modify",
-          "description": "Wire explicit error handling into AuthGate: detect initialization failures (e.g., actor/profile query errors) and stalls (e.g., timeout while authenticated but actor/profile cannot become ready) and show AuthGateErrorState instead of an infinite spinner. Implement Retry by triggering re-initialization via React Query invalidation/refetch of the actor/profile queries (using their existing query keys) and ensure the normal path still renders the main Calendar + Chat screen. Incorporate the authorization component’s frontend error-handling guidance so backend authorization traps and initialization errors surface as user-readable messages. Verify the component's usage instructions before implementing."
+          "description": "Adjust the month grid container to avoid clipping by increasing effective grid width (e.g., applying a minimum width to the 7-column grid) and enabling horizontal scrolling in the CardContent region on very small screens (overflow-x behavior), so all 7 columns remain accessible without cutting off numeric labels."
         }
       ]
     }

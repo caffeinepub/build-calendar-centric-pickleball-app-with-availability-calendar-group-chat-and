@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-12T12:43:29.255Z",
+  "generatedAt": "2026-02-12T13:30:10.573Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -12,26 +12,24 @@
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix the post-login navigation/loading flow so that after the user logs in and proceeds past the splash page, the app renders the main calendar + chat screen instead of getting stuck on a full-screen \"Loading...\" spinner.",
+        "summary": "In the main monthly calendar view, move the availability indicator (the small dot that appears when at least one user has selected availability for that date) to the bottom area of each day cell, so it no longer sits next to the date number.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/App.tsx"
+          "frontend/src/pages/CalendarMonthPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/App.tsx"
+          "frontend/src/pages/CalendarMonthPage.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Add explicit, user-visible error handling for the authentication gate so that if profile initialization (current user profile fetch) or actor initialization fails or stalls, the UI shows an English error state with a clear recovery action (e.g., retry and/or reload) instead of silently remaining on the loading screen.",
+        "summary": "Slightly increase the width of the main monthly calendar component and the 7-column day grid so that numeric day labels are not visually cut off; ensure the month view remains usable on smaller screens (e.g., allow appropriate horizontal space/scrolling rather than clipping).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/auth/AuthGateErrorState.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/pages/CalendarMonthPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/auth/AuthGateErrorState.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/pages/CalendarMonthPage.tsx"
         ]
       }
     ]
@@ -41,8 +39,7 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/components/auth/AuthGateErrorState.tsx",
+    "frontend/src/pages/CalendarMonthPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

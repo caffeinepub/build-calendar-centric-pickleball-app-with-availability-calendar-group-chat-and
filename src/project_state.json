@@ -1,34 +1,45 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
-  "architectural_notes": [
-    "App flow: Splash page -> Internet Identity login -> main screen (calendar + chat)."
-  ],
+  "summary": "Monthly calendar UI adjustments for availability selection indicator placement and calendar sizing to prevent date numbers from being cut off.",
+  "architectural_notes": [],
   "known_issues": [
-    "After Internet Identity login and clicking past the splash page, the app gets stuck on an infinite loading screen instead of navigating to the main calendar + chat screen; no browser console errors are shown."
+    "In the main monthly calendar, date numbers are being visually cut off due to insufficient calendar/date-cell width."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-fix-the-post-login-navigation-loading-flow-so-that-after-the-user-logs-in-and-proceeds-past-the-splash-page-the-app-renders-the-main-calendar-chat-screen-instead-of-getting-stuck-on-a-full-screen-loading-spinner",
-      "title": "Fix the post-login navigation/loading flow so that after the user logs in and proceeds past the splash page, the app renders the main calendar + chat screen instead of getting stuck on a full-screen \"Loading...\" spinner.",
+      "id": "feature-in-the-main-monthly-calendar-view-move-the-availability-indicator-the-small-dot-that-appears-when-at-least-one-user-has-selected-availability-for-that-date-to-the-bottom-area-of-each-day-cell-so-it-no-longer-sits-next-to-the-date-number",
+      "title": "In the main monthly calendar view, move the availability indicator (the small dot that appears when at least one user has selected availability for that date) to the bottom area of each day cell, so it no longer sits next to the date number.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-explicit-user-visible-error-handling-for-the-authentication-gate-so-that-if-profile-initialization-current-user-profile-fetch-or-actor-initialization-fails-or-stalls-the-ui-shows-an-english-error-state-with-a-clear-recovery-action-e-g-retry-and-or-reload-instead-of-silently-remaining-on-the-loading-screen",
-      "title": "Add explicit, user-visible error handling for the authentication gate so that if profile initialization (current user profile fetch) or actor initialization fails or stalls, the UI shows an English error state with a clear recovery action (e.g., retry and/or reload) instead of silently remaining on the loading screen.",
+      "id": "feature-slightly-increase-the-width-of-the-main-monthly-calendar-component-and-the-7-column-day-grid-so-that-numeric-day-labels-are-not-visually-cut-off-ensure-the-month-view-remains-usable-on-smaller-screens-e-g-allow-appropriate-horizontal-space-scrolling-rather-than-clipping",
+      "title": "Slightly increase the width of the main monthly calendar component and the 7-column day grid so that numeric day labels are not visually cut off; ensure the month view remains usable on smaller screens (e.g., allow appropriate horizontal space/scrolling rather than clipping).",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Fix post-login infinite loading and ensure calendar + chat main screen renders after splash",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Move the availability selection indicator to the bottom of each date cell in the main monthly calendar view.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Slightly increase the monthly calendar width (including overall component and date grid) so date numbers are not cut off.",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Monthly calendar: move availability indicator to bottom of day cell and widen month grid",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

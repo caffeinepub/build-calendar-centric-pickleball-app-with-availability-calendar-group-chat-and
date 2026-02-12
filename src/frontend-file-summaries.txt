@@ -1,5 +1,5 @@
 {
-  "frontend/src/App.tsx": "Main application component with TanStack Router setup, improved AuthGate that no longer blocks indefinitely on profile loading, includes timeout detection (10s) and error handling with retry/reload actions, profile setup modal, automatic leaderboard initialization on login, and all route definitions.",
+  "frontend/src/App.tsx": "Main application component with TanStack Router setup, authentication gate, profile setup modal, automatic leaderboard initialization on login, and all route definitions including the new admin route.",
   "frontend/src/hooks/useQueries.ts": "React Query hooks for all backend operations including availability management, chat messages, leaderboard data, user stats, win/loss mutations, and new admin mutations (deleteUser, deleteAllDayAvailabilities, getAllLoginTimestamps).",
   "frontend/src/hooks/useCurrentUserProfile.ts": "React Query hooks for fetching and saving the current user's profile with proper loading state management to prevent modal flash.",
   "frontend/src/hooks/useCurrentUserRole.ts": "React Query hooks for fetching the current user's role and admin status for authorization UI hints.",
@@ -11,7 +11,7 @@
   "frontend/src/components/layout/TopBar.tsx": "Top navigation bar with app logo, title, theme toggle button directly in header (outside dropdown), and user dropdown menu with logout functionality.",
   "frontend/src/components/layout/Navigation.tsx": "Horizontal navigation bar with links to Calendar, Leaderboard, Profile, and conditionally-rendered Admin tab (visible only to admins).",
   "frontend/src/components/theme/Background.tsx": "Background wrapper component that applies the subtle court texture behind all content.",
-  "frontend/src/pages/CalendarMonthPage.tsx": "Monthly calendar view with enlarged day cells (min-height responsive sizing), month navigation, availability indicators (colored dot and background tint positioned to avoid overlap with date number), Add Availability button, and embedded ChatPanel.",
+  "frontend/src/pages/CalendarMonthPage.tsx": "Monthly calendar view with enlarged day cells (min-height responsive sizing), month navigation, availability indicators (colored dot positioned at bottom of cell and background tint), Add Availability button, horizontal scrolling support for narrow viewports (min-width 600px on grid), and embedded ChatPanel.",
   "frontend/src/pages/DayDetailPage.tsx": "Day detail page showing all users available on a selected date with their times and notes, plus empty state with illustration.",
   "frontend/src/pages/AddAvailabilityPage.tsx": "Form page for adding or editing availability with time dropdown selection and optional notes field.",
   "frontend/src/pages/ChatPage.tsx": "Group chat page that renders the ChatPanel component for consistent chat behavior.",
@@ -23,6 +23,5 @@
   "frontend/src/pages/AdminPage.tsx": "Admin-only page with access control that provides UI for deleting users, deleting day availabilities, and monitoring user login timestamps with user-friendly display.",
   "frontend/src/components/auth/AccessDeniedScreen.tsx": "Reusable access-denied screen component displayed when unauthorized users attempt to access restricted routes.",
   "frontend/src/hooks/useTheme.ts": "Custom hook for managing dark/light theme state with localStorage persistence and automatic DOM class application.",
-  "frontend/src/main.tsx": "Application entry point with QueryClient setup and theme initialization before render to prevent flash.",
-  "frontend/src/components/auth/AuthGateErrorState.tsx": "Error state component displayed when actor/profile initialization fails or times out, showing a user-friendly message with Retry and Reload action buttons using shadcn Card and Button components."
+  "frontend/src/main.tsx": "Application entry point with QueryClient setup and theme initialization before render to prevent flash."
 }
