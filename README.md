@@ -1,2 +1,3 @@
-# build-calendar-centric-pickleball-app-with-availability-calendar-group-chat-and
-Exported from Caffeine project: Fix post-login infinite loading and ensure calendar + chat main screen renders after splash
+## 
+
+To run app build and run docker image: `docker build -t app . docker run -it --network host app`

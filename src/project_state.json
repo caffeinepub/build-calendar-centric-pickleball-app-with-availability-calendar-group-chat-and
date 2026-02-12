@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "New project",
+  "architectural_notes": [
+    "App flow: Splash page -> Internet Identity login -> main screen (calendar + chat)."
+  ],
+  "known_issues": [
+    "After Internet Identity login and clicking past the splash page, the app gets stuck on an infinite loading screen instead of navigating to the main calendar + chat screen; no browser console errors are shown."
+  ],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "feature-fix-the-post-login-navigation-loading-flow-so-that-after-the-user-logs-in-and-proceeds-past-the-splash-page-the-app-renders-the-main-calendar-chat-screen-instead-of-getting-stuck-on-a-full-screen-loading-spinner",
+      "title": "Fix the post-login navigation/loading flow so that after the user logs in and proceeds past the splash page, the app renders the main calendar + chat screen instead of getting stuck on a full-screen \"Loading...\" spinner.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-explicit-user-visible-error-handling-for-the-authentication-gate-so-that-if-profile-initialization-current-user-profile-fetch-or-actor-initialization-fails-or-stalls-the-ui-shows-an-english-error-state-with-a-clear-recovery-action-e-g-retry-and-or-reload-instead-of-silently-remaining-on-the-loading-screen",
+      "title": "Add explicit, user-visible error handling for the authentication gate so that if profile initialization (current user profile fetch) or actor initialization fails or stalls, the UI shows an English error state with a clear recovery action (e.g., retry and/or reload) instead of silently remaining on the loading screen.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [],
+  "projectName": "Fix post-login infinite loading and ensure calendar + chat main screen renders after splash",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

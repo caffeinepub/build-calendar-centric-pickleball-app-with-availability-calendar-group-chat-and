@@ -1,0 +1,44 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-fix-the-post-login-navigation-loading-flow-so-that-after-the-user-logs-in-and-proceeds-past-the-splash-page-the-app-renders-the-main-calendar-chat-screen-instead-of-getting-stuck-on-a-full-screen-loading-spinner",
+      "featureTitle": "Fix the post-login navigation/loading flow so that after the user logs in and proceeds past the splash page, the app renders the main calendar + chat screen instead of getting stuck on a full-screen \"Loading...\" spinner.",
+      "files": [
+        "frontend/src/App.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-explicit-user-visible-error-handling-for-the-authentication-gate-so-that-if-profile-initialization-current-user-profile-fetch-or-actor-initialization-fails-or-stalls-the-ui-shows-an-english-error-state-with-a-clear-recovery-action-e-g-retry-and-or-reload-instead-of-silently-remaining-on-the-loading-screen",
+      "featureTitle": "Add explicit, user-visible error handling for the authentication gate so that if profile initialization (current user profile fetch) or actor initialization fails or stalls, the UI shows an English error state with a clear recovery action (e.g., retry and/or reload) instead of silently remaining on the loading screen.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/auth/AuthGateErrorState.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    }
+  ]
+}
