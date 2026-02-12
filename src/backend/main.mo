@@ -11,13 +11,26 @@ import Runtime "mo:core/Runtime";
 
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
+import Storage "blob-storage/Storage";
+import MixinStorage "blob-storage/Mixin";
+
+
+
 
 actor {
   let accessControlState = AccessControl.initState();
+  include MixinStorage();
   include MixinAuthorization(accessControlState);
 
   public type UserProfile = {
     name : Text;
+    customProfilePicture : ?Storage.ExternalBlob;
+  };
+
+  public type UserEntry = {
+    principal : Principal;
+    profile : UserProfile;
+    createdAt : Int;
   };
 
   module UserStats {
@@ -36,9 +49,7 @@ actor {
         case (#equal) {
           Int.compare(b.1.wins, a.1.wins);
         };
-        case (order) {
-          order;
-        };
+        case (order) { order };
       };
     };
   };
@@ -60,7 +71,7 @@ actor {
   };
 
   var loginRecords : Map.Map<Principal, Int> = Map.empty<Principal, Int>();
-  let userProfiles = Map.empty<Principal, UserProfile>();
+  let userProfiles = Map.empty<Principal, UserEntry>();
   let userStats = Map.empty<Principal, UserStats.T>();
   let availabilities = Map.empty<(Principal, Int), Availability>();
   let chatMessages = Map.empty<Int, (Principal, Text, Int)>();
@@ -102,6 +113,26 @@ actor {
     for ((key, _) in keysToRemove.values()) {
       availabilities.remove(key);
     };
+  };
+
+  public shared ({ caller }) func deleteCallerDayAvailability(day : Int) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can delete their own availability");
+    };
+
+    availabilities.remove((caller, day));
+  };
+
+  public shared ({ caller }) func deleteUserDayAvailability(user : Principal, day : Int) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can delete specific user-day availability");
+    };
+
+    let key = (user, day);
+    if (not availabilities.containsKey(key)) {
+      Runtime.trap("Availability entry not found for given user and day");
+    };
+    availabilities.remove(key);
   };
 
   public query ({ caller }) func getAllLoginTimestamps() : async [(Principal, Int)] {
@@ -152,17 +183,20 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view profiles");
     };
-    userProfiles.get(caller);
+    switch (userProfiles.get(caller)) {
+      case (null) { null };
+      case (?entry) { ?entry.profile };
+    };
   };
 
   public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view profiles");
     };
-    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Can only view your own profile unless admin");
+    switch (userProfiles.get(user)) {
+      case (null) { null };
+      case (?entry) { ?entry.profile };
     };
-    userProfiles.get(user);
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
@@ -170,7 +204,37 @@ actor {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
     ensureUserStatsInitialized(caller);
-    userProfiles.add(caller, profile);
+
+    let userEntry = {
+      principal = caller;
+      profile;
+      createdAt = Time.now();
+    };
+    userProfiles.add(caller, userEntry);
+  };
+
+  public query ({ caller }) func getAllRegisteredUsers() : async [(Principal, UserProfile, Int)] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view all registered users");
+    };
+
+    userProfiles.entries().toArray().map(
+      func((principal, entry)) { (principal, entry.profile, entry.createdAt) }
+    );
+  };
+
+  public query ({ caller }) func getAllAvailabilities() : async [
+    (Principal, Int, Text)
+  ] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view all availabilities");
+    };
+
+    availabilities.entries().toArray().map(
+      func(((principal, day), availability)) {
+        (principal, day, availability.time);
+      }
+    );
   };
 
   private func ensureUserStatsInitialized(user : Principal) {
@@ -210,6 +274,10 @@ actor {
   };
 
   public query ({ caller }) func getLeaderboard(timeFilter : Text) : async [(Principal, UserStats.T)] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view leaderboard");
+    };
+
     let sortedLeaderboard = userStats.entries().toArray().sort(
       func(a, b) { UserStats.compareByWinPercentage(a, b) }
     );

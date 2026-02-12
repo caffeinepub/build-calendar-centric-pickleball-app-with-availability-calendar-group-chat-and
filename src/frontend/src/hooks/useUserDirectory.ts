@@ -3,6 +3,11 @@ import { useActor } from './useActor';
 import type { Principal } from '@dfinity/principal';
 import type { UserProfile } from '../backend';
 
+export interface UserDirectoryEntry {
+  displayName: string;
+  avatarUrl?: string;
+}
+
 export function useUserDirectory(principals: Principal[]) {
   const { actor, isFetching } = useActor();
 
@@ -26,6 +31,48 @@ export function useUserDirectory(principals: Principal[]) {
           } catch (error) {
             const principalStr = principal.toString();
             directory.set(principalStr, principalStr.slice(0, 8) + '...');
+          }
+        })
+      );
+      
+      return directory;
+    },
+    enabled: !!actor && !isFetching && principals.length > 0,
+    staleTime: 60000,
+  });
+}
+
+export function useUserDirectoryWithAvatars(principals: Principal[]) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Map<string, UserDirectoryEntry>>({
+    queryKey: ['userDirectoryWithAvatars', principals.map(p => p.toString()).sort()],
+    queryFn: async () => {
+      if (!actor) return new Map();
+      
+      const directory = new Map<string, UserDirectoryEntry>();
+      
+      await Promise.all(
+        principals.map(async (principal) => {
+          try {
+            const profile = await actor.getUserProfile(principal);
+            if (profile) {
+              const entry: UserDirectoryEntry = {
+                displayName: profile.name,
+                avatarUrl: profile.customProfilePicture?.getDirectURL(),
+              };
+              directory.set(principal.toString(), entry);
+            } else {
+              const principalStr = principal.toString();
+              directory.set(principalStr, {
+                displayName: principalStr.slice(0, 8) + '...',
+              });
+            }
+          } catch (error) {
+            const principalStr = principal.toString();
+            directory.set(principalStr, {
+              displayName: principalStr.slice(0, 8) + '...',
+            });
           }
         })
       );

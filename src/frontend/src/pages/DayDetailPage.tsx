@@ -1,20 +1,67 @@
-import { useParams, Link } from '@tanstack/react-router';
-import { ArrowLeft, Clock, StickyNote } from 'lucide-react';
+import { useState } from 'react';
+import { useParams, Link, useNavigate } from '@tanstack/react-router';
+import { ArrowLeft, Clock, StickyNote, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Separator } from '../components/ui/separator';
-import { useGetDayAvailability } from '../hooks/useQueries';
-import { useUserDirectory } from '../hooks/useUserDirectory';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
+import { useGetDayAvailability, useDeleteCallerDayAvailability } from '../hooks/useQueries';
+import { useUserDirectoryWithAvatars } from '../hooks/useUserDirectory';
+import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { dateFromDayId, formatDate } from '../lib/date';
+import AvatarName from '../components/user/AvatarName';
+import { toast } from 'sonner';
 
 export default function DayDetailPage() {
   const { date: dateParam } = useParams({ from: '/day/$date' });
   const dayId = BigInt(dateParam);
   const date = dateFromDayId(dayId);
+  const navigate = useNavigate();
+
+  const { identity } = useInternetIdentity();
+  const currentPrincipal = identity?.getPrincipal().toString();
 
   const { data: availabilities = [], isLoading } = useGetDayAvailability(dayId);
   const principals = availabilities.map(([principal]) => principal);
-  const { data: userDirectory } = useUserDirectory(principals);
+  const { data: userDirectory, isLoading: isLoadingDirectory } = useUserDirectoryWithAvatars(principals);
+
+  const { mutate: deleteAvailability, isPending: isDeleting } = useDeleteCallerDayAvailability();
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [principalToDelete, setPrincipalToDelete] = useState<string | null>(null);
+
+  const handleEditClick = () => {
+    navigate({ to: '/add-availability', search: { date: dayId.toString() } });
+  };
+
+  const handleDeleteClick = (principal: string) => {
+    setPrincipalToDelete(principal);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteAvailability(dayId, {
+      onSuccess: () => {
+        toast.success('Your availability has been deleted');
+        setDeleteDialogOpen(false);
+        setPrincipalToDelete(null);
+      },
+      onError: (error) => {
+        toast.error(`Failed to delete availability: ${error.message}`);
+        setDeleteDialogOpen(false);
+        setPrincipalToDelete(null);
+      },
+    });
+  };
 
   if (isLoading) {
     return (
@@ -62,13 +109,46 @@ export default function DayDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {availabilities.map(([principal, availability], index) => {
-                const displayName = userDirectory?.get(principal.toString()) || 'Loading...';
+                const userEntry = userDirectory?.get(principal.toString());
+                const displayName = userEntry?.displayName || 'Loading...';
+                const avatarUrl = userEntry?.avatarUrl;
+                const isCurrentUser = currentPrincipal === principal.toString();
                 
                 return (
                   <div key={principal.toString()}>
                     {index > 0 && <Separator className="my-4" />}
                     <div className="space-y-2">
-                      <div className="font-semibold">{displayName}</div>
+                      <div className="flex items-center justify-between">
+                        <AvatarName
+                          principal={principal}
+                          displayName={displayName}
+                          avatarUrl={avatarUrl}
+                          size="md"
+                          isLoading={isLoadingDirectory}
+                        />
+                        {isCurrentUser && (
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleEditClick}
+                              disabled={isDeleting}
+                            >
+                              <Pencil className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteClick(principal.toString())}
+                              disabled={isDeleting}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              {isDeleting && principalToDelete === principal.toString() ? 'Deleting...' : 'Delete'}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Clock className="h-4 w-4" />
                         {availability.time}
@@ -91,6 +171,27 @@ export default function DayDetailPage() {
           </Link>
         </div>
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Availability</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete your availability for {formatDate(date)}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

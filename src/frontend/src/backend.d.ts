@@ -7,6 +7,13 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export class ExternalBlob {
+    getBytes(): Promise<Uint8Array<ArrayBuffer>>;
+    getDirectURL(): string;
+    static fromURL(url: string): ExternalBlob;
+    static fromBytes(blob: Uint8Array<ArrayBuffer>): ExternalBlob;
+    withUploadProgress(onProgress: (percentage: number) => void): ExternalBlob;
+}
 export interface Availability {
     time: string;
     notes?: string;
@@ -19,6 +26,7 @@ export interface T {
 }
 export interface UserProfile {
     name: string;
+    customProfilePicture?: ExternalBlob;
 }
 export enum UserRole {
     admin = "admin",
@@ -29,8 +37,12 @@ export interface backendInterface {
     addAvailability(day: bigint, time: string, notes: string | null): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     deleteAllDayAvailabilities(day: bigint): Promise<void>;
+    deleteCallerDayAvailability(day: bigint): Promise<void>;
     deleteUser(userToDelete: Principal): Promise<void>;
+    deleteUserDayAvailability(user: Principal, day: bigint): Promise<void>;
+    getAllAvailabilities(): Promise<Array<[Principal, bigint, string]>>;
     getAllLoginTimestamps(): Promise<Array<[Principal, bigint]>>;
+    getAllRegisteredUsers(): Promise<Array<[Principal, UserProfile, bigint]>>;
     getCallerAvailability(day: bigint): Promise<Availability | null>;
     getCallerStats(): Promise<T | null>;
     getCallerUserProfile(): Promise<UserProfile | null>;

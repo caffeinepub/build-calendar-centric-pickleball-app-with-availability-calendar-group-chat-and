@@ -98,6 +98,23 @@ export function useAddAvailability() {
   });
 }
 
+export function useDeleteCallerDayAvailability() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (day: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.deleteCallerDayAvailability(day);
+    },
+    onSuccess: (_, day) => {
+      queryClient.invalidateQueries({ queryKey: ['hasAvailability'] });
+      queryClient.invalidateQueries({ queryKey: ['dayAvailability', day.toString()] });
+      queryClient.invalidateQueries({ queryKey: ['callerAvailability', day.toString()] });
+    },
+  });
+}
+
 export function useGetRecentMessages(limit: number = 50) {
   const { actor, isFetching } = useActor();
 
@@ -188,6 +205,32 @@ export function useInitializeCallerLeaderboard() {
   });
 }
 
+export function useGetAllRegisteredUsers() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Array<[Principal, UserProfile, bigint]>>({
+    queryKey: ['allRegisteredUsers'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllRegisteredUsers();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetAllAvailabilities() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Array<[Principal, bigint, string]>>({
+    queryKey: ['allAvailabilities'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllAvailabilities();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
 export function useDeleteUser() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -203,6 +246,26 @@ export function useDeleteUser() {
       queryClient.invalidateQueries({ queryKey: ['dayAvailability'] });
       queryClient.invalidateQueries({ queryKey: ['hasAvailability'] });
       queryClient.invalidateQueries({ queryKey: ['loginTimestamps'] });
+      queryClient.invalidateQueries({ queryKey: ['allRegisteredUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['allAvailabilities'] });
+    },
+  });
+}
+
+export function useDeleteUserDayAvailability() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ user, day }: { user: Principal; day: bigint }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.deleteUserDayAvailability(user, day);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dayAvailability'] });
+      queryClient.invalidateQueries({ queryKey: ['hasAvailability'] });
+      queryClient.invalidateQueries({ queryKey: ['callerAvailability'] });
+      queryClient.invalidateQueries({ queryKey: ['allAvailabilities'] });
     },
   });
 }
@@ -220,6 +283,7 @@ export function useDeleteAllDayAvailabilities() {
       queryClient.invalidateQueries({ queryKey: ['dayAvailability'] });
       queryClient.invalidateQueries({ queryKey: ['hasAvailability'] });
       queryClient.invalidateQueries({ queryKey: ['callerAvailability'] });
+      queryClient.invalidateQueries({ queryKey: ['allAvailabilities'] });
     },
   });
 }

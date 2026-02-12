@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSaveCallerUserProfile } from '../../hooks/useCurrentUserProfile';
+import { useSaveCallerUserProfile, useGetCallerUserProfile } from '../../hooks/useCurrentUserProfile';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
@@ -7,12 +7,16 @@ import { Label } from '../ui/label';
 
 export default function ProfileSetupModal() {
   const [name, setName] = useState('');
+  const { data: currentProfile } = useGetCallerUserProfile();
   const { mutate: saveProfile, isPending } = useSaveCallerUserProfile();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
-      saveProfile({ name: name.trim() });
+      saveProfile({
+        name: name.trim(),
+        customProfilePicture: currentProfile?.customProfilePicture,
+      });
     }
   };
 

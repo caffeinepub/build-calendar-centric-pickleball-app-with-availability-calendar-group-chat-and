@@ -1,26 +1,18 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Monthly calendar UI adjustments for availability selection indicator placement and calendar sizing to prevent date numbers from being cut off.",
-  "architectural_notes": [],
-  "known_issues": [
-    "In the main monthly calendar, date numbers are being visually cut off due to insufficient calendar/date-cell width."
+  "summary": "Update the app branding by replacing the current logo asset with a provided URL everywhere the logo appears.",
+  "architectural_notes": [
+    "App logo should be sourced from a specific external URL and used consistently across all screens/locations where the logo appears."
   ],
-  "isFixRequest": true,
+  "known_issues": [],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-in-the-main-monthly-calendar-view-move-the-availability-indicator-the-small-dot-that-appears-when-at-least-one-user-has-selected-availability-for-that-date-to-the-bottom-area-of-each-day-cell-so-it-no-longer-sits-next-to-the-date-number",
-      "title": "In the main monthly calendar view, move the availability indicator (the small dot that appears when at least one user has selected availability for that date) to the bottom area of each day cell, so it no longer sits next to the date number.",
+      "id": "feature-replace-the-current-app-logo-currently-referenced-as-assets-generated-somers-scheduler-logo-dim-512x512-png-everywhere-it-appears-in-the-ui-with-this-exact-url-https-blob-caffeine-ai-v1-blob-blob-hash-sha256-3a5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf-owner-id-bjzp7-xyaaa-aaaaf-qbsta-cai-project-id-0198d89b-d4eb-711d-abfd-9b50202a1152-update-all-logo-render-locations-e-g-login-screen-and-top-bar-header-so-the-same-url-is-used-consistently",
+      "title": "Replace the current app logo (currently referenced as `/assets/generated/somers-scheduler-logo.dim_512x512.png`) everywhere it appears in the UI with this exact URL: https://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152. Update all logo render locations (e.g., login screen and top bar header) so the same URL is used consistently.",
       "reqIds": [
         "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-slightly-increase-the-width-of-the-main-monthly-calendar-component-and-the-7-column-day-grid-so-that-numeric-day-labels-are-not-visually-cut-off-ensure-the-month-view-remains-usable-on-smaller-screens-e-g-allow-appropriate-horizontal-space-scrolling-rather-than-clipping",
-      "title": "Slightly increase the width of the main monthly calendar component and the 7-column day grid so that numeric day labels are not visually cut off; ensure the month view remains usable on smaller screens (e.g., allow appropriate horizontal space/scrolling rather than clipping).",
-      "reqIds": [
-        "REQ-2"
       ],
       "version": 1
     }
@@ -28,18 +20,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Move the availability selection indicator to the bottom of each date cell in the main monthly calendar view.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Slightly increase the monthly calendar width (including overall component and date grid) so date numbers are not cut off.",
+      "summary": "Replace the app logo everywhere (login screen and all other locations) with the provided logo URL",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Monthly calendar: move availability indicator to bottom of day cell and widen month grid",
+  "projectName": "Replace Somers Scheduler logo everywhere with provided URL",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

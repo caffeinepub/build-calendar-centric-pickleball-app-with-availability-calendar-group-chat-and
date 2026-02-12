@@ -2,10 +2,13 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-in-the-main-monthly-calendar-view-move-the-availability-indicator-the-small-dot-that-appears-when-at-least-one-user-has-selected-availability-for-that-date-to-the-bottom-area-of-each-day-cell-so-it-no-longer-sits-next-to-the-date-number",
-      "featureTitle": "In the main monthly calendar view, move the availability indicator (the small dot that appears when at least one user has selected availability for that date) to the bottom area of each day cell, so it no longer sits next to the date number.",
+      "featureId": "feature-replace-the-current-app-logo-currently-referenced-as-assets-generated-somers-scheduler-logo-dim-512x512-png-everywhere-it-appears-in-the-ui-with-this-exact-url-https-blob-caffeine-ai-v1-blob-blob-hash-sha256-3a5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf-owner-id-bjzp7-xyaaa-aaaaf-qbsta-cai-project-id-0198d89b-d4eb-711d-abfd-9b50202a1152-update-all-logo-render-locations-e-g-login-screen-and-top-bar-header-so-the-same-url-is-used-consistently",
+      "featureTitle": "Replace the current app logo (currently referenced as `/assets/generated/somers-scheduler-logo.dim_512x512.png`) everywhere it appears in the UI with this exact URL: https://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152. Update all logo render locations (e.g., login screen and top bar header) so the same URL is used consistently.",
       "files": [
-        "frontend/src/pages/CalendarMonthPage.tsx"
+        "frontend/src/components/auth/LoginScreen.tsx",
+        "frontend/src/components/branding/AppLogo.tsx",
+        "frontend/src/components/layout/TopBar.tsx",
+        "frontend/src/lib/branding.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -13,29 +16,11 @@
         "shadcn-ui@1.0.0",
         "build-template-react@1.0.0",
         "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
       ],
       "testIds": [
         "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-slightly-increase-the-width-of-the-main-monthly-calendar-component-and-the-7-column-day-grid-so-that-numeric-day-labels-are-not-visually-cut-off-ensure-the-month-view-remains-usable-on-smaller-screens-e-g-allow-appropriate-horizontal-space-scrolling-rather-than-clipping",
-      "featureTitle": "Slightly increase the width of the main monthly calendar component and the 7-column day grid so that numeric day labels are not visually cut off; ensure the month view remains usable on smaller screens (e.g., allow appropriate horizontal space/scrolling rather than clipping).",
-      "files": [
-        "frontend/src/pages/CalendarMonthPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
       ],
       "confidence": "high"
     }

@@ -6,8 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { useGetLeaderboard, useRecordWin, useRecordLoss } from '../hooks/useQueries';
-import { useUserDirectory } from '../hooks/useUserDirectory';
+import { useUserDirectoryWithAvatars } from '../hooks/useUserDirectory';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
+import AvatarName from '../components/user/AvatarName';
 
 type TimeFilter = 'weekly' | 'monthly' | 'all-time';
 
@@ -45,7 +46,7 @@ export default function LeaderboardPage() {
 function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
   const { data: leaderboard = [], isLoading } = useGetLeaderboard(timeFilter);
   const principals = leaderboard.map(([principal]) => principal);
-  const { data: userDirectory } = useUserDirectory(principals);
+  const { data: userDirectory, isLoading: isLoadingDirectory } = useUserDirectoryWithAvatars(principals);
   const { identity } = useInternetIdentity();
   const { mutate: recordWin, isPending: isRecordingWin } = useRecordWin();
   const { mutate: recordLoss, isPending: isRecordingLoss } = useRecordLoss();
@@ -102,7 +103,9 @@ function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
           </TableHeader>
           <TableBody>
             {leaderboard.map(([principal, stats], index) => {
-              const displayName = userDirectory?.get(principal.toString()) || 'Loading...';
+              const userEntry = userDirectory?.get(principal.toString());
+              const displayName = userEntry?.displayName || 'Loading...';
+              const avatarUrl = userEntry?.avatarUrl;
               const winPercentage = stats.totalGames > 0
                 ? ((Number(stats.wins) / Number(stats.totalGames)) * 100).toFixed(1)
                 : '0.0';
@@ -114,7 +117,15 @@ function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
                     {index === 0 && <Trophy className="inline h-4 w-4 text-yellow-500 mr-1" />}
                     {index + 1}
                   </TableCell>
-                  <TableCell className="font-medium">{displayName}</TableCell>
+                  <TableCell className="font-medium">
+                    <AvatarName
+                      principal={principal}
+                      displayName={displayName}
+                      avatarUrl={avatarUrl}
+                      size="md"
+                      isLoading={isLoadingDirectory}
+                    />
+                  </TableCell>
                   <TableCell className="text-right">{stats.wins.toString()}</TableCell>
                   <TableCell className="text-right">{stats.losses.toString()}</TableCell>
                   <TableCell className="text-right">{winPercentage}%</TableCell>
@@ -130,24 +141,22 @@ function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
                     {isCurrentUser && (
                       <div className="flex gap-1 justify-end">
                         <Button
-                          size="sm"
+                          size="icon"
                           variant="outline"
+                          className="h-8 w-8"
                           onClick={handleRecordWin}
                           disabled={isRecordingWin || isRecordingLoss}
-                          className="gap-1"
                         >
-                          <Plus className="h-3 w-3" />
-                          Win
+                          <Plus className="h-4 w-4" />
                         </Button>
                         <Button
-                          size="sm"
+                          size="icon"
                           variant="outline"
+                          className="h-8 w-8"
                           onClick={handleRecordLoss}
                           disabled={isRecordingWin || isRecordingLoss}
-                          className="gap-1"
                         >
-                          <Minus className="h-3 w-3" />
-                          Loss
+                          <Minus className="h-4 w-4" />
                         </Button>
                       </div>
                     )}

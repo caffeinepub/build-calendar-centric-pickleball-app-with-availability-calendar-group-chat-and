@@ -46,10 +46,10 @@ export default function CalendarMonthPage() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <div className="grid grid-cols-7 gap-3 min-w-[600px]">
+        <CardContent className="px-3 sm:px-6">
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-muted-foreground py-1.5 sm:py-2">
                 {day}
               </div>
             ))}
@@ -88,21 +88,22 @@ function DayCell({ date, dayId, isCurrentMonth }: { date: Date; dayId: bigint; i
       <div
         className={`
           relative rounded-lg border transition-colors hover:bg-accent
-          min-h-[80px] sm:min-h-[100px] md:min-h-[120px]
-          flex flex-col justify-between p-3
+          flex flex-col items-center justify-between
+          min-h-[60px] sm:min-h-[70px] md:min-h-[80px]
+          px-2 py-2
           ${isCurrentMonth ? 'bg-card' : 'bg-muted/30'}
           ${hasAvailability ? 'bg-primary/5' : ''}
           ${today ? 'border-primary border-2' : ''}
         `}
       >
-        <div className={`text-base font-medium ${isCurrentMonth ? 'text-foreground' : 'text-muted-foreground'}`}>
+        <div className={`text-sm sm:text-base font-medium ${isCurrentMonth ? 'text-foreground' : 'text-muted-foreground'}`}>
           {date.getDate()}
         </div>
-        {hasAvailability && (
-          <div className="flex justify-center">
-            <div className="h-2.5 w-2.5 rounded-full bg-primary flex-shrink-0" />
-          </div>
-        )}
+        <div className="h-2 flex items-center justify-center">
+          {hasAvailability && (
+            <div className="h-2 w-2 rounded-full bg-primary" />
+          )}
+        </div>
       </div>
     </Link>
   );

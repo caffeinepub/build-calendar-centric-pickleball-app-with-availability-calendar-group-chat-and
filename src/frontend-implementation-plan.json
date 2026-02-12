@@ -1,37 +1,37 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Calendar month view layout tweaks (indicator positioning + wider month grid)",
+  "title": "Replace Somers Scheduler logo with provided blob URL across UI",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Move the month-view availability dot indicator to the bottom of each day cell while preserving existing tints and today highlight styling.",
+      "summary": "Centralize the app logo source and update all UI logo render locations to use the provided blob URL consistently.",
       "acceptanceCriteria": [
-        "On the month view (CalendarMonthPage), for dates with availability, the indicator renders at the bottom of the day cell (not in the top row next to the numeric date).",
-        "The numeric date label remains clearly readable and is not overlapped by the indicator across common viewport sizes.",
-        "Existing visual behaviors remain intact: background tint for days with availability and the 'today' border highlight still work as before."
+        "Login screen logo renders using the provided blob URL (no remaining reference to `/assets/generated/somers-scheduler-logo.dim_512x512.png` for the logo).",
+        "Top bar/header logo renders using the provided blob URL (no remaining reference to `/assets/generated/somers-scheduler-logo.dim_512x512.png` for the logo).",
+        "A project-wide search shows no remaining usage of `/assets/generated/somers-scheduler-logo.dim_512x512.png` for app branding/logo rendering (excluding unrelated assets).",
+        "Logo alt text remains in English (e.g., \"Somers Scheduler\")."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/CalendarMonthPage.tsx",
-          "operation": "modify",
-          "description": "Update DayCell layout so the date number remains in the top area and the availability indicator dot is rendered in a dedicated bottom area (e.g., bottom-aligned row/slot) within the day cell, ensuring the dot no longer sits next to the date number while keeping existing conditional styles for availability tint and today border."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Increase the effective width of the month grid so day numbers are not clipped, using horizontal overflow/scrolling on small screens instead of clipping.",
-      "acceptanceCriteria": [
-        "In the month view, day numbers are not clipped/cut off at typical narrow and mid-size viewports.",
-        "The calendar and the grid have increased effective width (component and grid), without breaking the 7-column layout.",
-        "No horizontal clipping occurs inside the card content; if horizontal overflow is necessary on very small screens, the user can access all columns without content being cut off."
-      ],
-      "file_operations": [
+          "path": "frontend/src/lib/branding.ts",
+          "operation": "create",
+          "description": "Create a single source of truth for branding constants, including the app logo URL set to `https://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152` and a stable English alt text (e.g., \"Somers Scheduler\")."
+        },
         {
-          "path": "frontend/src/pages/CalendarMonthPage.tsx",
+          "path": "frontend/src/components/branding/AppLogo.tsx",
+          "operation": "create",
+          "description": "Add a small reusable AppLogo component that reads the logo URL and alt text from `frontend/src/lib/branding.ts` and renders the logo image for use in multiple UI locations (do not modify any files under `frontend/src/components/ui`)."
+        },
+        {
+          "path": "frontend/src/components/auth/LoginScreen.tsx",
           "operation": "modify",
-          "description": "Adjust the month grid container to avoid clipping by increasing effective grid width (e.g., applying a minimum width to the 7-column grid) and enabling horizontal scrolling in the CardContent region on very small screens (overflow-x behavior), so all 7 columns remain accessible without cutting off numeric labels."
+          "description": "Replace the login screen logo `<img>` currently using `/assets/generated/somers-scheduler-logo.dim_512x512.png` with the new AppLogo (or branding constant) so it renders from the provided blob URL; keep alt text in English. Ensure no other logo references remain in this file."
+        },
+        {
+          "path": "frontend/src/components/layout/TopBar.tsx",
+          "operation": "modify",
+          "description": "Replace the top bar/header logo `<img>` currently using `/assets/generated/somers-scheduler-logo.dim_512x512.png` with the new AppLogo (or branding constant) so it renders from the provided blob URL; keep alt text in English. Also perform a local check within this file to ensure there are no remaining references to the old generated logo path."
         }
       ]
     }

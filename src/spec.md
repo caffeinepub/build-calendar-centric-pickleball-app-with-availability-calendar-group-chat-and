@@ -1,10 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Improve the monthly calendar layout by repositioning the availability indicator within each day cell and widening the month grid so day numbers remain readable.
+**Goal:** Replace the Somers Scheduler logo asset usage across the UI with the provided blob URL, consistently.
 
 **Planned changes:**
-- In the monthly calendar view (CalendarMonthPage), move the availability indicator dot from the top row (near the date number) to the bottom area of the day cell while keeping existing availability tinting and the “today” highlight behavior unchanged.
-- Slightly increase the effective width of the monthly calendar component and its 7-column day grid to prevent day numbers from being clipped, including handling very small screens via horizontal overflow/scrolling rather than cutting off content.
+- Update all frontend logo render locations (e.g., login screen and top bar/header) to use the provided blob URL instead of `/assets/generated/somers-scheduler-logo.dim_512x512.png`.
+- Ensure logo alt text remains in English (e.g., "Somers Scheduler").
+- Verify via project-wide search that the old logo asset path is no longer used for app branding/logo rendering.
 
-**User-visible outcome:** In the month view, day numbers are fully readable and not cut off, and availability is still clearly indicated—now via a dot positioned at the bottom of each relevant day cell.
+**User-visible outcome:** The app displays the updated logo from the provided URL everywhere the Somers Scheduler logo appears (including login and header).

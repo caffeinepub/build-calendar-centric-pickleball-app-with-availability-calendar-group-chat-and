@@ -1,29 +1,43 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-12T13:30:10.570Z",
-  "summary": "REQ-1 and REQ-2 appear implemented in CalendarMonthPage by repositioning the availability dot to the bottom of the day cell and adding horizontal overflow + a minimum grid width to prevent day-number clipping. However, the diff also introduces an embedded ChatPanel on the month view, which is explicitly a non-goal (chat-related layout changes).",
-  "missing_requirements": [],
-  "hallucinated_features": [
+  "generatedAt": "2026-02-12T20:27:22.887Z",
+  "summary": "The diff introduces a centralized branding constant (logo URL + alt text) and an AppLogo component, and updates the LoginScreen and TopBar to render the logo from the provided blob URL. However, the diff does not provide enough evidence that all remaining references to the old generated logo asset were removed across the entire project. An unrelated login background image was also changed to a blob URL, which was not requested.",
+  "missing_requirements": [
     {
-      "description": "Embedded chat panel added to the monthly calendar view (CalendarMonthPage).",
-      "reason": "BuildRequest explicitly lists chat-related layout/ordering changes as a non-goal; adding ChatPanel to this page changes chat layout/presence on the month view and is not requested by REQ-1/REQ-2.",
+      "id": "REQ-1",
+      "requirement": "Replace the current app logo (currently referenced as `/assets/generated/somers-scheduler-logo.dim_512x512.png`) everywhere it appears in the UI with the provided blob URL, with no remaining usage for app branding/logo rendering across the project.",
+      "reason": "Only LoginScreen and TopBar were updated in the provided diff summary. There is no evidence (e.g., other modified files or a project-wide search result) that all other UI locations and any other references to the old `/assets/generated/...png` logo were replaced.",
       "evidence": [
-        "frontend/src/pages/CalendarMonthPage.tsx (imports ChatPanel and renders <ChatPanel />)"
-      ]
-    },
-    {
-      "description": "Day cell sizing/layout changes beyond indicator position (responsive min-heights, padding, flex layout).",
-      "reason": "REQ-1 only asks to move the availability indicator; these additional structural/layout changes to day cells were not explicitly requested (even if they may be incidental to achieving the UI goals).",
-      "evidence": [
-        "frontend/src/pages/CalendarMonthPage.tsx (DayCell: min-h classes, flex flex-col justify-between p-3)"
+        "frontend/src/components/auth/LoginScreen.tsx",
+        "frontend/src/components/layout/TopBar.tsx",
+        "frontend-file-summaries.txt (does not show other logo replacement details; only summaries)"
       ]
     }
   ],
-  "confidence": 0.78,
+  "hallucinated_features": [
+    {
+      "description": "Changed the LoginScreen page background image to a different blob URL.",
+      "reason": "The request was specifically to replace the app logo everywhere; changing non-logo branding elements (like background imagery) was not requested and is explicitly a non-goal category (“any non-logo branding elements”).",
+      "evidence": [
+        "frontend/src/components/auth/LoginScreen.tsx (backgroundImage set to a blob.caffeine.ai URL)"
+      ]
+    },
+    {
+      "description": "Added a `BRANDING.appName` constant in a centralized branding module.",
+      "reason": "Only the logo replacement was requested; adding an app-name branding constant is extra scope (even though it doesn’t change the displayed name here).",
+      "evidence": [
+        "frontend/src/lib/branding.ts (exports BRANDING with appName)"
+      ]
+    }
+  ],
+  "confidence": 0.68,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/pages/CalendarMonthPage.tsx",
+    "frontend/src/components/auth/LoginScreen.tsx",
+    "frontend/src/components/branding/AppLogo.tsx",
+    "frontend/src/components/layout/TopBar.tsx",
+    "frontend/src/lib/branding.ts",
     "project_state.json"
   ]
 }

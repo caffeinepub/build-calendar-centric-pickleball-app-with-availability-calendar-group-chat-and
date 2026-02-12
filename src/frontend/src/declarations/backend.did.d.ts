@@ -11,23 +11,60 @@ import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export interface Availability { 'time' : string, 'notes' : [] | [string] }
+export type ExternalBlob = Uint8Array;
 export interface T {
   'streak' : bigint,
   'wins' : bigint,
   'losses' : bigint,
   'totalGames' : bigint,
 }
-export interface UserProfile { 'name' : string }
+export interface UserProfile {
+  'name' : string,
+  'customProfilePicture' : [] | [ExternalBlob],
+}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface _CaffeineStorageCreateCertificateResult {
+  'method' : string,
+  'blob_hash' : string,
+}
+export interface _CaffeineStorageRefillInformation {
+  'proposed_top_up_amount' : [] | [bigint],
+}
+export interface _CaffeineStorageRefillResult {
+  'success' : [] | [boolean],
+  'topped_up_amount' : [] | [bigint],
+}
 export interface _SERVICE {
+  '_caffeineStorageBlobIsLive' : ActorMethod<[Uint8Array], boolean>,
+  '_caffeineStorageBlobsToDelete' : ActorMethod<[], Array<Uint8Array>>,
+  '_caffeineStorageConfirmBlobDeletion' : ActorMethod<
+    [Array<Uint8Array>],
+    undefined
+  >,
+  '_caffeineStorageCreateCertificate' : ActorMethod<
+    [string],
+    _CaffeineStorageCreateCertificateResult
+  >,
+  '_caffeineStorageRefillCashier' : ActorMethod<
+    [[] | [_CaffeineStorageRefillInformation]],
+    _CaffeineStorageRefillResult
+  >,
+  '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addAvailability' : ActorMethod<[bigint, string, [] | [string]], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'deleteAllDayAvailabilities' : ActorMethod<[bigint], undefined>,
+  'deleteCallerDayAvailability' : ActorMethod<[bigint], undefined>,
   'deleteUser' : ActorMethod<[Principal], undefined>,
+  'deleteUserDayAvailability' : ActorMethod<[Principal, bigint], undefined>,
+  'getAllAvailabilities' : ActorMethod<[], Array<[Principal, bigint, string]>>,
   'getAllLoginTimestamps' : ActorMethod<[], Array<[Principal, bigint]>>,
+  'getAllRegisteredUsers' : ActorMethod<
+    [],
+    Array<[Principal, UserProfile, bigint]>
+  >,
   'getCallerAvailability' : ActorMethod<[bigint], [] | [Availability]>,
   'getCallerStats' : ActorMethod<[], [] | [T]>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,

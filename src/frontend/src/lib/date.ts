@@ -63,6 +63,27 @@ export function formatTime(timestamp: bigint): string {
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
+export function formatDateTime(timestamp: bigint): string {
+  const date = new Date(Number(timestamp) / 1000000);
+  return date.toLocaleString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric',
+    hour: 'numeric', 
+    minute: '2-digit' 
+  });
+}
+
+export function formatDayId(dayId: bigint): string {
+  const date = dateFromDayId(dayId);
+  return date.toLocaleDateString('en-US', { 
+    weekday: 'short',
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric' 
+  });
+}
+
 export function isSameDay(date1: Date, date2: Date): boolean {
   return (
     date1.getFullYear() === date2.getFullYear() &&

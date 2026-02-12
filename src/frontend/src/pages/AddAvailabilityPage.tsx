@@ -10,14 +10,23 @@ import { useAddAvailability, useGetCallerAvailability } from '../hooks/useQuerie
 import { getDayId, formatDate } from '../lib/date';
 
 const TIME_OPTIONS = [
-  '6:00 AM - 8:00 AM',
-  '8:00 AM - 10:00 AM',
-  '10:00 AM - 12:00 PM',
-  '12:00 PM - 2:00 PM',
-  '2:00 PM - 4:00 PM',
-  '4:00 PM - 6:00 PM',
-  '6:00 PM - 8:00 PM',
-  '8:00 PM - 10:00 PM',
+  '6:00 AM',
+  '7:00 AM',
+  '8:00 AM',
+  '9:00 AM',
+  '10:00 AM',
+  '11:00 AM',
+  '12:00 PM',
+  '1:00 PM',
+  '2:00 PM',
+  '3:00 PM',
+  '4:00 PM',
+  '5:00 PM',
+  '6:00 PM',
+  '7:00 PM',
+  '8:00 PM',
+  '9:00 PM',
+  '10:00 PM',
 ];
 
 export default function AddAvailabilityPage() {
@@ -59,6 +68,9 @@ export default function AddAvailabilityPage() {
     navigate({ to: '/' });
   };
 
+  // Check if the current time value is a legacy value (not in new options)
+  const isLegacyValue = time && !TIME_OPTIONS.includes(time);
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
@@ -77,12 +89,17 @@ export default function AddAvailabilityPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="time">Time Available</Label>
+              <Label htmlFor="time">Start Time</Label>
               <Select value={time} onValueChange={setTime}>
                 <SelectTrigger id="time">
-                  <SelectValue placeholder="Select a time" />
+                  <SelectValue placeholder="Select a start time" />
                 </SelectTrigger>
                 <SelectContent>
+                  {isLegacyValue && (
+                    <SelectItem key={time} value={time}>
+                      {time} (legacy)
+                    </SelectItem>
+                  )}
                   {TIME_OPTIONS.map((option) => (
                     <SelectItem key={option} value={option}>
                       {option}
