@@ -1,22 +1,30 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "Profile tab updates: enhance Match History to show wins/losses by date for the last 5 availabilities in a single chronological list, and remove the 'Additional Information' section above leaderboard rankings.",
   "architectural_notes": [],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-replace-the-existing-single-start-time-selector-on-the-add-availability-ui-the-add-availability-modal-page-where-a-user-selects-a-start-time-with-three-dropdowns-hour-minute-and-am-pm-and-use-these-inputs-to-produce-the-same-stored-time-string-format-currently-used-by-availability-e-g-8-00-am",
-      "title": "Replace the existing single “Start Time” selector on the Add Availability UI (the Add Availability modal/page where a user selects a start time) with three dropdowns: Hour, Minute, and AM/PM, and use these inputs to produce the same stored `time` string format currently used by availability (e.g., \"8:00 AM\").",
+      "id": "feature-update-the-profile-tab-ui-to-remove-the-entire-additional-information-card-section-the-section-above-leaderboard-rankings-and-instead-render-distinct-sections-for-leaderboard-rankings-and-match-history-on-the-profile-page",
+      "title": "Update the Profile tab UI to remove the entire \"Additional Information\" card/section (the section above leaderboard rankings), and instead render distinct sections for \"Leaderboard Rankings\" and \"Match History\" on the profile page.",
       "reqIds": [
-        "REQ-3"
+        "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-move-the-light-dark-mode-toggle-out-of-the-profile-dropdown-and-into-a-dedicated-header-button-positioned-immediately-to-the-left-of-the-profile-icon-menu-in-the-top-bar",
-      "title": "Move the light/dark mode toggle out of the profile dropdown and into a dedicated header button positioned immediately to the left of the profile icon/menu in the top bar.",
+      "id": "feature-implement-a-match-history-list-on-the-profile-tab-that-shows-a-single-combined-chronological-list-of-the-caller-s-last-5-availabilities-played-where-each-list-item-displays-the-date-and-the-wins-and-losses-recorded-for-that-date",
+      "title": "Implement a Match History list on the Profile tab that shows a single combined chronological list of the caller's last 5 availabilities played, where each list item displays the date and the wins and losses recorded for that date.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-react-query-hooks-and-consuming-pages-to-use-the-new-backend-query-api-s-for-fetching-the-caller-s-available-days-and-per-day-win-loss-data-without-requiring-admin-permissions-and-integrate-these-hooks-into-the-profile-page-match-history-ui",
+      "title": "Update React Query hooks and consuming pages to use the new backend query API(s) for fetching the caller’s available days (and per-day win/loss data) without requiring admin permissions, and integrate these hooks into the Profile page Match History UI.",
       "reqIds": [
         "REQ-4"
       ],
@@ -26,18 +34,26 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Replace the start-time selector in the Add Availability modal with three dropdowns: hour, minute, and AM/PM",
+      "summary": "Update Profile > Match History to display wins/losses broken down by date for the last 5 availabilities played, shown together in a single chronological list.",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Move the light/dark mode toggle to a dedicated button in the header, positioned to the left of the profile icon (not inside the profile dropdown)",
+      "summary": "Remove the 'Additional Information' section from the Profile tab (the section above leaderboard rankings).",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Add backend query API(s) to support Profile > Match History by returning the caller’s available day IDs and the caller’s per-day win/loss totals (DailyLog) for those days, with user-only authorization enforced consistently with existing stats/availability endpoints.",
+      "reqIds": [
+        "REQ-3"
+      ],
       "status": "pending"
     }
   ],
-  "projectName": "Split Add Availability start-time into hour/minute/AM-PM dropdowns and move theme toggle into header",
+  "projectName": "Profile: remove Additional Information section and add Match History wins/losses by date (last 5 availabilities)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

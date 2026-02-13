@@ -71,6 +71,20 @@ actor {
     };
   };
 
+  module DayWithLog {
+    public type T = {
+      day : Int;
+      wins : Nat;
+      losses : Nat;
+    };
+
+    public func compareByDay(a : T, b : T) : Order.Order {
+      Int.compare(b.day, a.day);
+    };
+  };
+
+  type DayWithLog = DayWithLog.T;
+
   var loginRecords : Map.Map<Principal, Int> = Map.empty<Principal, Int>();
   let userProfiles = Map.empty<Principal, UserEntry>();
   let userStats = Map.empty<Principal, UserStats.T>();
@@ -78,6 +92,43 @@ actor {
   let chatMessages = Map.empty<Int, (Principal, Text, Int)>();
   let dailyLogs = Map.empty<(Principal, Int), DailyLog>();
   var messageCounter : Int = 0;
+
+  public query ({ caller }) func getCallerAvailableDaysWithLogs() : async [DayWithLog] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view their available days");
+    };
+
+    let callerAvailabilities = availabilities.filter(
+      func((key, _)) { key.0 == caller }
+    ).toArray();
+
+    let currentDay = getCurrentDay();
+    let recentDaysWithLogsArray = Array.tabulate(
+      if (callerAvailabilities.size() > 5) { 5 } else {
+        callerAvailabilities.size();
+      },
+      func(i) {
+        let availability = callerAvailabilities[i];
+        let day = availability.0.1;
+        let dailyLog = switch (dailyLogs.get((caller, day))) {
+          case (null) { { wins = 0; losses = 0 } };
+          case (?log) { log };
+        };
+
+        {
+          day;
+          wins = dailyLog.wins;
+          losses = dailyLog.losses;
+        };
+      },
+    );
+
+    let sortedRecentDaysWithLogs = recentDaysWithLogsArray.sort(
+      DayWithLog.compareByDay
+    );
+
+    sortedRecentDaysWithLogs.sliceToArray(0, sortedRecentDaysWithLogs.size());
+  };
 
   public shared ({ caller }) func recordLoginTime() : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
@@ -281,7 +332,11 @@ actor {
       Runtime.trap("Unauthorized: Only users can view leaderboard");
     };
 
-    userStats.entries().toArray().sort(UserStats.compareByScore);
+    let filteredStats = userStats.entries().toArray().map(
+      func(entry) { filterStatsForTimeframe(entry, timeFilter) }
+    );
+
+    filteredStats.sort(UserStats.compareByScore);
   };
 
   public shared ({ caller }) func recordDailyWin(day : Int) : async () {
@@ -504,6 +559,10 @@ actor {
     };
 
     (principal, filteredStats);
+  };
+
+  func getCurrentDay() : Int {
+    Time.now() / (24 * 60 * 60 * 1_000_000_000 : Int);
   };
 
   func getDayTimestamp(day : Int) : Int {

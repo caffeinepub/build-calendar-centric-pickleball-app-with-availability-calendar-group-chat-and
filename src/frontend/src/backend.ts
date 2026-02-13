@@ -102,6 +102,11 @@ export interface T {
 export interface _CaffeineStorageRefillInformation {
     proposed_top_up_amount?: bigint;
 }
+export interface DayWithLog {
+    day: bigint;
+    wins: bigint;
+    losses: bigint;
+}
 export interface _CaffeineStorageCreateCertificateResult {
     method: string;
     blob_hash: string;
@@ -137,6 +142,7 @@ export interface backendInterface {
     getAllLoginTimestamps(): Promise<Array<[Principal, bigint]>>;
     getAllRegisteredUsers(): Promise<Array<[Principal, UserProfile, bigint]>>;
     getCallerAvailability(day: bigint): Promise<Availability | null>;
+    getCallerAvailableDaysWithLogs(): Promise<Array<DayWithLog>>;
     getCallerStats(): Promise<T | null>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
@@ -395,6 +401,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getCallerAvailability(arg0);
             return from_candid_opt_n17(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getCallerAvailableDaysWithLogs(): Promise<Array<DayWithLog>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCallerAvailableDaysWithLogs();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCallerAvailableDaysWithLogs();
+            return result;
         }
     }
     async getCallerStats(): Promise<T | null> {

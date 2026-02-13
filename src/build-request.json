@@ -1,62 +1,110 @@
 {
   "kind": "build_request",
-  "title": "Split Add Availability start-time into hour/minute/AM-PM dropdowns and move theme toggle into header",
+  "title": "Profile: remove Additional Information section and add Match History wins/losses by date (last 5 availabilities)",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-3",
-      "text": "Replace the existing single “Start Time” selector on the Add Availability UI (the Add Availability modal/page where a user selects a start time) with three dropdowns: Hour, Minute, and AM/PM, and use these inputs to produce the same stored `time` string format currently used by availability (e.g., \"8:00 AM\").",
+      "id": "REQ-1",
+      "text": "Update the Profile tab UI to remove the entire \"Additional Information\" card/section (the section above leaderboard rankings), and instead render distinct sections for \"Leaderboard Rankings\" and \"Match History\" on the profile page.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-1"
+          "msg-4"
         ],
         "quotes": [
-          "1) on the add availability modal where a user is selecting a start time",
-          "2)yes replace existing"
+          "its the section in the profile tab above leaderboard rankings that says additional information, and it should be removed"
         ]
       },
       "acceptanceCriteria": [
-        "The start time control in `frontend/src/pages/AddAvailabilityPage.tsx` no longer uses the single Select bound directly to `time`.",
-        "The UI shows three dropdowns labeled Hour, Minute, and AM/PM for selecting a start time.",
-        "Selecting values in the three dropdowns updates the availability `time` value used on submit to match the existing string style (e.g., \"10:00 AM\").",
-        "When editing an existing availability, the existing `time` value pre-populates the three dropdowns correctly for all values previously offered in the time list (8:00 AM through 9:00 PM).",
-        "If the existing saved `time` value is not parseable into Hour/Minute/AM-PM, the UI still displays a safe fallback state and does not crash; the user can select a new time and save successfully.",
-        "User-facing text remains in English (e.g., labels and placeholders)."
+        "On Profile page, the heading/title \"Additional Information\" and its description are no longer visible.",
+        "\"Leaderboard Rankings\" content (ProfileLeaderboardRanks) is still accessible on the Profile page.",
+        "\"Match History\" is visible as its own section on the Profile page (not a placeholder “coming soon” message)."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Implement a Match History list on the Profile tab that shows a single combined chronological list of the caller's last 5 availabilities played, where each list item displays the date and the wins and losses recorded for that date.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-5"
+        ],
+        "quotes": [
+          "how about the last 5 availabilities played",
+          "show wins and losses",
+          "together"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Profile > Match History shows at most 5 entries.",
+        "Entries are ordered by date with the most recent first.",
+        "Each entry shows the formatted date and explicit \"Wins\" and \"Losses\" counts for that date (English labels).",
+        "If a date has no recorded results yet, the entry still shows the date with Wins = 0 and Losses = 0 (or clearly indicates zero counts).",
+        "If the caller has no availabilities, Match History shows an English empty-state message instead of an error."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Add backend query API(s) to support Profile > Match History by returning the caller’s available day IDs and the caller’s per-day win/loss totals (DailyLog) for those days, with user-only authorization enforced consistently with existing stats/availability endpoints.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-5"
+        ],
+        "quotes": [
+          "show wins and losses from prior dates in this section",
+          "last 5 availabilities played"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Backend exposes a query method that returns the caller’s availability day IDs (so the frontend does not rely on admin-only getAllAvailabilities).",
+        "Backend exposes a query method that returns per-day (wins, losses) for the caller for a provided set of day IDs OR a query method that directly returns the most recent N day logs for the caller.",
+        "Unauthorized callers (non-user) are rejected similarly to existing endpoints (e.g., getCallerStats/hasAvailability).",
+        "Returned per-day win/loss data matches the values maintained by recordDailyWin/recordDailyLoss (dailyLogs map)."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Move the light/dark mode toggle out of the profile dropdown and into a dedicated header button positioned immediately to the left of the profile icon/menu in the top bar.",
+      "text": "Update React Query hooks and consuming pages to use the new backend query API(s) for fetching the caller’s available days (and per-day win/loss data) without requiring admin permissions, and integrate these hooks into the Profile page Match History UI.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-1"
+          "msg-5"
         ],
         "quotes": [
-          "3)put button to the left of profile icon"
+          "can we get this information on the match history section in the profile tab"
         ]
       },
       "acceptanceCriteria": [
-        "In `frontend/src/components/layout/TopBar.tsx`, the theme toggle is no longer rendered as a `DropdownMenuItem` inside the profile dropdown.",
-        "A standalone button (icon or text) appears in the header to the left of the profile dropdown trigger when the user is logged in.",
-        "Clicking the new header theme button calls the existing theme toggle behavior (switching between light and dark) and continues to persist via `localStorage` as before.",
-        "The profile dropdown still includes Logout and continues to function as before."
+        "useGetCallerAvailableDays no longer calls the admin-only getAllAvailabilities flow and instead uses a caller-scoped backend query.",
+        "Leaderboard page date selector continues to work for recording wins/losses using caller-scoped available days.",
+        "Profile page Match History uses React Query-backed data fetching and renders without console errors when logged in as a normal user."
       ]
     }
   ],
   "constraints": [
-    "Do not edit any files under `frontend/src/components/ui` (read-only UI component sources must be composed, not edited).",
-    "Do not edit the immutable hook files: `frontend/src/hooks/useInternetIdentity.ts`, `frontend/src/hooks/useInternetIdentity.tsx`, `frontend/src/hooks/useActor.ts`, or `frontend/src/main.tsx`.",
-    "Keep the backend as a single Motoko actor; no backend changes are required for this request."
+    "Backend must remain a single Motoko actor in backend/main.mo; do not introduce additional canisters/services.",
+    "Only create backend/migration.mo if a state/schema migration is required to preserve existing stable data.",
+    "Do not edit files under frontend/src/components/ui or other frontend immutablePaths; compose existing components instead.",
+    "Use English for all user-facing text."
   ],
   "nonGoals": [
-    "Do not change availability backend storage format or add new availability fields in Motoko.",
-    "Do not add new authentication providers (Internet Identity remains the only auth).",
-    "Do not add new pages or routes unrelated to Add Availability or the header theme toggle."
+    "Do not build a full \"match analytics\" system beyond per-date wins/losses.",
+    "Do not add calendar UI or date picker for match history (only last 5 availabilities as requested).",
+    "Do not introduce third-party services or external databases."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

@@ -1,49 +1,75 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-12T23:11:46.109Z",
+  "generatedAt": "2026-02-13T00:19:03.851Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 2,
+    "total": 4,
+    "implemented": 3,
     "items": [
       {
-        "id": "REQ-3",
-        "summary": "Replace the existing single “Start Time” selector on the Add Availability UI (the Add Availability modal/page where a user selects a start time) with three dropdowns: Hour, Minute, and AM/PM, and use these inputs to produce the same stored `time` string format currently used by availability (e.g., \"8:00 AM\").",
+        "id": "REQ-1",
+        "summary": "Update the Profile tab UI to remove the entire \"Additional Information\" card/section (the section above leaderboard rankings), and instead render distinct sections for \"Leaderboard Rankings\" and \"Match History\" on the profile page.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/AddAvailabilityPage.tsx",
-          "frontend/src/utils/time.ts"
+          "frontend/src/pages/ProfilePage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/AddAvailabilityPage.tsx",
-          "frontend/src/utils/time.ts"
+          "frontend/src/pages/ProfilePage.tsx"
         ]
       },
       {
-        "id": "REQ-4",
-        "summary": "Move the light/dark mode toggle out of the profile dropdown and into a dedicated header button positioned immediately to the left of the profile icon/menu in the top bar.",
+        "id": "REQ-2",
+        "summary": "Implement a Match History list on the Profile tab that shows a single combined chronological list of the caller's last 5 availabilities played, where each list item displays the date and the wins and losses recorded for that date.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/layout/TopBar.tsx"
+          "frontend/src/components/profile/ProfileMatchHistory.tsx",
+          "frontend/src/pages/ProfilePage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/layout/TopBar.tsx"
+          "frontend/src/components/profile/ProfileMatchHistory.tsx",
+          "frontend/src/pages/ProfilePage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Add backend query API(s) to support Profile > Match History by returning the caller’s available day IDs and the caller’s per-day win/loss totals (DailyLog) for those days, with user-only authorization enforced consistently with existing stats/availability endpoints.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Update React Query hooks and consuming pages to use the new backend query API(s) for fetching the caller’s available days (and per-day win/loss data) without requiring admin permissions, and integrate these hooks into the Profile page Match History UI.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/LeaderboardPage.tsx",
+          "frontend/src/components/profile/ProfileMatchHistory.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/profile/ProfileMatchHistory.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/layout/TopBar.tsx",
-    "frontend/src/pages/AddAvailabilityPage.tsx",
-    "frontend/src/utils/time.ts",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/profile/ProfileMatchHistory.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/ProfilePage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

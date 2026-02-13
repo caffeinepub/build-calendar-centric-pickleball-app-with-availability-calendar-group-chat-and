@@ -1,11 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Improve the Add Availability start-time input and make theme switching easier to access from the top header.
+**Goal:** Simplify the Profile tab by removing the “Additional Information” section and adding a functional Match History showing recent wins/losses by date.
 
 **Planned changes:**
-- Update `frontend/src/pages/AddAvailabilityPage.tsx` to replace the single Start Time select with three dropdowns (Hour, Minute, AM/PM) that still submit the existing `time` string format (e.g., "8:00 AM").
-- Ensure editing an existing availability pre-populates Hour/Minute/AM-PM from the saved `time` string, with a safe fallback when the value can’t be parsed.
-- Update `frontend/src/components/layout/TopBar.tsx` to move the theme toggle out of the profile dropdown into a standalone header button positioned immediately left of the profile menu trigger, preserving existing localStorage persistence and keeping Logout in the profile dropdown.
+- Remove the “Additional Information” card/section from the Profile page and keep “Leaderboard Rankings” as its own section.
+- Add a “Match History” section to the Profile page that displays a single combined list of the caller’s last 5 availabilities played, ordered by most recent date first, showing Wins and Losses for each date.
+- Add backend query API(s) to fetch caller-scoped available day IDs and per-day win/loss totals (DailyLog), enforcing user-only authorization consistent with existing endpoints.
+- Update React Query hooks and consuming pages to use the new caller-scoped backend queries (replacing any admin-only availability fetching) and wire them into Profile > Match History and the Leaderboard date selector.
 
-**User-visible outcome:** Users can select start time via separate Hour/Minute/AM-PM dropdowns (including when editing existing entries), and can toggle light/dark mode directly from a header button next to the profile menu.
+**User-visible outcome:** On the Profile tab, users no longer see “Additional Information” and instead see “Leaderboard Rankings” plus a working “Match History” list of up to 5 recent dates with explicit Wins/Losses counts (with an English empty state when no availabilities exist).

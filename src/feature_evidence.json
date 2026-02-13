@@ -2,11 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-replace-the-existing-single-start-time-selector-on-the-add-availability-ui-the-add-availability-modal-page-where-a-user-selects-a-start-time-with-three-dropdowns-hour-minute-and-am-pm-and-use-these-inputs-to-produce-the-same-stored-time-string-format-currently-used-by-availability-e-g-8-00-am",
-      "featureTitle": "Replace the existing single “Start Time” selector on the Add Availability UI (the Add Availability modal/page where a user selects a start time) with three dropdowns: Hour, Minute, and AM/PM, and use these inputs to produce the same stored `time` string format currently used by availability (e.g., \"8:00 AM\").",
+      "featureId": "feature-update-the-profile-tab-ui-to-remove-the-entire-additional-information-card-section-the-section-above-leaderboard-rankings-and-instead-render-distinct-sections-for-leaderboard-rankings-and-match-history-on-the-profile-page",
+      "featureTitle": "Update the Profile tab UI to remove the entire \"Additional Information\" card/section (the section above leaderboard rankings), and instead render distinct sections for \"Leaderboard Rankings\" and \"Match History\" on the profile page.",
       "files": [
-        "frontend/src/pages/AddAvailabilityPage.tsx",
-        "frontend/src/utils/time.ts"
+        "frontend/src/pages/ProfilePage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -18,15 +17,37 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-3"
+        "REQ-1"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-move-the-light-dark-mode-toggle-out-of-the-profile-dropdown-and-into-a-dedicated-header-button-positioned-immediately-to-the-left-of-the-profile-icon-menu-in-the-top-bar",
-      "featureTitle": "Move the light/dark mode toggle out of the profile dropdown and into a dedicated header button positioned immediately to the left of the profile icon/menu in the top bar.",
+      "featureId": "feature-implement-a-match-history-list-on-the-profile-tab-that-shows-a-single-combined-chronological-list-of-the-caller-s-last-5-availabilities-played-where-each-list-item-displays-the-date-and-the-wins-and-losses-recorded-for-that-date",
+      "featureTitle": "Implement a Match History list on the Profile tab that shows a single combined chronological list of the caller's last 5 availabilities played, where each list item displays the date and the wins and losses recorded for that date.",
       "files": [
-        "frontend/src/components/layout/TopBar.tsx"
+        "frontend/src/components/profile/ProfileMatchHistory.tsx",
+        "frontend/src/pages/ProfilePage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-react-query-hooks-and-consuming-pages-to-use-the-new-backend-query-api-s-for-fetching-the-caller-s-available-days-and-per-day-win-loss-data-without-requiring-admin-permissions-and-integrate-these-hooks-into-the-profile-page-match-history-ui",
+      "featureTitle": "Update React Query hooks and consuming pages to use the new backend query API(s) for fetching the caller’s available days (and per-day win/loss data) without requiring admin permissions, and integrate these hooks into the Profile page Match History UI.",
+      "files": [
+        "frontend/src/components/profile/ProfileMatchHistory.tsx",
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "authorization@4.0.0",

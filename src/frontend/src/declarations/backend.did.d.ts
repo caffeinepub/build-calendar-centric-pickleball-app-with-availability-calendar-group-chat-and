@@ -11,6 +11,11 @@ import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export interface Availability { 'time' : string, 'notes' : [] | [string] }
+export interface DayWithLog {
+  'day' : bigint,
+  'wins' : bigint,
+  'losses' : bigint,
+}
 export type ExternalBlob = Uint8Array;
 export interface T {
   'streak' : bigint,
@@ -66,6 +71,7 @@ export interface _SERVICE {
     Array<[Principal, UserProfile, bigint]>
   >,
   'getCallerAvailability' : ActorMethod<[bigint], [] | [Availability]>,
+  'getCallerAvailableDaysWithLogs' : ActorMethod<[], Array<DayWithLog>>,
   'getCallerStats' : ActorMethod<[], [] | [T]>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,

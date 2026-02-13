@@ -33,6 +33,11 @@ export const Availability = IDL.Record({
   'time' : IDL.Text,
   'notes' : IDL.Opt(IDL.Text),
 });
+export const DayWithLog = IDL.Record({
+  'day' : IDL.Int,
+  'wins' : IDL.Nat,
+  'losses' : IDL.Nat,
+});
 export const T = IDL.Record({
   'streak' : IDL.Int,
   'wins' : IDL.Nat,
@@ -92,6 +97,11 @@ export const idlService = IDL.Service({
   'getCallerAvailability' : IDL.Func(
       [IDL.Int],
       [IDL.Opt(Availability)],
+      ['query'],
+    ),
+  'getCallerAvailableDaysWithLogs' : IDL.Func(
+      [],
+      [IDL.Vec(DayWithLog)],
       ['query'],
     ),
   'getCallerStats' : IDL.Func([], [IDL.Opt(T)], ['query']),
@@ -166,6 +176,11 @@ export const idlFactory = ({ IDL }) => {
     'time' : IDL.Text,
     'notes' : IDL.Opt(IDL.Text),
   });
+  const DayWithLog = IDL.Record({
+    'day' : IDL.Int,
+    'wins' : IDL.Nat,
+    'losses' : IDL.Nat,
+  });
   const T = IDL.Record({
     'streak' : IDL.Int,
     'wins' : IDL.Nat,
@@ -229,6 +244,11 @@ export const idlFactory = ({ IDL }) => {
     'getCallerAvailability' : IDL.Func(
         [IDL.Int],
         [IDL.Opt(Availability)],
+        ['query'],
+      ),
+    'getCallerAvailableDaysWithLogs' : IDL.Func(
+        [],
+        [IDL.Vec(DayWithLog)],
         ['query'],
       ),
     'getCallerStats' : IDL.Func([], [IDL.Opt(T)], ['query']),

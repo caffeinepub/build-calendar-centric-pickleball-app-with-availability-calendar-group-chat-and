@@ -24,6 +24,11 @@ export interface T {
     losses: bigint;
     totalGames: bigint;
 }
+export interface DayWithLog {
+    day: bigint;
+    wins: bigint;
+    losses: bigint;
+}
 export interface UserProfile {
     name: string;
     customProfilePicture?: ExternalBlob;
@@ -44,6 +49,7 @@ export interface backendInterface {
     getAllLoginTimestamps(): Promise<Array<[Principal, bigint]>>;
     getAllRegisteredUsers(): Promise<Array<[Principal, UserProfile, bigint]>>;
     getCallerAvailability(day: bigint): Promise<Availability | null>;
+    getCallerAvailableDaysWithLogs(): Promise<Array<DayWithLog>>;
     getCallerStats(): Promise<T | null>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;

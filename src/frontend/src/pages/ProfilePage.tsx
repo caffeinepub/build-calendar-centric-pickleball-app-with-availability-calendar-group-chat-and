@@ -1,6 +1,8 @@
 import { User } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import ProfileCard from '../components/profile/ProfileCard';
+import ProfileLeaderboardRanks from '../components/profile/ProfileLeaderboardRanks';
+import ProfileMatchHistory from '../components/profile/ProfileMatchHistory';
 
 export default function ProfilePage() {
   return (
@@ -14,16 +16,21 @@ export default function ProfilePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Additional Information</CardTitle>
-          <CardDescription>View your account information</CardDescription>
+          <CardTitle>Leaderboard Rankings</CardTitle>
+          <CardDescription>Your current rankings across all timeframes</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <h3 className="font-semibold">Match History</h3>
-            <p className="text-sm text-muted-foreground">
-              Match history feature coming soon. Track individual game results and view detailed performance analytics.
-            </p>
-          </div>
+        <CardContent>
+          <ProfileLeaderboardRanks />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Match History</CardTitle>
+          <CardDescription>Your wins and losses for the last 5 availabilities</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ProfileMatchHistory />
         </CardContent>
       </Card>
     </div>

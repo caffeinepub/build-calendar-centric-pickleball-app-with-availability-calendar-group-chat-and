@@ -1,24 +1,43 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-12T23:11:46.107Z",
-  "summary": "REQ-3 and REQ-4 appear implemented: Add Availability start time is split into hour/minute/AM-PM dropdowns with parsing/formatting utilities, and the theme toggle is moved from the profile dropdown into a standalone header button left of the profile menu. However, there are unrelated/documentation-only mentions of additional features (e.g., admin route) that were not requested.",
-  "missing_requirements": [],
+  "generatedAt": "2026-02-13T00:19:03.849Z",
+  "summary": "Implemented Profile page restructuring with new Match History component and added backend/query hooks to fetch caller-scoped availability days with per-day win/loss logs. However, the backend selection logic does not reliably return the most recent 5 availabilities, and the refactor of `useGetCallerAvailableDays` now appears to return only up to 5 days, which may break the Leaderboard date selector requirement to continue working with caller-scoped available days.",
+  "missing_requirements": [
+    {
+      "id": "REQ-2",
+      "requirement": "Match History list must show the caller's last 5 availabilities played (most recent first).",
+      "reason": "Backend query `getCallerAvailableDaysWithLogs` limits to 5 entries by taking the first 5 from `callerAvailabilities` before sorting; since `callerAvailabilities` is produced by `availabilities.filter(...).toArray()` with no demonstrated ordering, this does not guarantee the selected 5 are the most recent availabilities.",
+      "evidence": [
+        "backend/main.mo (getCallerAvailableDaysWithLogs: filter().toArray() -> Array.tabulate(size<=5) then sort)"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "requirement": "Leaderboard page date selector continues to work for recording wins/losses using caller-scoped available days.",
+      "reason": "`useGetCallerAvailableDays` was changed to call `getCallerAvailableDaysWithLogs()` and return `daysWithLogs.map(entry => entry.day)`. Since `getCallerAvailableDaysWithLogs()` returns at most 5 days, the hook now likely provides only 5 dates, potentially breaking the Leaderboard date selector if it expects all of the caller’s available days.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts (useGetCallerAvailableDays uses actor.getCallerAvailableDaysWithLogs())",
+        "backend/main.mo (getCallerAvailableDaysWithLogs tabulates size capped at 5)"
+      ]
+    }
+  ],
   "hallucinated_features": [
     {
-      "description": "Documentation/summaries updated to describe unrelated features (e.g., “new admin route”, additional hooks/pages behavior) not requested in this BuildRequest.",
-      "reason": "The BuildRequest explicitly restricts scope to the Add Availability start-time UI change and moving the theme toggle in the header; the diff includes a modified summary file describing other new routes/features.",
+      "description": "Match History UI displays an extra per-entry label \"No games recorded\" when wins+losses equals 0.",
+      "reason": "REQ-2 requires showing zero counts (or indicating zeros), but does not request an additional \"No games recorded\" badge per entry.",
       "evidence": [
-        "frontend-file-summaries.txt"
+        "frontend/src/components/profile/ProfileMatchHistory.tsx (renders \"No games recorded\" when totalGames===0)"
       ]
     }
   ],
   "confidence": 0.74,
   "changed_files": [
+    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/layout/TopBar.tsx",
-    "frontend/src/pages/AddAvailabilityPage.tsx",
-    "frontend/src/utils/time.ts",
+    "frontend/src/components/profile/ProfileMatchHistory.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/ProfilePage.tsx",
     "project_state.json"
   ]
 }

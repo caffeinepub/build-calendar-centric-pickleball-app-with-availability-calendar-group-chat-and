@@ -1,46 +1,70 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add Availability time split dropdowns + header theme toggle button",
+  "title": "Profile: remove Additional Information and add Match History (last 5 days with wins/losses)",
   "requirements": [
     {
-      "id": "REQ-3",
-      "summary": "Replace Add Availability start-time single select with Hour/Minute/AM-PM dropdowns while preserving the stored time string format and edit prefill behavior.",
+      "id": "REQ-1",
+      "summary": "Update Profile tab layout by removing the “Additional Information” card and showing separate “Leaderboard Rankings” and “Match History” sections.",
       "acceptanceCriteria": [
-        "The start time control in `frontend/src/pages/AddAvailabilityPage.tsx` no longer uses the single Select bound directly to `time`.",
-        "The UI shows three dropdowns labeled Hour, Minute, and AM/PM for selecting a start time.",
-        "Selecting values in the three dropdowns updates the availability `time` value used on submit to match the existing string style (e.g., \"10:00 AM\").",
-        "When editing an existing availability, the existing `time` value pre-populates the three dropdowns correctly for all values previously offered in the time list (8:00 AM through 9:00 PM).",
-        "If the existing saved `time` value is not parseable into Hour/Minute/AM-PM, the UI still displays a safe fallback state and does not crash; the user can select a new time and save successfully.",
-        "User-facing text remains in English (e.g., labels and placeholders)."
+        "On Profile page, the heading/title \"Additional Information\" and its description are no longer visible.",
+        "\"Leaderboard Rankings\" content (ProfileLeaderboardRanks) is still accessible on the Profile page.",
+        "\"Match History\" is visible as its own section on the Profile page (not a placeholder “coming soon” message)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/AddAvailabilityPage.tsx",
+          "path": "frontend/src/pages/ProfilePage.tsx",
           "operation": "modify",
-          "description": "Replace the current single Select bound to `time` with three composed Select controls (Hour, Minute, AM/PM) using existing shadcn Select components (do not edit `frontend/src/components/ui/*`). Add parsing of an existing `availability.time` string to pre-populate hour/minute/period on edit, add safe fallback state when parsing fails, and derive the submitted `time` string from the three dropdown selections in the same format as before (e.g., \"8:00 AM\"). Verify the component's usage instructions before implementing."
+          "description": "Remove the existing \"Additional Information\" Card (including its header/description). Render two distinct sections/cards: one titled \"Leaderboard Rankings\" (still using ProfileLeaderboardRanks) and one titled \"Match History\" that renders the real match history UI component (no placeholder text)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Implement Match History UI showing a combined chronological list of the caller’s last 5 availability days with per-day wins/losses.",
+      "acceptanceCriteria": [
+        "Profile > Match History shows at most 5 entries.",
+        "Entries are ordered by date with the most recent first.",
+        "Each entry shows the formatted date and explicit \"Wins\" and \"Losses\" counts for that date (English labels).",
+        "If a date has no recorded results yet, the entry still shows the date with Wins = 0 and Losses = 0 (or clearly indicates zero counts).",
+        "If the caller has no availabilities, Match History shows an English empty-state message instead of an error."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/profile/ProfileMatchHistory.tsx",
+          "operation": "create",
+          "description": "Create a ProfileMatchHistory component that fetches match-history data via a React Query hook, then renders a list of up to 5 day entries. Each row should show the formatted day (reuse existing date formatting utilities) and explicit English labels \"Wins\" and \"Losses\" with counts (defaulting to 0/0 when missing). Include an English empty-state when there are no days, plus loading/error-safe rendering to avoid crashes."
         },
         {
-          "path": "frontend/src/utils/time.ts",
-          "operation": "create",
-          "description": "Add small utilities for (a) formatting hour+minute+period into the existing stored time string (no leading zero hour, e.g., \"8:00 AM\"), (b) parsing an existing stored time string into {hour, minute, period} with validation and a safe failure result, and (c) providing the allowed Hour/Minute/AM-PM option lists matching the previously supported range (8:00 AM through 9:00 PM, minutes limited to supported values)."
+          "path": "frontend/src/pages/ProfilePage.tsx",
+          "operation": "modify",
+          "description": "Wire the new ProfileMatchHistory component into the Profile page's new \"Match History\" section so it is displayed as the section content."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Move the theme toggle out of the profile dropdown into a dedicated header button immediately left of the profile menu trigger.",
+      "summary": "Update React Query hooks to use caller-scoped backend queries for available days and per-day win/loss logs, and integrate them into Profile Match History and Leaderboard date selector.",
       "acceptanceCriteria": [
-        "In `frontend/src/components/layout/TopBar.tsx`, the theme toggle is no longer rendered as a `DropdownMenuItem` inside the profile dropdown.",
-        "A standalone button (icon or text) appears in the header to the left of the profile dropdown trigger when the user is logged in.",
-        "Clicking the new header theme button calls the existing theme toggle behavior (switching between light and dark) and continues to persist via `localStorage` as before.",
-        "The profile dropdown still includes Logout and continues to function as before."
+        "useGetCallerAvailableDays no longer calls the admin-only getAllAvailabilities flow and instead uses a caller-scoped backend query.",
+        "Leaderboard page date selector continues to work for recording wins/losses using caller-scoped available days.",
+        "Profile page Match History uses React Query-backed data fetching and renders without console errors when logged in as a normal user."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/layout/TopBar.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Refactor the logged-in header area to render a standalone theme toggle Button immediately to the left of the profile DropdownMenuTrigger, wired to the existing `useTheme().toggleTheme` behavior. Remove the theme toggle DropdownMenuItem from the dropdown content, leaving Logout intact. Use existing shadcn Button/DropdownMenu components (do not edit `frontend/src/components/ui/*`). Verify the component's usage instructions before implementing."
+          "description": "Refactor useGetCallerAvailableDays to stop using getAllAvailabilities and instead fetch caller-scoped available days from the backend (reuse the existing caller-scoped method available in the typed actor). Ensure returned day IDs are sorted descending (most recent first). Add a new React Query hook (e.g., useGetCallerAvailableDaysWithLogs / useGetCallerMatchHistory) that returns per-day wins/losses for the caller and supports limiting to the most recent 5 entries for Profile Match History."
+        },
+        {
+          "path": "frontend/src/pages/LeaderboardPage.tsx",
+          "operation": "modify",
+          "description": "Update LeaderboardPage to continue using useGetCallerAvailableDays for the date selector (now caller-scoped). Ensure the selector still renders available days and continues to allow recording wins/losses without relying on admin-only data."
+        },
+        {
+          "path": "frontend/src/components/profile/ProfileMatchHistory.tsx",
+          "operation": "modify",
+          "description": "Use the new/updated React Query hook(s) from useQueries.ts to fetch caller day logs and render them (most recent first, max 5). Ensure day IDs and win/loss counts are handled safely (bigints to strings/numbers for display) and that empty-state behavior matches requirements."
         }
       ]
     }
