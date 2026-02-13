@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Correct weekly/monthly leaderboard filtering so it uses the user-selected result date (not all-time totals) and returns accurate timeframe-specific rankings.
+**Goal:** Fix backend leaderboard weekly/monthly timeframe filtering so it correctly limits results to the intended day windows using integer day ID comparisons.
 
 **Planned changes:**
-- Update backend leaderboard queries so weekly includes only results from the last 7 days (inclusive of today) and monthly includes only results from the last 30 days (inclusive of today), based on the user-selected result date.
-- Persist a discrete timestamp (or equivalent comparable representation) derived from the selected result date when recording wins/losses, and ensure decrement/remove operations remain correct with this stored representation.
-- Add Motoko state migration only if needed to keep existing stored results readable and prevent traps after upgrade.
-- Ensure frontend Weekly/Monthly/All Time filters display results that match the corrected backend timeframe logic without changing the existing date-selection and add/remove flow.
+- Update backend leaderboard aggregation to filter daily logs for Weekly (last 7 days, inclusive) and Monthly (last 30 days, inclusive) by comparing stored integer day IDs against the current day ID, instead of comparing nanosecond timestamps.
+- Ensure all backend leaderboard endpoints that accept a timeframe apply the same filtering logic so they return consistent results for weekly/monthly/all.
+- Preserve existing record/remove result behavior (recordDailyWin/recordDailyLoss/decrementDailyLog) without data migration, and ensure existing stored daily logs continue to work with the corrected filtering immediately.
 
-**User-visible outcome:** Switching between Weekly, Monthly, and All Time shows leaderboard rankings and totals that correctly reflect only the results recorded within that timeframe (or all-time), using the date the user selected when logging results.
+**User-visible outcome:** Weekly and Monthly leaderboard views show only results from the last 7 or 30 days respectively (inclusive), All Time remains unchanged, and wins/losses/totalGames/streak/score and ordering reflect only the selected timeframe across all leaderboard endpoints.

@@ -1,27 +1,4 @@
 {
   "kind": "feature_evidence_report",
-  "features": [
-    {
-      "featureId": "feature-ensure-the-frontend-leaderboard-filters-weekly-monthly-all-time-display-rankings-that-match-the-corrected-backend-timeframe-logic-without-requiring-changes-to-the-user-s-flow-for-selecting-a-date-and-recording-removing-wins-losses",
-      "featureTitle": "Ensure the frontend leaderboard filters (Weekly/Monthly/All Time) display rankings that match the corrected backend timeframe logic, without requiring changes to the user’s flow for selecting a date and recording/removing wins/losses.",
-      "files": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/lib/date.ts",
-        "frontend/src/pages/LeaderboardPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "blob-storage@4.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
-      ],
-      "confidence": "high"
-    }
-  ]
+  "features": []
 }

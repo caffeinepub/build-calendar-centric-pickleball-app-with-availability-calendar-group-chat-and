@@ -1,33 +1,6 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Align leaderboard UI filters with corrected weekly/monthly/all timeframe logic",
-  "requirements": [
-    {
-      "id": "REQ-4",
-      "summary": "Ensure Weekly/Monthly/All Time leaderboard filters refresh and display ranks consistent with backend timeframe totals while keeping the existing date-selection record/remove flow unchanged.",
-      "acceptanceCriteria": [
-        "Switching between Weekly/Monthly/All Time updates the leaderboard table to show only results within that timeframe (or all-time).",
-        "The 'Select a date to record results' control continues to work as-is (user selects a date; wins/losses can be added/removed for that date).",
-        "The timeframe label/range display in the leaderboard UI remains coherent with the meaning of weekly=last 7 days and monthly=last 30 days."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/LeaderboardPage.tsx",
-          "operation": "modify",
-          "description": "Audit and adjust the leaderboard filter wiring so each tab (weekly/monthly/all) reliably drives the correct backend getLeaderboard(timeFilter) fetch, and ensure the table and header range label update immediately when the filter changes (no stale cached view across tabs). Keep the existing record/remove controls and selected-day flow unchanged."
-        },
-        {
-          "path": "frontend/src/lib/date.ts",
-          "operation": "modify",
-          "description": "Update formatTimeframeWindow (and any supporting timeframe helpers if needed) so the displayed window/label explicitly matches the semantics of weekly=last 7 days (inclusive of today) and monthly=last 30 days (inclusive of today), while leaving 'All Time' unchanged."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Verify react-query cache keys and invalidation behavior so recording/removing wins/losses triggers refresh of all leaderboard variants (weekly/monthly/all) and any dependent rank displays, matching the backend's corrected timeframe totals."
-        }
-      ]
-    }
-  ]
+  "title": "Fix leaderboard weekly/monthly timeframe filtering (frontend impact: none)",
+  "requirements": []
 }

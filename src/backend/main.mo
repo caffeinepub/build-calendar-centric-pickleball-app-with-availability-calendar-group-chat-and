@@ -7,15 +7,12 @@ import Int "mo:core/Int";
 import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
-import Migration "migration";
 
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 
-// Use migration module to map old data to new structure
-(with migration = Migration.run)
 actor {
   let accessControlState = AccessControl.initState();
   include MixinStorage();
@@ -580,8 +577,8 @@ actor {
 
   func filterStatsForTimeframe(entry : (Principal, UserStats.T), timeframe : Text) : (Principal, UserStats.T) {
     let (principal, stats) = entry;
-    let now = Time.now();
-    let oneDayNanos = 24 * 60 * 60 * 1_000_000_000 : Int;
+    let currentDay = getCurrentDay();
+
     let daysInTimeframe : ?Nat = switch (timeframe) {
       case ("weekly") { ?7 };
       case ("monthly") { ?30 };
@@ -594,14 +591,9 @@ actor {
 
     for (((logPrincipal, day), log) in dailyLogs.entries()) {
       if (principal == logPrincipal) {
-        let dayTimestamp = getDayTimestamp(day);
         let withinTimeframe = switch (daysInTimeframe) {
-          case (null) {
-            true;
-          };
-          case (?days) {
-            (now - dayTimestamp <= (days.toInt() : Int * oneDayNanos));
-          };
+          case (null) { true };
+          case (?days) { day >= (currentDay - days) };
         };
         if (withinTimeframe) {
           filteredWins += log.wins;

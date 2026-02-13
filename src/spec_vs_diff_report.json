@@ -1,86 +1,38 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T21:41:48.905Z",
-  "summary": "The diff adds some frontend leaderboard tab/query wiring and date-range utilities, plus a migration scaffold and several unrelated availability/UI features. However, the core backend changes required to store a timestamp derived from the user-selected result date and to filter weekly/monthly leaderboards by last-7/last-30 days based on that timestamp are not evidenced in the provided diff summary.",
+  "generatedAt": "2026-02-13T21:59:45.504Z",
+  "summary": "The diff does not show any implemented changes to leaderboard timeframe filtering. Instead, it introduces new availability-related query functions in the backend. Given the truncated backend diff and lack of visible leaderboard logic modifications, REQ-1 and REQ-2 cannot be verified as implemented from the provided evidence.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Update backend leaderboard timeframe filtering so weekly counts only results from last 7 days and monthly counts only results from last 30 days (inclusive), using the user-selected result date timestamps; returned totals must reflect only results in the selected timeframe; avoid inconsistent YYYYMMDD vs epoch comparisons; preserve ordering comparator.",
-      "reason": "The diff summary does not show any changes to the backend getLeaderboard implementation or any timeframe filtering logic. The backend state shown still uses dailyLogs keyed by (Principal, Int) day IDs and there is no visible timestamp-based filtering implementation.",
+      "requirement": "Update backend leaderboard timeframe filtering so Weekly/Monthly filters use integer day IDs (last 7/30 days inclusive) rather than nanosecond timestamps, and apply consistently across all leaderboard endpoints.",
+      "reason": "No changes to leaderboard endpoints or timeframe filtering logic are visible in the provided diff summary. The shown backend changes relate to availability queries and do not demonstrate day-ID-based weekly/monthly filtering for leaderboard aggregation.",
       "evidence": [
-        "backend/main.mo (truncated)",
-        "backend/migration.mo"
+        "backend/main.mo (truncated diff shows new availability functions; no leaderboard/timeFilter logic shown)"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "Store and use a discrete timestamp derived from the user-selected result date when recording wins/losses, and ensure decrement/remove operations still work with the new representation.",
-      "reason": "No new stored timestamp field or new data structure is shown for match results/daily logs. The types in backend/main.mo and backend/migration.mo show DailyLog with only wins/losses, and dailyLogs keyed by (Principal, Int) without any persisted timestamp derived from the selected day.",
+      "requirement": "Ensure recording/removing results (recordDailyWin/recordDailyLoss/decrementDailyLog) continue to work without migration and the corrected timeframe filtering applies immediately to existing logs.",
+      "reason": "No visible changes to recordDailyWin/recordDailyLoss/decrementDailyLog or related leaderboard recalculation/filtering logic are present in the diff summary, so continued compatibility and corrected filtering cannot be confirmed.",
       "evidence": [
-        "backend/main.mo (truncated)",
-        "backend/migration.mo"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "requirement": "Add necessary Motoko state migration for existing stored match results so upgrades preserve existing results and leaderboard queries do not trap after upgrade (only if required by state representation change).",
-      "reason": "A migration module is added, but it is explicitly a no-op with 'New types (same as old for current migration)' and does not migrate to any new state representation needed for timestamp-based filtering. Since the diff does not show a new stored representation, there is no evidence the required migration for that change exists.",
-      "evidence": [
-        "backend/migration.mo",
-        "backend/main.mo (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "requirement": "Frontend leaderboard filters (Weekly/Monthly/All Time) must display rankings matching the corrected backend timeframe logic without changing the date selection and record/remove flow; timeframe label/range must remain coherent.",
-      "reason": "Frontend tabs and query keying are present, and date utilities were added for timeframe windows, but there is no evidence in the diff summary that the backend timeframe logic was corrected. Without the backend fix, the frontend cannot reliably 'match the corrected backend timeframe logic' as required.",
-      "evidence": [
-        "frontend/src/pages/LeaderboardPage.tsx (truncated)",
-        "frontend/src/hooks/useQueries.ts (truncated)",
-        "backend/main.mo (truncated)"
+        "backend/main.mo (truncated diff does not show record/decrement functions or leaderboard aggregation changes)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Backend global availability queries: anyUserHasAvailability(day) and daysWithAnyAvailability(days).",
-      "reason": "Not requested by the BuildRequest, which is focused on leaderboard timeframe filtering and result-date timestamps.",
+      "description": "Added backend availability endpoints: anyUserHasAvailability(day) and daysWithAnyAvailability(days) plus a sync helper anyUserHasAvailabilitySync.",
+      "reason": "These availability-related query functions are not requested in the BuildRequest, which focuses exclusively on leaderboard timeframe filtering and result recording/removal behavior.",
       "evidence": [
-        "backend/main.mo (truncated)"
-      ]
-    },
-    {
-      "description": "Frontend calendar changes to show availability indicators based on global (any-user) availability using a batch query hook.",
-      "reason": "Not requested; outside leaderboard timeframe filtering scope.",
-      "evidence": [
-        "frontend/src/hooks/useQueries.ts (truncated) (useDaysWithAnyAvailability)",
-        "frontend-file-summaries.txt (CalendarMonthPage description)"
-      ]
-    },
-    {
-      "description": "App-wide UI/layout/auth changes (new admin route, navigation/admin tab, top bar/theme toggle repositioning, background wrapper, login screen redesign, footer attribution, chat height adjustments).",
-      "reason": "Not requested; BuildRequest explicitly targets leaderboard filtering correctness and related storage/migration.",
-      "evidence": [
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "description": "useGetAllUserProfiles hook returns an empty Map regardless of actor response.",
-      "reason": "Not requested and appears unrelated to leaderboard timeframe filtering; also looks like incomplete/placeholder behavior rather than a requested change.",
-      "evidence": [
-        "frontend/src/hooks/useQueries.ts (truncated)"
+        "backend/main.mo (shows new functions: anyUserHasAvailability, daysWithAnyAvailability, anyUserHasAvailabilitySync)"
       ]
     }
   ],
-  "confidence": 0.74,
+  "confidence": 0.78,
   "changed_files": [
     "backend/main.mo",
-    "backend/migration.mo",
-    "frontend-file-summaries.txt",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/lib/date.ts",
-    "frontend/src/pages/LeaderboardPage.tsx",
     "project_state.json"
   ]
 }
