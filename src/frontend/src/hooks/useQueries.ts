@@ -68,6 +68,24 @@ export function useHasAvailability(day: bigint | null) {
   });
 }
 
+export function useDaysWithAnyAvailability(days: bigint[]) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Map<string, boolean>>({
+    queryKey: ['daysWithAnyAvailability', days.map(d => d.toString()).join(',')],
+    queryFn: async () => {
+      if (!actor || days.length === 0) return new Map();
+      const results = await actor.daysWithAnyAvailability(days);
+      const map = new Map<string, boolean>();
+      days.forEach((day, index) => {
+        map.set(day.toString(), results[index]);
+      });
+      return map;
+    },
+    enabled: !!actor && !isFetching && days.length > 0,
+  });
+}
+
 export function useGetCallerAvailability(day: bigint | null) {
   const { actor, isFetching } = useActor();
 
@@ -119,6 +137,7 @@ export function useAddAvailability() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['hasAvailability'] });
+      queryClient.invalidateQueries({ queryKey: ['daysWithAnyAvailability'] });
       queryClient.invalidateQueries({ queryKey: ['dayAvailability', variables.day.toString()] });
       queryClient.invalidateQueries({ queryKey: ['callerAvailability', variables.day.toString()] });
       queryClient.invalidateQueries({ queryKey: ['callerAvailableDays'] });
@@ -138,6 +157,7 @@ export function useDeleteCallerDayAvailability() {
     },
     onSuccess: (_, day) => {
       queryClient.invalidateQueries({ queryKey: ['hasAvailability'] });
+      queryClient.invalidateQueries({ queryKey: ['daysWithAnyAvailability'] });
       queryClient.invalidateQueries({ queryKey: ['dayAvailability', day.toString()] });
       queryClient.invalidateQueries({ queryKey: ['callerAvailability', day.toString()] });
       queryClient.invalidateQueries({ queryKey: ['callerAvailableDays'] });
@@ -222,6 +242,40 @@ export function useRecordDailyLoss() {
   });
 }
 
+export function useRemoveDailyWin() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (day: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.decrementDailyLog(day, true);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['callerStats'] });
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['callerMatchHistory'] });
+    },
+  });
+}
+
+export function useRemoveDailyLoss() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (day: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.decrementDailyLog(day, false);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['callerStats'] });
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['callerMatchHistory'] });
+    },
+  });
+}
+
 export function useInitializeCallerLeaderboard() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -274,13 +328,8 @@ export function useDeleteUser() {
       return actor.deleteUser(userToDelete);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
-      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-      queryClient.invalidateQueries({ queryKey: ['dayAvailability'] });
-      queryClient.invalidateQueries({ queryKey: ['hasAvailability'] });
-      queryClient.invalidateQueries({ queryKey: ['loginTimestamps'] });
       queryClient.invalidateQueries({ queryKey: ['allRegisteredUsers'] });
-      queryClient.invalidateQueries({ queryKey: ['allAvailabilities'] });
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
     },
   });
 }
@@ -295,41 +344,9 @@ export function useDeleteUserDayAvailability() {
       return actor.deleteUserDayAvailability(user, day);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dayAvailability'] });
-      queryClient.invalidateQueries({ queryKey: ['hasAvailability'] });
-      queryClient.invalidateQueries({ queryKey: ['callerAvailability'] });
       queryClient.invalidateQueries({ queryKey: ['allAvailabilities'] });
-    },
-  });
-}
-
-export function useDeleteAllDayAvailabilities() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (day: bigint) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.deleteAllDayAvailabilities(day);
-    },
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dayAvailability'] });
-      queryClient.invalidateQueries({ queryKey: ['hasAvailability'] });
-      queryClient.invalidateQueries({ queryKey: ['callerAvailability'] });
-      queryClient.invalidateQueries({ queryKey: ['allAvailabilities'] });
+      queryClient.invalidateQueries({ queryKey: ['daysWithAnyAvailability'] });
     },
-  });
-}
-
-export function useGetAllLoginTimestamps() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Array<[Principal, bigint]>>({
-    queryKey: ['loginTimestamps'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllLoginTimestamps();
-    },
-    enabled: !!actor && !isFetching,
   });
 }

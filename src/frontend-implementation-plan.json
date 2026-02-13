@@ -1,70 +1,59 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Profile: remove Additional Information and add Match History (last 5 days with wins/losses)",
+  "title": "Add remove-win/remove-loss actions to Leaderboard UI and wire decrement mutations",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Update Profile tab layout by removing the “Additional Information” card and showing separate “Leaderboard Rankings” and “Match History” sections.",
+      "summary": "Add “Remove Win” and “Remove Loss” buttons next to existing Win/Loss buttons in the Leaderboard date action row.",
       "acceptanceCriteria": [
-        "On Profile page, the heading/title \"Additional Information\" and its description are no longer visible.",
-        "\"Leaderboard Rankings\" content (ProfileLeaderboardRanks) is still accessible on the Profile page.",
-        "\"Match History\" is visible as its own section on the Profile page (not a placeholder “coming soon” message)."
+        "In the Leaderboard page action area (where a user selects an available date), there are now four buttons: Win, Loss, Remove Win, Remove Loss.",
+        "The new remove buttons are positioned directly next to the existing add buttons (same control group).",
+        "User-facing button labels are in English."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/ProfilePage.tsx",
+          "path": "frontend/src/pages/LeaderboardPage.tsx",
           "operation": "modify",
-          "description": "Remove the existing \"Additional Information\" Card (including its header/description). Render two distinct sections/cards: one titled \"Leaderboard Rankings\" (still using ProfileLeaderboardRanks) and one titled \"Match History\" that renders the real match history UI component (no placeholder text)."
+          "description": "Update the date-selection action row UI to render four action buttons (Win, Loss, Remove Win, Remove Loss) in the same button group immediately next to each other, using existing composed UI components (do not edit immutable ui components)."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Implement Match History UI showing a combined chronological list of the caller’s last 5 availability days with per-day wins/losses.",
+      "summary": "Implement remove-win/remove-loss behavior with non-negative guard, toasts, and pending-state disabling consistent with existing add flows.",
       "acceptanceCriteria": [
-        "Profile > Match History shows at most 5 entries.",
-        "Entries are ordered by date with the most recent first.",
-        "Each entry shows the formatted date and explicit \"Wins\" and \"Losses\" counts for that date (English labels).",
-        "If a date has no recorded results yet, the entry still shows the date with Wins = 0 and Losses = 0 (or clearly indicates zero counts).",
-        "If the caller has no availabilities, Match History shows an English empty-state message instead of an error."
+        "If no date is selected, clicking either remove button shows an error toast and does not call the backend.",
+        "If a date is selected and the day has at least 1 win (or loss), clicking the corresponding remove button results in a success toast and updated leaderboard/match history data.",
+        "If the selected day’s win (or loss) count is already 0, the operation does not produce negative values; the UI remains consistent with backend state (no negative counts shown).",
+        "While a record/remove mutation is pending, the action buttons are disabled in a way consistent with current Win/Loss behavior (preventing double submits)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/profile/ProfileMatchHistory.tsx",
-          "operation": "create",
-          "description": "Create a ProfileMatchHistory component that fetches match-history data via a React Query hook, then renders a list of up to 5 day entries. Each row should show the formatted day (reuse existing date formatting utilities) and explicit English labels \"Wins\" and \"Losses\" with counts (defaulting to 0/0 when missing). Include an English empty-state when there are no days, plus loading/error-safe rendering to avoid crashes."
-        },
-        {
-          "path": "frontend/src/pages/ProfilePage.tsx",
+          "path": "frontend/src/pages/LeaderboardPage.tsx",
           "operation": "modify",
-          "description": "Wire the new ProfileMatchHistory component into the Profile page's new \"Match History\" section so it is displayed as the section content."
+          "description": "Add click handlers for Remove Win/Remove Loss that: (1) show an error toast and return early when no date is selected, (2) consult caller match history data for the selected day (via existing match history query hook) to avoid attempting decrements below 0, (3) trigger the remove mutations and show success/error toasts consistent with current Win/Loss flows, and (4) disable all four action buttons while any win/loss add/remove mutation is pending to prevent double submits."
         }
       ]
     },
     {
-      "id": "REQ-4",
-      "summary": "Update React Query hooks to use caller-scoped backend queries for available days and per-day win/loss logs, and integrate them into Profile Match History and Leaderboard date selector.",
+      "id": "REQ-3",
+      "summary": "Add React Query mutations for removing a daily win and a daily loss, invalidating the same query keys as add-win/add-loss and wiring them into the Leaderboard page.",
       "acceptanceCriteria": [
-        "useGetCallerAvailableDays no longer calls the admin-only getAllAvailabilities flow and instead uses a caller-scoped backend query.",
-        "Leaderboard page date selector continues to work for recording wins/losses using caller-scoped available days.",
-        "Profile page Match History uses React Query-backed data fetching and renders without console errors when logged in as a normal user."
+        "Two new hooks exist in frontend/src/hooks/useQueries.ts for remove-win and remove-loss.",
+        "On success, the hooks invalidate at least: ['callerStats'], ['leaderboard'], and ['callerMatchHistory'] (matching existing add-win/add-loss invalidations).",
+        "The Leaderboard page uses the new hooks for the remove buttons."
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Refactor useGetCallerAvailableDays to stop using getAllAvailabilities and instead fetch caller-scoped available days from the backend (reuse the existing caller-scoped method available in the typed actor). Ensure returned day IDs are sorted descending (most recent first). Add a new React Query hook (e.g., useGetCallerAvailableDaysWithLogs / useGetCallerMatchHistory) that returns per-day wins/losses for the caller and supports limiting to the most recent 5 entries for Profile Match History."
+          "description": "Add two new React Query mutation hooks for remove-win and remove-loss that call the new backend capability for decrementing a daily log, and on success invalidate the same query keys as the existing recordDailyWin/recordDailyLoss hooks: ['callerStats'], ['leaderboard'], and ['callerMatchHistory']."
         },
         {
           "path": "frontend/src/pages/LeaderboardPage.tsx",
           "operation": "modify",
-          "description": "Update LeaderboardPage to continue using useGetCallerAvailableDays for the date selector (now caller-scoped). Ensure the selector still renders available days and continues to allow recording wins/losses without relying on admin-only data."
-        },
-        {
-          "path": "frontend/src/components/profile/ProfileMatchHistory.tsx",
-          "operation": "modify",
-          "description": "Use the new/updated React Query hook(s) from useQueries.ts to fetch caller day logs and render them (most recent first, max 5). Ensure day IDs and win/loss counts are handled safely (bigints to strings/numbers for display) and that empty-state behavior matches requirements."
+          "description": "Import and use the new remove-win/remove-loss hooks for the new buttons, and ensure the same query invalidation-driven refresh behavior as add-win/add-loss (leaderboard + match history + caller stats update after success)."
         }
       ]
     }

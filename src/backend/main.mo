@@ -93,6 +93,33 @@ actor {
   let dailyLogs = Map.empty<(Principal, Int), DailyLog>();
   var messageCounter : Int = 0;
 
+  // New function to check any user's availability for a day
+  public query ({ caller }) func anyUserHasAvailability(day : Int) : async Bool {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view availability");
+    };
+    for (((_user, dayKey), _availability) in availabilities.entries()) {
+      if (dayKey == day) { return true };
+    };
+    false;
+  };
+
+  // New function to check which days (from given range of days) have availability from any user
+  public query ({ caller }) func daysWithAnyAvailability(days : [Int]) : async [Bool] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view availability");
+    };
+    days.map(func(day) { anyUserHasAvailabilitySync(day) });
+  };
+
+  // Helper function for synchronous context
+  func anyUserHasAvailabilitySync(day : Int) : Bool {
+    for (((_user, dayKey), _availability) in availabilities.entries()) {
+      if (dayKey == day) { return true };
+    };
+    false;
+  };
+
   public query ({ caller }) func getCallerAvailableDaysWithLogs() : async [DayWithLog] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view their available days");
@@ -363,6 +390,35 @@ actor {
     updateDailyLog(caller, day, false);
   };
 
+  // New function to decrement daily logs
+  public shared ({ caller }) func decrementDailyLog(day : Int, isWin : Bool) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can modify daily logs");
+    };
+
+    let currentLog = switch (dailyLogs.get((caller, day))) {
+      case (null) { { wins = 0; losses = 0 } };
+      case (?log) { log };
+    };
+
+    let updatedLog = {
+      wins = if (isWin) {
+        if (currentLog.wins > 0) { currentLog.wins - 1 : Nat } else {
+          0;
+        };
+      } else { currentLog.wins };
+      losses = if (isWin) {
+        currentLog.losses;
+      } else if (currentLog.losses > 0) {
+        currentLog.losses - 1 : Nat;
+      } else { 0 };
+    };
+
+    dailyLogs.add((caller, day), updatedLog);
+
+    updateOverallStats(caller); // Recalculate stats after modification
+  };
+
   func updateDailyLog(user : Principal, day : Int, isWin : Bool) {
     let currentLog = switch (dailyLogs.get((user, day))) {
       case (null) { { wins = 0; losses = 0 } };
@@ -570,3 +626,4 @@ actor {
     dayTimestampNanos * day;
   };
 };
+

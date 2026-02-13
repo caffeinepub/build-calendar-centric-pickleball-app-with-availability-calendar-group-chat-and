@@ -1,110 +1,97 @@
 {
   "kind": "build_request",
-  "title": "Profile: remove Additional Information section and add Match History wins/losses by date (last 5 availabilities)",
+  "title": "Add remove-win and remove-loss actions to Leaderboard and persist decrements",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update the Profile tab UI to remove the entire \"Additional Information\" card/section (the section above leaderboard rankings), and instead render distinct sections for \"Leaderboard Rankings\" and \"Match History\" on the profile page.",
+      "text": "Update the Leaderboard tab UI to include two additional buttons, “Remove Win” and “Remove Loss”, displayed immediately next to the existing “Win” and “Loss” add buttons in the date-selection action row.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "recent-messages"
         ],
         "quotes": [
-          "its the section in the profile tab above leaderboard rankings that says additional information, and it should be removed"
+          "on the leaderboard tab when users enter the wins and losses, there is only buttons to add wins and losses however I want an additional one to remove wins and losses",
+          "2)appear right next to existing"
         ]
       },
       "acceptanceCriteria": [
-        "On Profile page, the heading/title \"Additional Information\" and its description are no longer visible.",
-        "\"Leaderboard Rankings\" content (ProfileLeaderboardRanks) is still accessible on the Profile page.",
-        "\"Match History\" is visible as its own section on the Profile page (not a placeholder “coming soon” message)."
+        "In the Leaderboard page action area (where a user selects an available date), there are now four buttons: Win, Loss, Remove Win, Remove Loss.",
+        "The new remove buttons are positioned directly next to the existing add buttons (same control group).",
+        "User-facing button labels are in English."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Implement a Match History list on the Profile tab that shows a single combined chronological list of the caller's last 5 availabilities played, where each list item displays the date and the wins and losses recorded for that date.",
-      "target": "both",
+      "text": "Implement remove-win/remove-loss behavior in the frontend so that clicking “Remove Win” or “Remove Loss” decrements the corresponding count by 1 for the selected day, never allowing the day’s wins or losses to go below 0, and shows success/error toasts consistent with the existing add-win/add-loss flows.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "recent-messages"
         ],
         "quotes": [
-          "how about the last 5 availabilities played",
-          "show wins and losses",
-          "together"
+          "1) yes"
         ]
       },
       "acceptanceCriteria": [
-        "Profile > Match History shows at most 5 entries.",
-        "Entries are ordered by date with the most recent first.",
-        "Each entry shows the formatted date and explicit \"Wins\" and \"Losses\" counts for that date (English labels).",
-        "If a date has no recorded results yet, the entry still shows the date with Wins = 0 and Losses = 0 (or clearly indicates zero counts).",
-        "If the caller has no availabilities, Match History shows an English empty-state message instead of an error."
+        "If no date is selected, clicking either remove button shows an error toast and does not call the backend.",
+        "If a date is selected and the day has at least 1 win (or loss), clicking the corresponding remove button results in a success toast and updated leaderboard/match history data.",
+        "If the selected day’s win (or loss) count is already 0, the operation does not produce negative values; the UI remains consistent with backend state (no negative counts shown).",
+        "While a record/remove mutation is pending, the action buttons are disabled in a way consistent with current Win/Loss behavior (preventing double submits)."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Add backend query API(s) to support Profile > Match History by returning the caller’s available day IDs and the caller’s per-day win/loss totals (DailyLog) for those days, with user-only authorization enforced consistently with existing stats/availability endpoints.",
-      "target": "backend",
+      "text": "Add React Query mutations for removing a daily win and removing a daily loss that call new backend actor methods, and invalidate the same query keys as the existing recordDailyWin/recordDailyLoss mutations (callerStats, leaderboard, callerMatchHistory).",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "recent-messages"
         ],
         "quotes": [
-          "show wins and losses from prior dates in this section",
-          "last 5 availabilities played"
+          "3)yes and yes"
         ]
       },
       "acceptanceCriteria": [
-        "Backend exposes a query method that returns the caller’s availability day IDs (so the frontend does not rely on admin-only getAllAvailabilities).",
-        "Backend exposes a query method that returns per-day (wins, losses) for the caller for a provided set of day IDs OR a query method that directly returns the most recent N day logs for the caller.",
-        "Unauthorized callers (non-user) are rejected similarly to existing endpoints (e.g., getCallerStats/hasAvailability).",
-        "Returned per-day win/loss data matches the values maintained by recordDailyWin/recordDailyLoss (dailyLogs map)."
+        "Two new hooks exist in frontend/src/hooks/useQueries.ts for remove-win and remove-loss.",
+        "On success, the hooks invalidate at least: ['callerStats'], ['leaderboard'], and ['callerMatchHistory'] (matching existing add-win/add-loss invalidations).",
+        "The Leaderboard page uses the new hooks for the remove buttons."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Update React Query hooks and consuming pages to use the new backend query API(s) for fetching the caller’s available days (and per-day win/loss data) without requiring admin permissions, and integrate these hooks into the Profile page Match History UI.",
-      "target": "frontend",
+      "text": "Extend the Motoko backend to support decrementing a caller’s daily wins/losses for a given day (selected in the UI), updating the same underlying storage used by recordDailyWin/recordDailyLoss, never allowing wins/losses to go below 0, and recomputing overall stats afterward so the leaderboard reflects the change.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "recent-messages"
         ],
         "quotes": [
-          "can we get this information on the match history section in the profile tab"
+          "3)yes and yes",
+          "1) yes"
         ]
       },
       "acceptanceCriteria": [
-        "useGetCallerAvailableDays no longer calls the admin-only getAllAvailabilities flow and instead uses a caller-scoped backend query.",
-        "Leaderboard page date selector continues to work for recording wins/losses using caller-scoped available days.",
-        "Profile page Match History uses React Query-backed data fetching and renders without console errors when logged in as a normal user."
+        "Backend exposes two new shared methods for the caller: one to remove a daily win for a day, and one to remove a daily loss for a day.",
+        "Both methods enforce the same authorization guard pattern as recordDailyWin/recordDailyLoss (user permission required).",
+        "Both methods do not allow the stored daily log to become negative (wins and losses are Nat). If the count is already 0 or no log exists for that day, the backend leaves the value at 0 (no underflow) and does not corrupt state.",
+        "After a successful decrement/no-op, the caller’s overall stats are updated so getLeaderboard() returns updated totals.",
+        "The existing recordDailyWin/recordDailyLoss behavior continues to work unchanged."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo; do not introduce additional canisters/services.",
-    "Only create backend/migration.mo if a state/schema migration is required to preserve existing stable data.",
-    "Do not edit files under frontend/src/components/ui or other frontend immutablePaths; compose existing components instead.",
-    "Use English for all user-facing text."
+    "Backend must remain a single Motoko actor in backend/main.mo (no additional backend services).",
+    "Do not edit any frontend files under frontend/src/components/ui or other immutable paths listed in SYSTEM_CONTEXT; compose existing UI components instead."
   ],
   "nonGoals": [
-    "Do not build a full \"match analytics\" system beyond per-date wins/losses.",
-    "Do not add calendar UI or date picker for match history (only last 5 availabilities as requested).",
-    "Do not introduce third-party services or external databases."
+    "Changing leaderboard ranking/sorting/scoring logic beyond what naturally changes from updated win/loss totals.",
+    "Adding new authentication methods (Internet Identity remains the only auth).",
+    "Adding per-click confirmation dialogs or audit/history tracking beyond existing dailyLogs and derived stats."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from '@tanstack/react-router';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { useHasAvailability } from '../hooks/useQueries';
+import { useDaysWithAnyAvailability } from '../hooks/useQueries';
 import { getDayId, getMonthGridDays, formatMonthYear, isToday } from '../lib/date';
 import ChatPanel from '../components/chat/ChatPanel';
 
@@ -13,6 +13,9 @@ export default function CalendarMonthPage() {
   const month = currentDate.getMonth();
 
   const gridDays = getMonthGridDays(year, month);
+  
+  const dayIds = useMemo(() => gridDays.map(date => getDayId(date)), [gridDays]);
+  const { data: availabilityMap } = useDaysWithAnyAvailability(dayIds);
 
   const goToPreviousMonth = () => {
     setCurrentDate(new Date(year, month - 1, 1));
@@ -56,6 +59,7 @@ export default function CalendarMonthPage() {
             {gridDays.map((date, index) => {
               const isCurrentMonth = date.getMonth() === month;
               const dayId = getDayId(date);
+              const hasAvailability = availabilityMap?.get(dayId.toString()) ?? false;
               
               return (
                 <DayCell
@@ -63,6 +67,7 @@ export default function CalendarMonthPage() {
                   date={date}
                   dayId={dayId}
                   isCurrentMonth={isCurrentMonth}
+                  hasAvailability={hasAvailability}
                 />
               );
             })}
@@ -77,8 +82,7 @@ export default function CalendarMonthPage() {
   );
 }
 
-function DayCell({ date, dayId, isCurrentMonth }: { date: Date; dayId: bigint; isCurrentMonth: boolean }) {
-  const { data: hasAvailability } = useHasAvailability(dayId);
+function DayCell({ date, dayId, isCurrentMonth, hasAvailability }: { date: Date; dayId: bigint; isCurrentMonth: boolean; hasAvailability: boolean }) {
   const today = isToday(date);
 
   return (

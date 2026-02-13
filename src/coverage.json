@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T00:19:03.851Z",
+  "generatedAt": "2026-02-13T14:36:07.643Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -12,48 +12,45 @@
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Update the Profile tab UI to remove the entire \"Additional Information\" card/section (the section above leaderboard rankings), and instead render distinct sections for \"Leaderboard Rankings\" and \"Match History\" on the profile page.",
+        "summary": "Update the Leaderboard tab UI to include two additional buttons, “Remove Win” and “Remove Loss”, displayed immediately next to the existing “Win” and “Loss” add buttons in the date-selection action row.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/ProfilePage.tsx"
+          "frontend/src/pages/LeaderboardPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/ProfilePage.tsx"
+          "frontend/src/pages/LeaderboardPage.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Implement a Match History list on the Profile tab that shows a single combined chronological list of the caller's last 5 availabilities played, where each list item displays the date and the wins and losses recorded for that date.",
+        "summary": "Implement remove-win/remove-loss behavior in the frontend so that clicking “Remove Win” or “Remove Loss” decrements the corresponding count by 1 for the selected day, never allowing the day’s wins or losses to go below 0, and shows success/error toasts consistent with the existing add-win/add-loss flows.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/profile/ProfileMatchHistory.tsx",
-          "frontend/src/pages/ProfilePage.tsx"
+          "frontend/src/pages/LeaderboardPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/profile/ProfileMatchHistory.tsx",
-          "frontend/src/pages/ProfilePage.tsx"
+          "frontend/src/pages/LeaderboardPage.tsx"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Add backend query API(s) to support Profile > Match History by returning the caller’s available day IDs and the caller’s per-day win/loss totals (DailyLog) for those days, with user-only authorization enforced consistently with existing stats/availability endpoints.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Update React Query hooks and consuming pages to use the new backend query API(s) for fetching the caller’s available days (and per-day win/loss data) without requiring admin permissions, and integrate these hooks into the Profile page Match History UI.",
+        "summary": "Add React Query mutations for removing a daily win and removing a daily loss that call new backend actor methods, and invalidate the same query keys as the existing recordDailyWin/recordDailyLoss mutations (callerStats, leaderboard, callerMatchHistory).",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/hooks/useQueries.ts",
-          "frontend/src/pages/LeaderboardPage.tsx",
-          "frontend/src/components/profile/ProfileMatchHistory.tsx"
+          "frontend/src/pages/LeaderboardPage.tsx"
         ],
         "matchedFiles": [
           "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/profile/ProfileMatchHistory.tsx"
+          "frontend/src/pages/LeaderboardPage.tsx"
         ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Extend the Motoko backend to support decrementing a caller’s daily wins/losses for a given day (selected in the UI), updating the same underlying storage used by recordDailyWin/recordDailyLoss, never allowing wins/losses to go below 0, and recomputing overall stats afterward so the leaderboard reflects the change.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       }
     ]
   },
@@ -65,11 +62,10 @@
     "frontend-implementation-plan.json",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
-    "frontend/src/components/profile/ProfileMatchHistory.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/ProfilePage.tsx",
+    "frontend/src/pages/LeaderboardPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

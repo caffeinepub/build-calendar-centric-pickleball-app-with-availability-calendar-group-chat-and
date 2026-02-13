@@ -40,7 +40,10 @@ export enum UserRole {
 }
 export interface backendInterface {
     addAvailability(day: bigint, time: string, notes: string | null): Promise<void>;
+    anyUserHasAvailability(day: bigint): Promise<boolean>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    daysWithAnyAvailability(days: Array<bigint>): Promise<Array<boolean>>;
+    decrementDailyLog(day: bigint, isWin: boolean): Promise<void>;
     deleteAllDayAvailabilities(day: bigint): Promise<void>;
     deleteCallerDayAvailability(day: bigint): Promise<void>;
     deleteUser(userToDelete: Principal): Promise<void>;

@@ -7,7 +7,15 @@ import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { useGetLeaderboard, useRecordDailyWin, useRecordDailyLoss, useGetCallerAvailableDays } from '../hooks/useQueries';
+import { 
+  useGetLeaderboard, 
+  useRecordDailyWin, 
+  useRecordDailyLoss, 
+  useRemoveDailyWin,
+  useRemoveDailyLoss,
+  useGetCallerAvailableDays,
+  useGetCallerMatchHistory
+} from '../hooks/useQueries';
 import { useUserDirectoryWithAvatars } from '../hooks/useUserDirectory';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import AvatarName from '../components/user/AvatarName';
@@ -53,12 +61,17 @@ function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
   const { data: userDirectory, isLoading: isLoadingDirectory } = useUserDirectoryWithAvatars(principals);
   const { identity } = useInternetIdentity();
   const { data: availableDays = [], isLoading: isLoadingDays } = useGetCallerAvailableDays();
-  const { mutate: recordWin, isPending: isRecordingWin, error: winError } = useRecordDailyWin();
-  const { mutate: recordLoss, isPending: isRecordingLoss, error: lossError } = useRecordDailyLoss();
+  const { data: matchHistory = [] } = useGetCallerMatchHistory();
+  const { mutate: recordWin, isPending: isRecordingWin } = useRecordDailyWin();
+  const { mutate: recordLoss, isPending: isRecordingLoss } = useRecordDailyLoss();
+  const { mutate: removeWin, isPending: isRemovingWin } = useRemoveDailyWin();
+  const { mutate: removeLoss, isPending: isRemovingLoss } = useRemoveDailyLoss();
   
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   const callerPrincipal = identity?.getPrincipal().toString();
+
+  const isPending = isRecordingWin || isRecordingLoss || isRemovingWin || isRemovingLoss;
 
   const handleRecordWin = () => {
     if (!selectedDay) {
@@ -86,6 +99,50 @@ function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
       },
       onError: (error: any) => {
         toast.error(error?.message || 'Failed to record loss. Make sure you are marked available for this date.');
+      },
+    });
+  };
+
+  const handleRemoveWin = () => {
+    if (!selectedDay) {
+      toast.error('Please select a date first');
+      return;
+    }
+
+    const dayLog = matchHistory.find(entry => entry.day.toString() === selectedDay);
+    if (!dayLog || dayLog.wins === 0n) {
+      toast.error('No wins to remove for this date');
+      return;
+    }
+
+    removeWin(BigInt(selectedDay), {
+      onSuccess: () => {
+        toast.success('Win removed successfully!');
+      },
+      onError: (error: any) => {
+        toast.error(error?.message || 'Failed to remove win.');
+      },
+    });
+  };
+
+  const handleRemoveLoss = () => {
+    if (!selectedDay) {
+      toast.error('Please select a date first');
+      return;
+    }
+
+    const dayLog = matchHistory.find(entry => entry.day.toString() === selectedDay);
+    if (!dayLog || dayLog.losses === 0n) {
+      toast.error('No losses to remove for this date');
+      return;
+    }
+
+    removeLoss(BigInt(selectedDay), {
+      onSuccess: () => {
+        toast.success('Loss removed successfully!');
+      },
+      onError: (error: any) => {
+        toast.error(error?.message || 'Failed to remove loss.');
       },
     });
   };
@@ -152,7 +209,7 @@ function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
                     variant="default"
                     className="gap-2"
                     onClick={handleRecordWin}
-                    disabled={!selectedDay || isRecordingWin || isRecordingLoss}
+                    disabled={!selectedDay || isPending}
                   >
                     <Plus className="h-4 w-4" />
                     Win
@@ -162,10 +219,30 @@ function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
                     variant="outline"
                     className="gap-2"
                     onClick={handleRecordLoss}
-                    disabled={!selectedDay || isRecordingWin || isRecordingLoss}
+                    disabled={!selectedDay || isPending}
                   >
                     <Minus className="h-4 w-4" />
                     Loss
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="gap-2"
+                    onClick={handleRemoveWin}
+                    disabled={!selectedDay || isPending}
+                  >
+                    <Minus className="h-4 w-4" />
+                    Remove Win
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="gap-2"
+                    onClick={handleRemoveLoss}
+                    disabled={!selectedDay || isPending}
+                  >
+                    <Minus className="h-4 w-4" />
+                    Remove Loss
                   </Button>
                 </div>
               </div>

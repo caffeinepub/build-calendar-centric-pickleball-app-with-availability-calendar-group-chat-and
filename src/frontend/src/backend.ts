@@ -133,7 +133,10 @@ export interface backendInterface {
     _caffeineStorageUpdateGatewayPrincipals(): Promise<void>;
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
     addAvailability(day: bigint, time: string, notes: string | null): Promise<void>;
+    anyUserHasAvailability(day: bigint): Promise<boolean>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    daysWithAnyAvailability(days: Array<bigint>): Promise<Array<boolean>>;
+    decrementDailyLog(day: bigint, isWin: boolean): Promise<void>;
     deleteAllDayAvailabilities(day: bigint): Promise<void>;
     deleteCallerDayAvailability(day: bigint): Promise<void>;
     deleteUser(userToDelete: Principal): Promise<void>;
@@ -277,6 +280,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async anyUserHasAvailability(arg0: bigint): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.anyUserHasAvailability(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.anyUserHasAvailability(arg0);
+            return result;
+        }
+    }
     async assignCallerUserRole(arg0: Principal, arg1: UserRole): Promise<void> {
         if (this.processError) {
             try {
@@ -288,6 +305,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n9(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async daysWithAnyAvailability(arg0: Array<bigint>): Promise<Array<boolean>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.daysWithAnyAvailability(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.daysWithAnyAvailability(arg0);
+            return result;
+        }
+    }
+    async decrementDailyLog(arg0: bigint, arg1: boolean): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.decrementDailyLog(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.decrementDailyLog(arg0, arg1);
             return result;
         }
     }

@@ -1,32 +1,34 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Profile tab updates: enhance Match History to show wins/losses by date for the last 5 availabilities in a single chronological list, and remove the 'Additional Information' section above leaderboard rankings.",
-  "architectural_notes": [],
+  "summary": "App with calendar availability indicator and a leaderboard where users can record wins/losses.",
+  "architectural_notes": [
+    "Leaderboard win/loss decrement actions must clamp at 0 and update the same backend storage as increment actions."
+  ],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-update-the-profile-tab-ui-to-remove-the-entire-additional-information-card-section-the-section-above-leaderboard-rankings-and-instead-render-distinct-sections-for-leaderboard-rankings-and-match-history-on-the-profile-page",
-      "title": "Update the Profile tab UI to remove the entire \"Additional Information\" card/section (the section above leaderboard rankings), and instead render distinct sections for \"Leaderboard Rankings\" and \"Match History\" on the profile page.",
+      "id": "feature-update-the-leaderboard-tab-ui-to-include-two-additional-buttons-remove-win-and-remove-loss-displayed-immediately-next-to-the-existing-win-and-loss-add-buttons-in-the-date-selection-action-row",
+      "title": "Update the Leaderboard tab UI to include two additional buttons, “Remove Win” and “Remove Loss”, displayed immediately next to the existing “Win” and “Loss” add buttons in the date-selection action row.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-implement-a-match-history-list-on-the-profile-tab-that-shows-a-single-combined-chronological-list-of-the-caller-s-last-5-availabilities-played-where-each-list-item-displays-the-date-and-the-wins-and-losses-recorded-for-that-date",
-      "title": "Implement a Match History list on the Profile tab that shows a single combined chronological list of the caller's last 5 availabilities played, where each list item displays the date and the wins and losses recorded for that date.",
+      "id": "feature-implement-remove-win-remove-loss-behavior-in-the-frontend-so-that-clicking-remove-win-or-remove-loss-decrements-the-corresponding-count-by-1-for-the-selected-day-never-allowing-the-day-s-wins-or-losses-to-go-below-0-and-shows-success-error-toasts-consistent-with-the-existing-add-win-add-loss-flows",
+      "title": "Implement remove-win/remove-loss behavior in the frontend so that clicking “Remove Win” or “Remove Loss” decrements the corresponding count by 1 for the selected day, never allowing the day’s wins or losses to go below 0, and shows success/error toasts consistent with the existing add-win/add-loss flows.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-update-react-query-hooks-and-consuming-pages-to-use-the-new-backend-query-api-s-for-fetching-the-caller-s-available-days-and-per-day-win-loss-data-without-requiring-admin-permissions-and-integrate-these-hooks-into-the-profile-page-match-history-ui",
-      "title": "Update React Query hooks and consuming pages to use the new backend query API(s) for fetching the caller’s available days (and per-day win/loss data) without requiring admin permissions, and integrate these hooks into the Profile page Match History UI.",
+      "id": "feature-add-react-query-mutations-for-removing-a-daily-win-and-removing-a-daily-loss-that-call-new-backend-actor-methods-and-invalidate-the-same-query-keys-as-the-existing-recorddailywin-recorddailyloss-mutations-callerstats-leaderboard-callermatchhistory",
+      "title": "Add React Query mutations for removing a daily win and removing a daily loss that call new backend actor methods, and invalidate the same query keys as the existing recordDailyWin/recordDailyLoss mutations (callerStats, leaderboard, callerMatchHistory).",
       "reqIds": [
-        "REQ-4"
+        "REQ-3"
       ],
       "version": 1
     }
@@ -34,26 +36,20 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Update Profile > Match History to display wins/losses broken down by date for the last 5 availabilities played, shown together in a single chronological list.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Remove the 'Additional Information' section from the Profile tab (the section above leaderboard rankings).",
+      "summary": "Add remove-win and remove-loss buttons on the leaderboard to decrement counts (never below zero) and persist updates to the backend.",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-5",
-      "summary": "Add backend query API(s) to support Profile > Match History by returning the caller’s available day IDs and the caller’s per-day win/loss totals (DailyLog) for those days, with user-only authorization enforced consistently with existing stats/availability endpoints.",
+      "summary": "Extend the Motoko backend to support decrementing a caller’s daily wins/losses for a given day (selected in the UI), updating the same underlying storage used by recordDailyWin/recordDailyLoss, never allowing wins/losses to go below 0, and recomputing overall stats afterward so the leaderboard reflects the change.",
       "reqIds": [
-        "REQ-3"
+        "REQ-4"
       ],
       "status": "pending"
     }
   ],
-  "projectName": "Profile: remove Additional Information section and add Match History wins/losses by date (last 5 availabilities)",
+  "projectName": "Add remove-win and remove-loss actions to Leaderboard and persist decrements",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }
