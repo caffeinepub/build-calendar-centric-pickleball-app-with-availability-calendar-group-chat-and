@@ -93,6 +93,7 @@ actor {
   let dailyLogs = Map.empty<(Principal, Int), DailyLog>();
   var messageCounter : Int = 0;
 
+  // New function to check any user's availability for a day
   public query ({ caller }) func anyUserHasAvailability(day : Int) : async Bool {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view availability");
@@ -103,6 +104,7 @@ actor {
     false;
   };
 
+  // New function to check which days (from given range of days) have availability from any user
   public query ({ caller }) func daysWithAnyAvailability(days : [Int]) : async [Bool] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view availability");
@@ -110,6 +112,7 @@ actor {
     days.map(func(day) { anyUserHasAvailabilitySync(day) });
   };
 
+  // Helper function for synchronous context
   func anyUserHasAvailabilitySync(day : Int) : Bool {
     for (((_user, dayKey), _availability) in availabilities.entries()) {
       if (dayKey == day) { return true };
@@ -380,6 +383,7 @@ actor {
     updateDailyLog(caller, day, false);
   };
 
+  // New function to decrement daily logs
   public shared ({ caller }) func decrementDailyLog(day : Int, isWin : Bool) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can modify daily logs");

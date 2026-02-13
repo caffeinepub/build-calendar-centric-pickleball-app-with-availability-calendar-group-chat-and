@@ -1,12 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Improve the Leaderboard layout, fix Admin deletions, add an admin-only login timestamp log, and introduce in-app toast notifications for key activity.
+**Goal:** Update the all-time Leaderboard table to remove the Score column and restore Win % and Streak using all-time stats.
 
 **Planned changes:**
-- Update the affected UI so Win and Loss labels/values render side-by-side (horizontal) instead of stacked vertically, preserving existing styling and spacing across mobile and desktop.
-- Fix Admin tab delete actions for (a) users and (b) availability entries so deletions succeed immediately and the Admin UI updates without manual refresh (including refreshing availabilities after deleting a user).
-- Record each user’s latest sign-in timestamp on login and display it in the Admin tab as a human-readable date/time, restricted to admins (backend-enforced).
-- Add in-app toast notifications that trigger (a) when another user adds availability while the viewer is on Calendar/Day Detail views, and (b) when the current user’s leaderboard rank improves while viewing the Leaderboard tab, avoiding repeat/spam on unchanged polling.
+- Remove the “Score” column from the All-Time Rankings leaderboard table (header and row values) and eliminate any user-facing “Score” references on the Leaderboard page.
+- Add back a “Win %” column in the all-time leaderboard, computed as wins / totalGames from the existing all-time stats (show 0% when totalGames is 0).
+- Add back a “Streak” column in the all-time leaderboard, sourced from the existing all-time streak value (show 0 when no games exist).
+- Ensure the backend leaderboard API continues returning all-time wins, losses, totalGames, and streak, and that these fields update after recording/removing wins/losses without adding weekly/monthly logic.
 
-**User-visible outcome:** Win/Loss is displayed in a cleaner horizontal row, Admin deletes work and update instantly, admins can see users’ latest sign-in times, and users receive toast notifications for new availability activity and positive rank changes.
+**User-visible outcome:** The Leaderboard (All-Time Rankings) no longer shows “Score” and instead shows per-player Win % and Streak based on all-time results, updating correctly as games are added or removed.

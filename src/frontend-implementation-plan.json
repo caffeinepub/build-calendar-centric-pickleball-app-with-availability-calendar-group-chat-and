@@ -1,100 +1,58 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "UI layout tweak, admin deletion fixes, admin login log display, and in-app toast notifications",
+  "title": "Leaderboard: remove Score column and restore Win % + Streak (all-time)",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Render Win and Loss controls side-by-side (horizontal) across mobile and desktop while preserving existing styling.",
+      "summary": "Remove the Score stat from the All-Time Rankings leaderboard table UI (header and row values) and eliminate any user-facing \"Score\" text on the page.",
       "acceptanceCriteria": [
-        "On the affected screen(s), the Win and Loss labels/values appear horizontally next to each other (not vertically stacked) on common breakpoints (mobile and desktop).",
-        "No overlapping/truncation occurs; spacing remains visually consistent with the rest of the UI."
+        "Leaderboard table no longer contains a column labeled \"Score\".",
+        "No score value is rendered in any leaderboard row.",
+        "No user-facing text references \"Score\" on the Leaderboard page."
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/LeaderboardPage.tsx",
           "operation": "modify",
-          "description": "Update the Win/Loss control layout classes so the Win and Loss sections render side-by-side on the same row even on mobile, preserving existing spacing/typography and preventing overlap/truncation."
+          "description": "Update the All-Time Rankings <Table> to remove the Score <TableHead> and the per-row Score <TableCell>. Remove the score calculation usage from rendering and ensure no remaining user-facing \"Score\" text exists on the page."
+        },
+        {
+          "path": "frontend/src/pages/LeaderboardPage.tsx",
+          "operation": "modify",
+          "description": "Delete the now-unused score helper (e.g., calculateScore) and any related imports/logic so the Score stat is not computed or displayed anywhere in the leaderboard table UI."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Fix Admin delete actions for users and user-day availability so deletions execute immediately with valid Principals and the UI refreshes without manual reload.",
+      "summary": "Restore the Win % column in the all-time leaderboard table, computed from all-time wins and totalGames with safe zero-games handling.",
       "acceptanceCriteria": [
-        "Clicking the delete button for a user removes that user from the Registered Users table after the mutation completes.",
-        "Clicking the delete button for an availability removes that availability row from the All Availabilities table after the mutation completes.",
-        "After deleting a user, the All Availabilities table also updates (since the backend deletes that user’s availabilities).",
-        "Deletion uses valid Principal objects (no unsafe casts) so the backend calls succeed."
+        "Leaderboard table includes a \"Win %\" column.",
+        "Win % is computed from the existing all-time stats returned by the backend (wins and totalGames) and does not depend on weekly/monthly timeframes.",
+        "When totalGames is 0, Win % displays as 0% (or equivalent non-error value) and the UI does not crash."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/AdminPage.tsx",
+          "path": "frontend/src/pages/LeaderboardPage.tsx",
           "operation": "modify",
-          "description": "Replace unsafe Principal casting in delete handlers with constructing valid Principal objects (e.g., from text) for both delete user and delete availability actions, and ensure local deleting-state handling still works."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Ensure admin delete mutations invalidate all relevant react-query caches so the Admin UI updates immediately (including invalidating All Availabilities after deleting a user, and keeping existing invalidations for availability deletions)."
+          "description": "Add a \"Win %\" column to the All-Time Rankings table and compute it per row from stats.wins and stats.totalGames (all-time). Implement safe formatting to display 0% when totalGames is 0, and ensure bigint-to-number conversion does not crash the UI."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Show an admin-only per-user latest sign-in timestamp in the Admin tab, using existing readable date/time formatting utilities.",
+      "summary": "Restore the Streak column in the all-time leaderboard table using the all-time streak value provided by the backend.",
       "acceptanceCriteria": [
-        "On login, the app records the caller’s latest login timestamp (one per user, overwriting the prior value is acceptable).",
-        "Admins can view a list/table in the Admin page showing users and their latest login timestamp formatted in a human-readable way (e.g., using the existing date formatting utilities).",
-        "Non-admin users cannot access the login timestamp list (backend enforces admin access; frontend does not show it)."
+        "Leaderboard table includes a \"Streak\" column.",
+        "Streak values displayed are sourced from the backend leaderboard stats (all-time) and update appropriately after recording/removing wins/losses.",
+        "The leaderboard page renders successfully for users with no games recorded (streak shown as 0 or equivalent)."
       ],
       "file_operations": [
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Add a react-query hook to fetch admin login timestamps (using the existing backend capability) so the Admin page can display latest sign-in times."
-        },
-        {
-          "path": "frontend/src/pages/AdminPage.tsx",
-          "operation": "modify",
-          "description": "Display each user’s latest sign-in timestamp in the Admin Panel (admin-only view already enforced by AccessDeniedScreen). Format timestamps via existing date utilities and handle missing timestamps gracefully (e.g., show '—')."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Add in-app toast notifications for new availability added by other users (Calendar/Day Detail) and for positive caller rank changes on the Leaderboard, using polling/refetch without spamming.",
-      "acceptanceCriteria": [
-        "Availability notification: while a signed-in user is viewing the Calendar and/or Day Detail views, the UI detects new availability added by a different principal and shows a toast notification.",
-        "Leaderboard notification: while a signed-in user is on the Leaderboard tab, the UI detects when the caller’s rank position improves (any positive change) and shows a toast notification.",
-        "Notifications are implemented as small toast pop-ups (per existing toast usage) and do not require push notifications.",
-        "Notification logic does not spam: repeated polling/refetching without changes does not re-trigger the same toast."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useInAppNotifications.ts",
-          "operation": "create",
-          "description": "Create reusable notification logic (poll/refetch + diffing with refs) for: (1) availability changes by other principals while on Calendar/Day Detail, and (2) caller rank improvement while on Leaderboard. Use the existing toast system (sonner) and ensure notifications only fire on detected state transitions (no repeat-toasts on identical data)."
-        },
-        {
-          "path": "frontend/src/pages/CalendarMonthPage.tsx",
-          "operation": "modify",
-          "description": "Wire the new in-app notification hook into the Calendar view to poll/refetch availability signals and show a toast when a different principal adds availability (without spamming)."
-        },
-        {
-          "path": "frontend/src/pages/DayDetailPage.tsx",
-          "operation": "modify",
-          "description": "Wire the new in-app notification hook into the Day Detail view to poll/refetch the day availability list and show a toast when a different principal appears in the list (without spamming)."
-        },
         {
           "path": "frontend/src/pages/LeaderboardPage.tsx",
           "operation": "modify",
-          "description": "Wire the new in-app notification hook into the Leaderboard view to poll/refetch leaderboard data while the tab is active and show a toast when the caller’s rank improves compared to the previous observed rank (without spamming)."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Add minimal support needed for notification polling/refetch (e.g., optional query polling/refetch configuration or helper accessors) without changing immutable hook entrypoints; keep existing behavior unchanged for other callers."
+          "description": "Add a \"Streak\" column to the All-Time Rankings table and render the per-user streak directly from stats.streak (all-time), defaulting to 0 (or equivalent) when needed to avoid crashes for users with no games."
         }
       ]
     }

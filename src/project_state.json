@@ -1,42 +1,34 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "App with leaderboard and admin functionality; requested UI tweaks, admin delete fix, admin sign-in logging, and in-app notifications.",
-  "architectural_notes": [],
-  "known_issues": [
-    "Admin tab delete buttons do not function for Users and Availabilities."
+  "summary": "Project includes an all-time-only leaderboard; user requests restoring win percentage and streak (computed from all-time data) and removing the score field from the leaderboard tab.",
+  "architectural_notes": [
+    "Leaderboard remains all-time-only; win percentage and streak should be computed from all-time data (not weekly/monthly)."
   ],
+  "known_issues": [],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-update-the-ui-where-win-and-loss-labels-are-currently-stacked-vertically-so-they-render-side-by-side-on-the-same-row-horizontal-layout-while-preserving-existing-styling-as-much-as-possible",
-      "title": "Update the UI where Win and Loss labels are currently stacked vertically so they render side-by-side on the same row (horizontal layout) while preserving existing styling as much as possible.",
+      "id": "feature-update-the-leaderboard-tab-all-time-rankings-table-to-remove-the-score-stat-entirely-header-and-row-values-so-it-is-not-displayed-anywhere-in-the-leaderboard-table-ui",
+      "title": "Update the Leaderboard tab (All-Time Rankings table) to remove the \"Score\" stat entirely (header and row values) so it is not displayed anywhere in the leaderboard table UI.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-fix-the-admin-tab-delete-buttons-so-they-immediately-delete-a-a-selected-user-and-b-a-selected-user-day-availability-entry-and-then-update-the-admin-ui-to-reflect-the-deletion-without-requiring-a-manual-refresh",
-      "title": "Fix the Admin tab delete buttons so they immediately delete (a) a selected user and (b) a selected user-day availability entry, and then update the Admin UI to reflect the deletion without requiring a manual refresh.",
+      "id": "feature-restore-the-win-statistic-in-the-all-time-leaderboard-table-calculated-from-all-time-data-only-wins-totalgames-and-display-it-as-a-dedicated-column-for-each-player",
+      "title": "Restore the \"Win %\" statistic in the all-time leaderboard table, calculated from all-time data only (wins / totalGames), and display it as a dedicated column for each player.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-an-admin-only-sign-in-time-log-record-each-user-s-latest-sign-in-timestamp-and-display-it-in-the-admin-tab-admin-panel-as-a-readable-date-time-per-user",
-      "title": "Add an admin-only sign-in time log: record each user’s latest sign-in timestamp and display it in the Admin tab (Admin Panel) as a readable date/time per user.",
+      "id": "feature-restore-the-streak-statistic-in-the-all-time-leaderboard-table-and-display-it-as-a-dedicated-column-for-each-player-using-the-existing-all-time-streak-value-returned-by-the-backend-leaderboard-api",
+      "title": "Restore the \"Streak\" statistic in the all-time leaderboard table and display it as a dedicated column for each player, using the existing all-time streak value returned by the backend leaderboard API.",
       "reqIds": [
         "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-in-app-toast-notifications-small-pop-up-toasts-that-trigger-a-when-another-user-sets-an-availability-and-b-when-the-current-user-experiences-any-positive-rank-change-on-the-leaderboard",
-      "title": "Add in-app toast notifications (small pop-up toasts) that trigger: (a) when another user sets an availability, and (b) when the current user experiences any positive rank change on the leaderboard.",
-      "reqIds": [
-        "REQ-4"
       ],
       "version": 1
     }
@@ -44,30 +36,20 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "UI: Place Win and Loss labels side-by-side (horizontal) instead of stacked vertically.",
+      "summary": "Leaderboard tab: remove 'score' field; restore win percentage and streak calculated from all-time data only",
       "reqIds": [],
       "status": "pending"
     },
     {
-      "id": "AR-2",
-      "summary": "Fix: Admin tab delete buttons should remove items immediately for both Users and Availabilities.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Feature: Add user sign-in time log visible only to admins in the Admin tab.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Feature: In-app toast notifications for (a) when another user sets an availability and (b) when a user has any positive rank change on the leaderboard.",
-      "reqIds": [],
+      "id": "AR-5",
+      "summary": "Ensure the backend leaderboard API continues to provide all-time stats needed for the restored columns (wins, losses, totalGames, streak) and that leaderboard updates after recording/removing wins/losses reflect these fields without requiring weekly/monthly logic.",
+      "reqIds": [
+        "REQ-4"
+      ],
       "status": "pending"
     }
   ],
-  "projectName": "Leaderboard win/loss layout tweak, fix admin deletes, add admin login log, and in-app notifications",
+  "projectName": "Leaderboard tab: remove Score column and restore Win % + Streak (all-time)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

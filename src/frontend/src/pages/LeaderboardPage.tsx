@@ -17,7 +17,6 @@ import {
 } from '../hooks/useQueries';
 import { useUserDirectoryWithAvatars } from '../hooks/useUserDirectory';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useLeaderboardRankNotifications } from '../hooks/useInAppNotifications';
 import AvatarName from '../components/user/AvatarName';
 import { formatDayId } from '../lib/date';
 import { toast } from 'sonner';
@@ -37,9 +36,6 @@ export default function LeaderboardPage() {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   const callerPrincipal = identity?.getPrincipal().toString();
-
-  // Enable rank notifications when on this page
-  useLeaderboardRankNotifications(true, callerPrincipal);
 
   const isPending = isRecordingWin || isRecordingLoss || isRemovingWin || isRemovingLoss;
 
@@ -192,7 +188,7 @@ export default function LeaderboardPage() {
                     </SelectContent>
                   </Select>
 
-                  <div className="flex gap-4 w-full sm:w-auto">
+                  <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
                     <div className="flex flex-col gap-2">
                       <span className="text-xs font-medium text-muted-foreground text-center">Win</span>
                       <div className="flex gap-2">

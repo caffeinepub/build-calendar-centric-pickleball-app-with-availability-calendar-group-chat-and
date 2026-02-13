@@ -1,69 +1,24 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T23:38:54.223Z",
-  "summary": "REQ-1 and REQ-2 appear implemented via Leaderboard/Admin UI changes and new mutation handling. REQ-3 is only partially evidenced (frontend display hook present; backend logging/enforcement not clearly shown in the provided backend diff). REQ-4 is partially implemented (new polling+toast hooks), but the Calendar integration appears non-functional (passes null day) and availability toasts do not ensure the new availability is from a different principal.",
-  "missing_requirements": [
-    {
-      "id": "REQ-3",
-      "requirement": "Record each user’s latest sign-in timestamp on login and expose it to admins only (backend-enforced), then display it in Admin UI formatted as readable date/time.",
-      "reason": "Frontend changes show an Admin page consuming `useGetAllLoginTimestamps` and mapping timestamps, and backend adds `loginRecords`, but the diff excerpt does not show any backend method that (a) updates loginRecords on login/sign-in, (b) provides an admin-only query to fetch timestamps, or (c) enforces admin authorization for that data.",
-      "evidence": [
-        "backend/main.mo (shows `var loginRecords : Map.Map<Principal, Int>`, but no shown update/query/access control for it in excerpt)",
-        "frontend/src/pages/AdminPage.tsx (imports/uses `useGetAllLoginTimestamps`, builds `loginTimestampMap`)",
-        "frontend/src/hooks/useQueries.ts (truncated; mentioned `useGetAllLoginTimestamps` in AdminPage import but not shown implemented in excerpt)"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "requirement": "Availability notification on Calendar and/or Day Detail: detect new availability added by a different principal and show a toast; avoid re-triggering without changes.",
-      "reason": "Calendar view calls `useAvailabilityNotifications(null, true)` but the hook’s query function returns `[]` when `day === null`, so it cannot detect any new availability while viewing the calendar. Also, the hook does not check that the new principal is different from the current caller (it only checks “new principals vs previously seen”), so it may notify for the user’s own availability changes.",
-      "evidence": [
-        "frontend/src/hooks/useInAppNotifications.ts (queryFn: `if (!actor || day === null) return [];`)",
-        "frontend/src/pages/CalendarMonthPage.tsx (`useAvailabilityNotifications(null, true);`)",
-        "frontend/src/hooks/useInAppNotifications.ts (no comparison against caller principal; only compares sets of principals)"
-      ]
-    }
-  ],
+  "generatedAt": "2026-02-13T23:03:06.404Z",
+  "summary": "Frontend appears to have updated the Leaderboard page to show Win % and Streak instead of Score (per file summary), but the provided diff content is truncated and does not show the actual leaderboard table rendering changes or the backend getLeaderboard output. Backend changes clearly add new availability-related query APIs that were not requested.",
+  "missing_requirements": [],
   "hallucinated_features": [
     {
-      "description": "Login screen visual redesign (background image/overlay/backdrop blur, Somers Scheduler branding, new AppLogo usage) beyond requested leaderboard/admin/notifications changes.",
-      "reason": "Not requested by any REQ; BuildRequest focuses on win/loss layout, admin deletes, admin login log, and in-app toasts.",
+      "description": "Added backend APIs to check whether any user has availability for a day and a batch API for multiple days (global availability scanning).",
+      "reason": "BuildRequest is specifically about removing the Score column from the leaderboard UI and restoring Win % and Streak (all-time). It does not request new availability endpoints or global availability logic.",
       "evidence": [
-        "frontend-file-summaries.txt (frontend/src/components/auth/LoginScreen.tsx description)"
-      ]
-    },
-    {
-      "description": "Top bar/navigation/layout cosmetic changes (theme toggle reposition, padding tweaks, footer attribution, background wrapper court texture).",
-      "reason": "Not requested by any REQ; these are broader UI/branding/layout modifications.",
-      "evidence": [
-        "frontend-file-summaries.txt (TopBar.tsx, AppLayout.tsx, Navigation.tsx, Background.tsx summaries)"
-      ]
-    },
-    {
-      "description": "Add/Edit Availability page changed to use three dropdowns for time (hour/minute/AM-PM) with parsing/backward compatibility.",
-      "reason": "Not requested by any REQ; time input UX changes are outside stated requirements.",
-      "evidence": [
-        "frontend-file-summaries.txt (frontend/src/pages/AddAvailabilityPage.tsx summary)"
-      ]
-    },
-    {
-      "description": "Chat page height behavior change using clamp() responsive container.",
-      "reason": "Not requested by any REQ; chat UX/layout not part of BuildRequest.",
-      "evidence": [
-        "frontend-file-summaries.txt (frontend/src/pages/ChatPage.tsx summary)"
+        "backend/main.mo (added public query func anyUserHasAvailability(day : Int) : async Bool)",
+        "backend/main.mo (added public query func daysWithAnyAvailability(days : [Int]) : async [Bool])",
+        "backend/main.mo (added helper func anyUserHasAvailabilitySync(day : Int) : Bool)"
       ]
     }
   ],
-  "confidence": 0.62,
+  "confidence": 0.64,
   "changed_files": [
     "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/hooks/useInAppNotifications.ts",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/AdminPage.tsx",
-    "frontend/src/pages/CalendarMonthPage.tsx",
-    "frontend/src/pages/DayDetailPage.tsx",
     "frontend/src/pages/LeaderboardPage.tsx",
     "project_state.json"
   ]

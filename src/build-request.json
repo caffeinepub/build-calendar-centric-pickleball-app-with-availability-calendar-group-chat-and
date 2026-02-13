@@ -1,102 +1,102 @@
 {
   "kind": "build_request",
-  "title": "Leaderboard win/loss layout tweak, fix admin deletes, add admin login log, and in-app notifications",
+  "title": "Leaderboard tab: remove Score column and restore Win % + Streak (all-time)",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update the UI where Win and Loss labels are currently stacked vertically so they render side-by-side on the same row (horizontal layout) while preserving existing styling as much as possible.",
+      "text": "Update the Leaderboard tab (All-Time Rankings table) to remove the \"Score\" stat entirely (header and row values) so it is not displayed anywhere in the leaderboard table UI.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-1",
-          "msg-user-2"
+          "msg-4",
+          "msg-6",
+          "msg-10"
         ],
         "quotes": [
-          "can we please put the win and loss labels next to each other instead of stacked vertically",
-          "1) yes"
+          "Also they added score for some reason which shouldnt be there",
+          "1)yes",
+          "Apply changes"
         ]
       },
       "acceptanceCriteria": [
-        "On the affected screen(s), the Win and Loss labels/values appear horizontally next to each other (not vertically stacked) on common breakpoints (mobile and desktop).",
-        "No overlapping/truncation occurs; spacing remains visually consistent with the rest of the UI."
+        "Leaderboard table no longer contains a column labeled \"Score\".",
+        "No score value is rendered in any leaderboard row.",
+        "No user-facing text references \"Score\" on the Leaderboard page."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Fix the Admin tab delete buttons so they immediately delete (a) a selected user and (b) a selected user-day availability entry, and then update the Admin UI to reflect the deletion without requiring a manual refresh.",
+      "text": "Restore the \"Win %\" statistic in the all-time leaderboard table, calculated from all-time data only (wins / totalGames), and display it as a dedicated column for each player.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-1",
-          "msg-user-2"
+          "msg-5",
+          "msg-6"
         ],
         "quotes": [
-          "the delete buttons in admin tab do not function",
-          "it should remove the item immediately for both users and availabilities"
+          "Yes restore them",
+          "2)yes"
         ]
       },
       "acceptanceCriteria": [
-        "Clicking the delete button for a user removes that user from the Registered Users table after the mutation completes.",
-        "Clicking the delete button for an availability removes that availability row from the All Availabilities table after the mutation completes.",
-        "After deleting a user, the All Availabilities table also updates (since the backend deletes that user’s availabilities).",
-        "Deletion uses valid Principal objects (no unsafe casts) so the backend calls succeed."
+        "Leaderboard table includes a \"Win %\" column.",
+        "Win % is computed from the existing all-time stats returned by the backend (wins and totalGames) and does not depend on weekly/monthly timeframes.",
+        "When totalGames is 0, Win % displays as 0% (or equivalent non-error value) and the UI does not crash."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Add an admin-only sign-in time log: record each user’s latest sign-in timestamp and display it in the Admin tab (Admin Panel) as a readable date/time per user.",
-      "target": "both",
+      "text": "Restore the \"Streak\" statistic in the all-time leaderboard table and display it as a dedicated column for each player, using the existing all-time streak value returned by the backend leaderboard API.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-2",
-          "msg-user-3"
+          "msg-5",
+          "msg-6"
         ],
         "quotes": [
-          "also can you add a user time log for when they sign in",
-          "1)only for admin in admin tab"
+          "Yes restore them",
+          "2)yes"
         ]
       },
       "acceptanceCriteria": [
-        "On login, the app records the caller’s latest login timestamp (one per user, overwriting the prior value is acceptable).",
-        "Admins can view a list/table in the Admin page showing users and their latest login timestamp formatted in a human-readable way (e.g., using the existing date formatting utilities).",
-        "Non-admin users cannot access the login timestamp list (backend enforces admin access; frontend does not show it)."
+        "Leaderboard table includes a \"Streak\" column.",
+        "Streak values displayed are sourced from the backend leaderboard stats (all-time) and update appropriately after recording/removing wins/losses.",
+        "The leaderboard page renders successfully for users with no games recorded (streak shown as 0 or equivalent)."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Add in-app toast notifications (small pop-up toasts) that trigger: (a) when another user sets an availability, and (b) when the current user experiences any positive rank change on the leaderboard.",
-      "target": "frontend",
+      "text": "Ensure the backend leaderboard API continues to provide all-time stats needed for the restored columns (wins, losses, totalGames, streak) and that leaderboard updates after recording/removing wins/losses reflect these fields without requiring weekly/monthly logic.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-user-1",
-          "msg-user-2",
-          "msg-user-3"
+          "msg-5",
+          "msg-6",
+          "msg-10"
         ],
         "quotes": [
-          "can we add in app notifications",
-          "yes have it for when another user sets an availability, or when someone jumps in rank on the leaderboard tab",
-          "any positive change"
+          "Yes restore them",
+          "2)yes",
+          "Apply changes"
         ]
       },
       "acceptanceCriteria": [
-        "Availability notification: while a signed-in user is viewing the Calendar and/or Day Detail views, the UI detects new availability added by a different principal and shows a toast notification.",
-        "Leaderboard notification: while a signed-in user is on the Leaderboard tab, the UI detects when the caller’s rank position improves (any positive change) and shows a toast notification.",
-        "Notifications are implemented as small toast pop-ups (per existing toast usage) and do not require push notifications.",
-        "Notification logic does not spam: repeated polling/refetching without changes does not re-trigger the same toast."
+        "backend/main.mo getLeaderboard returns per-user stats that include wins, losses, totalGames, and streak (all-time).",
+        "After recording/removing a win/loss, the returned leaderboard stats reflect updated wins/losses/totalGames/streak for the caller.",
+        "No weekly/monthly timeframe parameters or filtering are reintroduced."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo (no new backend services).",
-    "Do not edit files under frontend/src/components/ui (compose them only).",
-    "Do not edit immutable hook entrypoints listed in SYSTEM_CONTEXT (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx).",
-    "Use English for all user-facing UI text."
+    "Backend must remain a single-actor Motoko canister (all logic in backend/main.mo).",
+    "Do not edit files under frontend/src/components/ui or any paths listed as immutable in SYSTEM_CONTEXT.",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Push notifications or OS-level notifications.",
-    "Real-time messaging/WebSocket-style subscriptions; polling/refetch-based detection is acceptable.",
-    "Adding third-party authentication providers (only Internet Identity is supported)."
+    "Do not reintroduce weekly or monthly leaderboard views, filters, or timeframe toggles.",
+    "Do not add any new leaderboard statistics beyond Win %, Streak, and the existing wins/losses/games columns.",
+    "Do not change the leaderboard ranking methodology unless required to remove the Score display (sorting may remain as-is)."
   ],
   "imageRequirements": {
     "required": [],

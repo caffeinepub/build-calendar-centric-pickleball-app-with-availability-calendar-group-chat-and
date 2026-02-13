@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, Users, Calendar, Clock } from 'lucide-react';
+import { Trash2, Users, Calendar } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Separator } from '../components/ui/separator';
@@ -9,20 +9,17 @@ import {
   useDeleteUser, 
   useGetAllRegisteredUsers, 
   useGetAllAvailabilities,
-  useDeleteUserDayAvailability,
-  useGetAllLoginTimestamps
+  useDeleteUserDayAvailability 
 } from '../hooks/useQueries';
 import { useUserDirectoryWithAvatars } from '../hooks/useUserDirectory';
 import { formatDateTime, formatDayId } from '../lib/date';
 import AccessDeniedScreen from '../components/auth/AccessDeniedScreen';
 import AvatarName from '../components/user/AvatarName';
-import { Principal } from '@dfinity/principal';
 
 export default function AdminPage() {
   const { data: isAdmin, isLoading } = useIsCallerAdmin();
   const { data: registeredUsers = [], isLoading: isLoadingUsers } = useGetAllRegisteredUsers();
   const { data: allAvailabilities = [], isLoading: isLoadingAvailabilities } = useGetAllAvailabilities();
-  const { data: loginTimestamps = [], isLoading: isLoadingTimestamps } = useGetAllLoginTimestamps();
   
   const { mutate: deleteUser } = useDeleteUser();
   const { mutate: deleteAvailability } = useDeleteUserDayAvailability();
@@ -35,12 +32,6 @@ export default function AdminPage() {
   const allPrincipals = [...new Set([...userPrincipals, ...availabilityPrincipals])];
   
   const { data: userDirectory, isLoading: isLoadingDirectory } = useUserDirectoryWithAvatars(allPrincipals);
-
-  // Create a map of login timestamps for quick lookup
-  const loginTimestampMap = new Map<string, bigint>();
-  loginTimestamps.forEach(([principal, timestamp]) => {
-    loginTimestampMap.set(principal.toString(), timestamp);
-  });
 
   if (isLoading) {
     return (
@@ -57,22 +48,23 @@ export default function AdminPage() {
     return <AccessDeniedScreen />;
   }
 
-  const handleDeleteUser = (principalStr: string) => {
-    setDeletingUserId(principalStr);
-    const principal = Principal.fromText(principalStr);
-    deleteUser(principal, {
-      onSettled: () => {
-        setDeletingUserId(null);
-      },
-    });
+  const handleDeleteUser = (principal: string) => {
+    setDeletingUserId(principal);
+    deleteUser(
+      { toString: () => principal } as any,
+      {
+        onSettled: () => {
+          setDeletingUserId(null);
+        },
+      }
+    );
   };
 
-  const handleDeleteAvailability = (principalStr: string, day: bigint) => {
-    const id = `${principalStr}-${day}`;
+  const handleDeleteAvailability = (principal: string, day: bigint) => {
+    const id = `${principal}-${day}`;
     setDeletingAvailabilityId(id);
-    const principal = Principal.fromText(principalStr);
     deleteAvailability(
-      { user: principal, day },
+      { user: { toString: () => principal } as any, day },
       {
         onSettled: () => {
           setDeletingAvailabilityId(null);
@@ -107,11 +99,11 @@ export default function AdminPage() {
             Registered Users
           </CardTitle>
           <CardDescription>
-            All users registered in the system with their creation date and latest sign-in time
+            All users registered in the system with their creation date
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoadingUsers || isLoadingTimestamps ? (
+          {isLoadingUsers ? (
             <div className="flex items-center justify-center py-8">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
@@ -124,7 +116,6 @@ export default function AdminPage() {
                   <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead>Latest Sign-In</TableHead>
                     <TableHead className="w-[100px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -135,7 +126,6 @@ export default function AdminPage() {
                     const displayName = userEntry?.displayName || profile.name || 'Loading...';
                     const avatarUrl = userEntry?.avatarUrl;
                     const isDeleting = deletingUserId === principalStr;
-                    const lastLogin = loginTimestampMap.get(principalStr);
 
                     return (
                       <TableRow key={principalStr}>
@@ -151,9 +141,6 @@ export default function AdminPage() {
                         <TableCell className="text-sm text-muted-foreground">
                           {formatDateTime(createdAt)}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {lastLogin ? formatDateTime(lastLogin) : '—'}
-                        </TableCell>
                         <TableCell>
                           <Button
                             variant="destructive"
@@ -161,11 +148,7 @@ export default function AdminPage() {
                             onClick={() => handleDeleteUser(principalStr)}
                             disabled={isDeleting}
                           >
-                            {isDeleting ? (
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -178,8 +161,6 @@ export default function AdminPage() {
         </CardContent>
       </Card>
 
-      <Separator />
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -187,7 +168,7 @@ export default function AdminPage() {
             All Availabilities
           </CardTitle>
           <CardDescription>
-            All user availabilities across all dates
+            All availability entries across all users and days
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -196,7 +177,7 @@ export default function AdminPage() {
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : sortedAvailabilities.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No availabilities</p>
+            <p className="text-center text-muted-foreground py-8">No availabilities found</p>
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -214,11 +195,11 @@ export default function AdminPage() {
                     const userEntry = userDirectory?.get(principalStr);
                     const displayName = userEntry?.displayName || 'Loading...';
                     const avatarUrl = userEntry?.avatarUrl;
-                    const id = `${principalStr}-${day}`;
-                    const isDeleting = deletingAvailabilityId === id;
+                    const availabilityId = `${principalStr}-${day}`;
+                    const isDeleting = deletingAvailabilityId === availabilityId;
 
                     return (
-                      <TableRow key={id}>
+                      <TableRow key={availabilityId}>
                         <TableCell>
                           <AvatarName
                             principal={principal}
@@ -231,7 +212,7 @@ export default function AdminPage() {
                         <TableCell className="text-sm">
                           {formatDayId(day)}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="text-sm font-medium">
                           {time}
                         </TableCell>
                         <TableCell>
@@ -241,11 +222,7 @@ export default function AdminPage() {
                             onClick={() => handleDeleteAvailability(principalStr, day)}
                             disabled={isDeleting}
                           >
-                            {isDeleting ? (
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
                       </TableRow>

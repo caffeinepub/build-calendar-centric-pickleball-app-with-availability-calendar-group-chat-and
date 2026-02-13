@@ -318,19 +318,6 @@ export function useGetAllAvailabilities() {
   });
 }
 
-export function useGetAllLoginTimestamps() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Array<[Principal, bigint]>>({
-    queryKey: ['allLoginTimestamps'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllLoginTimestamps();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
 export function useDeleteUser() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -342,11 +329,7 @@ export function useDeleteUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allRegisteredUsers'] });
-      queryClient.invalidateQueries({ queryKey: ['allAvailabilities'] });
-      queryClient.invalidateQueries({ queryKey: ['allLoginTimestamps'] });
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
-      queryClient.invalidateQueries({ queryKey: ['dayAvailability'] });
-      queryClient.invalidateQueries({ queryKey: ['daysWithAnyAvailability'] });
     },
   });
 }
