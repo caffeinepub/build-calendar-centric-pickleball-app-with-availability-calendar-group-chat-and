@@ -2,7 +2,7 @@ import { useInternetIdentity } from '../../hooks/useInternetIdentity';
 import { useGetCallerUserProfile } from '../../hooks/useCurrentUserProfile';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { LogOut, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
@@ -33,39 +33,40 @@ export default function TopBar() {
         </div>
         
         {identity && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Avatar className="h-6 w-6">
-                  {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
-                  <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                {displayName}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={toggleTheme}>
-                {theme === 'dark' ? (
-                  <>
-                    <Sun className="mr-2 h-4 w-4" />
-                    Light Mode
-                  </>
-                ) : (
-                  <>
-                    <Moon className="mr-2 h-4 w-4" />
-                    Dark Mode
-                  </>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <Avatar className="h-6 w-6">
+                    {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  {displayName}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )}
       </div>
     </header>

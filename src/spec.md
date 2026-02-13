@@ -1,10 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Adjust chat message header avatar/name sizing in the chat box only, and extend the availability start-time dropdown to cover 8:00 AM–9:00 PM.
+**Goal:** Improve the Add Availability start-time input and make theme switching easier to access from the top header.
 
 **Planned changes:**
-- Update the chat message list header in `frontend/src/components/chat/ChatPanel.tsx` so each message shows a 25x25 sender avatar and a 14px sender display name, without affecting avatar/name sizing elsewhere in the app.
-- Update `TIME_OPTIONS` on `frontend/src/pages/AddAvailabilityPage.tsx` so the dropdown runs from 8:00 AM through 9:00 PM (inclusive), while preserving out-of-range existing values as selectable “(legacy)” options.
+- Update `frontend/src/pages/AddAvailabilityPage.tsx` to replace the single Start Time select with three dropdowns (Hour, Minute, AM/PM) that still submit the existing `time` string format (e.g., "8:00 AM").
+- Ensure editing an existing availability pre-populates Hour/Minute/AM-PM from the saved `time` string, with a safe fallback when the value can’t be parsed.
+- Update `frontend/src/components/layout/TopBar.tsx` to move the theme toggle out of the profile dropdown into a standalone header button positioned immediately left of the profile menu trigger, preserving existing localStorage persistence and keeping Logout in the profile dropdown.
 
-**User-visible outcome:** Chat messages show a slightly larger avatar and name in the chat box only, and availability start times can be selected from 8:00 AM to 9:00 PM with older out-of-range times still retained when editing.
+**User-visible outcome:** Users can select start time via separate Hour/Minute/AM-PM dropdowns (including when editing existing entries), and can toggle light/dark mode directly from a header button next to the profile menu.

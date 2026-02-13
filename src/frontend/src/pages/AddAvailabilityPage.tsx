@@ -8,23 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from '../components/ui/textarea';
 import { useAddAvailability, useGetCallerAvailability } from '../hooks/useQueries';
 import { getDayId, formatDate } from '../lib/date';
-
-const TIME_OPTIONS = [
-  '8:00 AM',
-  '9:00 AM',
-  '10:00 AM',
-  '11:00 AM',
-  '12:00 PM',
-  '1:00 PM',
-  '2:00 PM',
-  '3:00 PM',
-  '4:00 PM',
-  '5:00 PM',
-  '6:00 PM',
-  '7:00 PM',
-  '8:00 PM',
-  '9:00 PM',
-];
+import {
+  parseTimeString,
+  formatTimeString,
+  getHourOptions,
+  getMinuteOptions,
+  getPeriodOptions,
+  getDefaultTimeComponents,
+  type TimeComponents,
+} from '../utils/time';
 
 export default function AddAvailabilityPage() {
   const navigate = useNavigate();
@@ -33,7 +25,10 @@ export default function AddAvailabilityPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(
     search.date ? new Date(Number(BigInt(search.date).toString().slice(0, 4)), Number(BigInt(search.date).toString().slice(4, 6)) - 1, Number(BigInt(search.date).toString().slice(6, 8))) : new Date()
   );
-  const [time, setTime] = useState('');
+  
+  const [hour, setHour] = useState('');
+  const [minute, setMinute] = useState('');
+  const [period, setPeriod] = useState<'AM' | 'PM' | ''>('');
   const [notes, setNotes] = useState('');
 
   const dayId = getDayId(selectedDate);
@@ -42,17 +37,30 @@ export default function AddAvailabilityPage() {
 
   useEffect(() => {
     if (existingAvailability) {
-      setTime(existingAvailability.time);
+      const parsed = parseTimeString(existingAvailability.time);
+      if (parsed) {
+        setHour(parsed.hour);
+        setMinute(parsed.minute);
+        setPeriod(parsed.period);
+      } else {
+        // Fallback to default if parsing fails
+        const defaults = getDefaultTimeComponents();
+        setHour(defaults.hour);
+        setMinute(defaults.minute);
+        setPeriod(defaults.period);
+      }
       setNotes(existingAvailability.notes || '');
     }
   }, [existingAvailability]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!time) return;
+    if (!hour || !minute || !period) return;
+
+    const timeString = formatTimeString(hour, minute, period);
 
     addAvailability(
-      { day: dayId, time, notes: notes.trim() || null },
+      { day: dayId, time: timeString, notes: notes.trim() || null },
       {
         onSuccess: () => {
           navigate({ to: '/day/$date', params: { date: dayId.toString() } });
@@ -65,8 +73,7 @@ export default function AddAvailabilityPage() {
     navigate({ to: '/' });
   };
 
-  // Check if the current time value is a legacy value (not in new options)
-  const isLegacyValue = time && !TIME_OPTIONS.includes(time);
+  const isFormValid = hour && minute && period;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -86,24 +93,62 @@ export default function AddAvailabilityPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="time">Start Time</Label>
-              <Select value={time} onValueChange={setTime}>
-                <SelectTrigger id="time">
-                  <SelectValue placeholder="Select a start time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {isLegacyValue && (
-                    <SelectItem key={time} value={time}>
-                      {time} (legacy)
-                    </SelectItem>
-                  )}
-                  {TIME_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Start Time</Label>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="hour" className="text-xs text-muted-foreground">
+                    Hour
+                  </Label>
+                  <Select value={hour} onValueChange={setHour}>
+                    <SelectTrigger id="hour">
+                      <SelectValue placeholder="Hour" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getHourOptions().map((h) => (
+                        <SelectItem key={h} value={h}>
+                          {h}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="minute" className="text-xs text-muted-foreground">
+                    Minute
+                  </Label>
+                  <Select value={minute} onValueChange={setMinute}>
+                    <SelectTrigger id="minute">
+                      <SelectValue placeholder="Min" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getMinuteOptions().map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {m}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="period" className="text-xs text-muted-foreground">
+                    AM/PM
+                  </Label>
+                  <Select value={period} onValueChange={(val) => setPeriod(val as 'AM' | 'PM')}>
+                    <SelectTrigger id="period">
+                      <SelectValue placeholder="AM/PM" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getPeriodOptions().map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {p}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -118,7 +163,7 @@ export default function AddAvailabilityPage() {
             </div>
 
             <div className="flex gap-3">
-              <Button type="submit" disabled={!time || isPending} className="flex-1">
+              <Button type="submit" disabled={!isFormValid || isPending} className="flex-1">
                 {isPending ? 'Saving...' : existingAvailability ? 'Update Availability' : 'Add Availability'}
               </Button>
               <Button type="button" variant="outline" onClick={handleBack}>

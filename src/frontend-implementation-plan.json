@@ -1,42 +1,46 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Chat header sizing scoped to chat panel + availability time range update",
+  "title": "Add Availability time split dropdowns + header theme toggle button",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Adjust chat message header to use a 25x25 avatar and 14px display name only within the chat message list, leaving all other avatar/name sizing unchanged.",
+      "id": "REQ-3",
+      "summary": "Replace Add Availability start-time single select with Hour/Minute/AM-PM dropdowns while preserving the stored time string format and edit prefill behavior.",
       "acceptanceCriteria": [
-        "In the chat message list (frontend/src/components/chat/ChatPanel.tsx), each message renders the sender avatar at exactly 25x25 pixels.",
-        "In the chat message list, the sender display name renders at 14px font size.",
-        "Avatar/name sizing in other areas that use AvatarName (e.g., day detail page and any other pages/components) remains unchanged from current behavior."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/user/AvatarName.tsx",
-          "operation": "modify",
-          "description": "Add optional, backwards-compatible style override props (e.g., avatarClassName and nameClassName) so callers can request specific avatar and display-name sizing without changing existing default size behavior elsewhere."
-        },
-        {
-          "path": "frontend/src/components/chat/ChatPanel.tsx",
-          "operation": "modify",
-          "description": "Update chat message header rendering to pass AvatarName override props to enforce an exact 25x25 avatar and 14px display name for chat messages only (keep other AvatarName usages unchanged)."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Restrict availability start-time dropdown options to 8:00 AM through 9:00 PM inclusive, while preserving and labeling any existing legacy time value outside the range.",
-      "acceptanceCriteria": [
-        "On the Add/Edit Availability page (frontend/src/pages/AddAvailabilityPage.tsx), the selectable TIME_OPTIONS start at \"8:00 AM\" and end at \"9:00 PM\".",
-        "Times earlier than 8:00 AM and later than 9:00 PM are not shown as normal dropdown options.",
-        "If an existing availability has a legacy time value outside the new range, that value still appears as a selectable \"(legacy)\" option, and the form can be saved without losing it."
+        "The start time control in `frontend/src/pages/AddAvailabilityPage.tsx` no longer uses the single Select bound directly to `time`.",
+        "The UI shows three dropdowns labeled Hour, Minute, and AM/PM for selecting a start time.",
+        "Selecting values in the three dropdowns updates the availability `time` value used on submit to match the existing string style (e.g., \"10:00 AM\").",
+        "When editing an existing availability, the existing `time` value pre-populates the three dropdowns correctly for all values previously offered in the time list (8:00 AM through 9:00 PM).",
+        "If the existing saved `time` value is not parseable into Hour/Minute/AM-PM, the UI still displays a safe fallback state and does not crash; the user can select a new time and save successfully.",
+        "User-facing text remains in English (e.g., labels and placeholders)."
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/AddAvailabilityPage.tsx",
           "operation": "modify",
-          "description": "Update TIME_OPTIONS to include only 8:00 AM through 9:00 PM (inclusive) and keep the existing legacy-value insertion behavior so out-of-range stored times remain selectable and saveable with a \"(legacy)\" label."
+          "description": "Replace the current single Select bound to `time` with three composed Select controls (Hour, Minute, AM/PM) using existing shadcn Select components (do not edit `frontend/src/components/ui/*`). Add parsing of an existing `availability.time` string to pre-populate hour/minute/period on edit, add safe fallback state when parsing fails, and derive the submitted `time` string from the three dropdown selections in the same format as before (e.g., \"8:00 AM\"). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/utils/time.ts",
+          "operation": "create",
+          "description": "Add small utilities for (a) formatting hour+minute+period into the existing stored time string (no leading zero hour, e.g., \"8:00 AM\"), (b) parsing an existing stored time string into {hour, minute, period} with validation and a safe failure result, and (c) providing the allowed Hour/Minute/AM-PM option lists matching the previously supported range (8:00 AM through 9:00 PM, minutes limited to supported values)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Move the theme toggle out of the profile dropdown into a dedicated header button immediately left of the profile menu trigger.",
+      "acceptanceCriteria": [
+        "In `frontend/src/components/layout/TopBar.tsx`, the theme toggle is no longer rendered as a `DropdownMenuItem` inside the profile dropdown.",
+        "A standalone button (icon or text) appears in the header to the left of the profile dropdown trigger when the user is logged in.",
+        "Clicking the new header theme button calls the existing theme toggle behavior (switching between light and dark) and continues to persist via `localStorage` as before.",
+        "The profile dropdown still includes Logout and continues to function as before."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/layout/TopBar.tsx",
+          "operation": "modify",
+          "description": "Refactor the logged-in header area to render a standalone theme toggle Button immediately to the left of the profile DropdownMenuTrigger, wired to the existing `useTheme().toggleTheme` behavior. Remove the theme toggle DropdownMenuItem from the dropdown content, leaving Logout intact. Use existing shadcn Button/DropdownMenu components (do not edit `frontend/src/components/ui/*`). Verify the component's usage instructions before implementing."
         }
       ]
     }

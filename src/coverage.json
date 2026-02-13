@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-12T22:52:52.182Z",
+  "generatedAt": "2026-02-12T23:11:46.109Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -11,27 +11,27 @@
     "implemented": 2,
     "items": [
       {
-        "id": "REQ-1",
-        "summary": "Increase the chat box (and only the chat box) message header sizing so that each message shows a 25px x 25px profile picture and a 14px display name, without changing avatar/name sizing anywhere else in the app.",
+        "id": "REQ-3",
+        "summary": "Replace the existing single “Start Time” selector on the Add Availability UI (the Add Availability modal/page where a user selects a start time) with three dropdowns: Hour, Minute, and AM/PM, and use these inputs to produce the same stored `time` string format currently used by availability (e.g., \"8:00 AM\").",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/user/AvatarName.tsx",
-          "frontend/src/components/chat/ChatPanel.tsx"
+          "frontend/src/pages/AddAvailabilityPage.tsx",
+          "frontend/src/utils/time.ts"
         ],
         "matchedFiles": [
-          "frontend/src/components/user/AvatarName.tsx",
-          "frontend/src/components/chat/ChatPanel.tsx"
+          "frontend/src/pages/AddAvailabilityPage.tsx",
+          "frontend/src/utils/time.ts"
         ]
       },
       {
-        "id": "REQ-2",
-        "summary": "Update the availability start-time dropdown options to span 8:00 AM through 9:00 PM (inclusive).",
+        "id": "REQ-4",
+        "summary": "Move the light/dark mode toggle out of the profile dropdown and into a dedicated header button positioned immediately to the left of the profile icon/menu in the top bar.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/AddAvailabilityPage.tsx"
+          "frontend/src/components/layout/TopBar.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/AddAvailabilityPage.tsx"
+          "frontend/src/components/layout/TopBar.tsx"
         ]
       }
     ]
@@ -41,9 +41,9 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/chat/ChatPanel.tsx",
-    "frontend/src/components/user/AvatarName.tsx",
+    "frontend/src/components/layout/TopBar.tsx",
     "frontend/src/pages/AddAvailabilityPage.tsx",
+    "frontend/src/utils/time.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

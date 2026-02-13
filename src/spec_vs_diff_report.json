@@ -1,34 +1,24 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-12T22:52:52.180Z",
-  "summary": "REQ-2 appears implemented (TIME_OPTIONS now 8:00 AM–9:00 PM with legacy out-of-range preservation). REQ-1 cannot be fully verified from the truncated ChatPanel diff, and the diff shows changes to the shared AvatarName component that likely affect avatar/name sizing beyond the chat box (contrary to the constraint/non-goal).",
-  "missing_requirements": [
-    {
-      "id": "REQ-1",
-      "requirement": "In the chat message list (frontend/src/components/chat/ChatPanel.tsx), each message renders the sender avatar at exactly 25x25 pixels and the sender display name at 14px font size, without changing avatar/name sizing anywhere else in the app.",
-      "reason": "The ChatPanel.tsx diff is truncated and does not show evidence of 25x25 avatar sizing or 14px name sizing being applied specifically in the chat message header. Additionally, the shared AvatarName.tsx component’s size classes were modified, which suggests sizing may have changed globally rather than chat-only.",
-      "evidence": [
-        "frontend/src/components/chat/ChatPanel.tsx (truncated)",
-        "frontend/src/components/user/AvatarName.tsx"
-      ]
-    }
-  ],
+  "generatedAt": "2026-02-12T23:11:46.107Z",
+  "summary": "REQ-3 and REQ-4 appear implemented: Add Availability start time is split into hour/minute/AM-PM dropdowns with parsing/formatting utilities, and the theme toggle is moved from the profile dropdown into a standalone header button left of the profile menu. However, there are unrelated/documentation-only mentions of additional features (e.g., admin route) that were not requested.",
+  "missing_requirements": [],
   "hallucinated_features": [
     {
-      "description": "Global changes to AvatarName sizing presets (sm/md/lg) and introduction of avatarClassName/nameClassName override props on the shared AvatarName component.",
-      "reason": "BuildRequest explicitly states not to change global avatar sizing rules for AvatarName across the entire app; however, AvatarName.tsx now defines new sizeClasses/textSizeClasses and adds new override props, implying broader, app-wide behavior changes beyond the chat box requirement.",
+      "description": "Documentation/summaries updated to describe unrelated features (e.g., “new admin route”, additional hooks/pages behavior) not requested in this BuildRequest.",
+      "reason": "The BuildRequest explicitly restricts scope to the Add Availability start-time UI change and moving the theme toggle in the header; the diff includes a modified summary file describing other new routes/features.",
       "evidence": [
-        "frontend/src/components/user/AvatarName.tsx"
+        "frontend-file-summaries.txt"
       ]
     }
   ],
-  "confidence": 0.66,
+  "confidence": 0.74,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/components/chat/ChatPanel.tsx",
-    "frontend/src/components/user/AvatarName.tsx",
+    "frontend/src/components/layout/TopBar.tsx",
     "frontend/src/pages/AddAvailabilityPage.tsx",
+    "frontend/src/utils/time.ts",
     "project_state.json"
   ]
 }

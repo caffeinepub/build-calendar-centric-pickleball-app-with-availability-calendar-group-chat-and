@@ -1,53 +1,59 @@
 {
   "kind": "build_request",
-  "title": "Chat box avatar/name sizing updates and extend availability time dropdown to 8am–9pm",
+  "title": "Split Add Availability start-time into hour/minute/AM-PM dropdowns and move theme toggle into header",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-1",
-      "text": "Increase the chat box (and only the chat box) message header sizing so that each message shows a 25px x 25px profile picture and a 14px display name, without changing avatar/name sizing anywhere else in the app.",
+      "id": "REQ-3",
+      "text": "Replace the existing single “Start Time” selector on the Add Availability UI (the Add Availability modal/page where a user selects a start time) with three dropdowns: Hour, Minute, and AM/PM, and use these inputs to produce the same stored `time` string format currently used by availability (e.g., \"8:00 AM\").",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-user-1"
         ],
         "quotes": [
-          "2)only chat box",
-          "Also can we increase display name to 14px and have the profile picture be 25px by 25px."
+          "1) on the add availability modal where a user is selecting a start time",
+          "2)yes replace existing"
         ]
       },
       "acceptanceCriteria": [
-        "In the chat message list (frontend/src/components/chat/ChatPanel.tsx), each message renders the sender avatar at exactly 25x25 pixels.",
-        "In the chat message list, the sender display name renders at 14px font size.",
-        "Avatar/name sizing in other areas that use AvatarName (e.g., day detail page and any other pages/components) remains unchanged from current behavior."
+        "The start time control in `frontend/src/pages/AddAvailabilityPage.tsx` no longer uses the single Select bound directly to `time`.",
+        "The UI shows three dropdowns labeled Hour, Minute, and AM/PM for selecting a start time.",
+        "Selecting values in the three dropdowns updates the availability `time` value used on submit to match the existing string style (e.g., \"10:00 AM\").",
+        "When editing an existing availability, the existing `time` value pre-populates the three dropdowns correctly for all values previously offered in the time list (8:00 AM through 9:00 PM).",
+        "If the existing saved `time` value is not parseable into Hour/Minute/AM-PM, the UI still displays a safe fallback state and does not crash; the user can select a new time and save successfully.",
+        "User-facing text remains in English (e.g., labels and placeholders)."
       ]
     },
     {
-      "id": "REQ-2",
-      "text": "Update the availability start-time dropdown options to span 8:00 AM through 9:00 PM (inclusive).",
+      "id": "REQ-4",
+      "text": "Move the light/dark mode toggle out of the profile dropdown and into a dedicated header button positioned immediately to the left of the profile icon/menu in the top bar.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-user-1"
         ],
         "quotes": [
-          "1)lets go from 8am - 9pm"
+          "3)put button to the left of profile icon"
         ]
       },
       "acceptanceCriteria": [
-        "On the Add/Edit Availability page (frontend/src/pages/AddAvailabilityPage.tsx), the selectable TIME_OPTIONS start at \"8:00 AM\" and end at \"9:00 PM\".",
-        "Times earlier than 8:00 AM and later than 9:00 PM are not shown as normal dropdown options.",
-        "If an existing availability has a legacy time value outside the new range, that value still appears as a selectable \"(legacy)\" option, and the form can be saved without losing it."
+        "In `frontend/src/components/layout/TopBar.tsx`, the theme toggle is no longer rendered as a `DropdownMenuItem` inside the profile dropdown.",
+        "A standalone button (icon or text) appears in the header to the left of the profile dropdown trigger when the user is logged in.",
+        "Clicking the new header theme button calls the existing theme toggle behavior (switching between light and dark) and continues to persist via `localStorage` as before.",
+        "The profile dropdown still includes Logout and continues to function as before."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files in frontend immutablePaths (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or any sources under frontend/src/components/ui).",
-    "Keep backend as single-actor Motoko; do not introduce additional backend services."
+    "Do not edit any files under `frontend/src/components/ui` (read-only UI component sources must be composed, not edited).",
+    "Do not edit the immutable hook files: `frontend/src/hooks/useInternetIdentity.ts`, `frontend/src/hooks/useInternetIdentity.tsx`, `frontend/src/hooks/useActor.ts`, or `frontend/src/main.tsx`.",
+    "Keep the backend as a single Motoko actor; no backend changes are required for this request."
   ],
   "nonGoals": [
-    "Do not change global avatar sizing rules for AvatarName across the entire app.",
-    "Do not change the backend availability data model or how availability times are stored; only adjust the frontend dropdown options."
+    "Do not change availability backend storage format or add new availability fields in Motoko.",
+    "Do not add new authentication providers (Internet Identity remains the only auth).",
+    "Do not add new pages or routes unrelated to Add Availability or the header theme toggle."
   ],
   "imageRequirements": {
     "required": [],
