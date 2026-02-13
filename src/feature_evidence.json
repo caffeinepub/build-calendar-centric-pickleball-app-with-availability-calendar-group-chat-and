@@ -1,4 +1,91 @@
 {
   "kind": "feature_evidence_report",
-  "features": []
+  "features": [
+    {
+      "featureId": "feature-update-the-ui-where-win-and-loss-labels-are-currently-stacked-vertically-so-they-render-side-by-side-on-the-same-row-horizontal-layout-while-preserving-existing-styling-as-much-as-possible",
+      "featureTitle": "Update the UI where Win and Loss labels are currently stacked vertically so they render side-by-side on the same row (horizontal layout) while preserving existing styling as much as possible.",
+      "files": [
+        "frontend/src/pages/LeaderboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-fix-the-admin-tab-delete-buttons-so-they-immediately-delete-a-a-selected-user-and-b-a-selected-user-day-availability-entry-and-then-update-the-admin-ui-to-reflect-the-deletion-without-requiring-a-manual-refresh",
+      "featureTitle": "Fix the Admin tab delete buttons so they immediately delete (a) a selected user and (b) a selected user-day availability entry, and then update the Admin UI to reflect the deletion without requiring a manual refresh.",
+      "files": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/AdminPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-an-admin-only-sign-in-time-log-record-each-user-s-latest-sign-in-timestamp-and-display-it-in-the-admin-tab-admin-panel-as-a-readable-date-time-per-user",
+      "featureTitle": "Add an admin-only sign-in time log: record each user’s latest sign-in timestamp and display it in the Admin tab (Admin Panel) as a readable date/time per user.",
+      "files": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/AdminPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-in-app-toast-notifications-small-pop-up-toasts-that-trigger-a-when-another-user-sets-an-availability-and-b-when-the-current-user-experiences-any-positive-rank-change-on-the-leaderboard",
+      "featureTitle": "Add in-app toast notifications (small pop-up toasts) that trigger: (a) when another user sets an availability, and (b) when the current user experiences any positive rank change on the leaderboard.",
+      "files": [
+        "frontend/src/hooks/useInAppNotifications.ts",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/CalendarMonthPage.tsx",
+        "frontend/src/pages/DayDetailPage.tsx",
+        "frontend/src/pages/LeaderboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    }
+  ]
 }

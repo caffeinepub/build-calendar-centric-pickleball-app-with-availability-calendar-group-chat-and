@@ -120,7 +120,7 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getLeaderboard' : IDL.Func(
-      [IDL.Text],
+      [],
       [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
       ['query'],
     ),
@@ -135,7 +135,7 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getTopPlayersByScore' : IDL.Func(
-      [IDL.Nat, IDL.Text],
+      [IDL.Nat],
       [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
       ['query'],
     ),
@@ -274,7 +274,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getLeaderboard' : IDL.Func(
-        [IDL.Text],
+        [],
         [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
         ['query'],
       ),
@@ -289,7 +289,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getTopPlayersByScore' : IDL.Func(
-        [IDL.Nat, IDL.Text],
+        [IDL.Nat],
         [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
         ['query'],
       ),

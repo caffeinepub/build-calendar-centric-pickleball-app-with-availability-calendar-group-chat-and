@@ -150,10 +150,10 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getDayAvailability(day: bigint): Promise<Array<[Principal, Availability]>>;
-    getLeaderboard(timeFilter: string): Promise<Array<[Principal, T]>>;
+    getLeaderboard(): Promise<Array<[Principal, T]>>;
     getRecentMessages(limit: bigint): Promise<Array<[Principal, string, bigint]>>;
     getScoreLeaderboardWithStats(): Promise<Array<[Principal, T, bigint]>>;
-    getTopPlayersByScore(limit: bigint, timeframe: string): Promise<Array<[Principal, T]>>;
+    getTopPlayersByScore(limit: bigint): Promise<Array<[Principal, T]>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUserStats(user: Principal): Promise<T | null>;
     hasAvailability(day: bigint): Promise<boolean>;
@@ -518,17 +518,17 @@ export class Backend implements backendInterface {
             return from_candid_vec_n25(this._uploadFile, this._downloadFile, result);
         }
     }
-    async getLeaderboard(arg0: string): Promise<Array<[Principal, T]>> {
+    async getLeaderboard(): Promise<Array<[Principal, T]>> {
         if (this.processError) {
             try {
-                const result = await this.actor.getLeaderboard(arg0);
+                const result = await this.actor.getLeaderboard();
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getLeaderboard(arg0);
+            const result = await this.actor.getLeaderboard();
             return result;
         }
     }
@@ -560,17 +560,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async getTopPlayersByScore(arg0: bigint, arg1: string): Promise<Array<[Principal, T]>> {
+    async getTopPlayersByScore(arg0: bigint): Promise<Array<[Principal, T]>> {
         if (this.processError) {
             try {
-                const result = await this.actor.getTopPlayersByScore(arg0, arg1);
+                const result = await this.actor.getTopPlayersByScore(arg0);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getTopPlayersByScore(arg0, arg1);
+            const result = await this.actor.getTopPlayersByScore(arg0);
             return result;
         }
     }

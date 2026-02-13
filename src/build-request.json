@@ -1,58 +1,102 @@
 {
   "kind": "build_request",
-  "title": "Fix leaderboard weekly/monthly timeframe filtering to use integer day comparisons",
-  "priority": "high",
+  "title": "Leaderboard win/loss layout tweak, fix admin deletes, add admin login log, and in-app notifications",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update backend leaderboard timeframe filtering so the Weekly and Monthly filters return only results inside the intended day windows by comparing integer day IDs (the same day IDs used when recording results) instead of comparing nanosecond timestamps.",
-      "target": "backend",
+      "text": "Update the UI where Win and Loss labels are currently stacked vertically so they render side-by-side on the same row (horizontal layout) while preserving existing styling as much as possible.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "user-1"
+          "msg-user-1",
+          "msg-user-2"
         ],
         "quotes": [
-          "Why is it still not filtering correctly? Its still giving me all time results instead of weekly and monthly",
-          "I tested this for both monthly and weekly and went well past 7 and 30 days",
-          "Yes please fix"
+          "can we please put the win and loss labels next to each other instead of stacked vertically",
+          "1) yes"
         ]
       },
       "acceptanceCriteria": [
-        "When requesting the leaderboard with timeFilter=\"weekly\", only daily logs whose day ID is within the last 7 days (inclusive) of the current day are included in each user’s aggregated stats.",
-        "When requesting the leaderboard with timeFilter=\"monthly\", only daily logs whose day ID is within the last 30 days (inclusive) of the current day are included in each user’s aggregated stats.",
-        "When requesting the leaderboard with timeFilter=\"all\", all available daily logs are included (no timeframe restriction).",
-        "The returned leaderboard ordering and each user’s wins/losses/totalGames/streak/score reflect only the logs included by the selected timeframe (not all-time totals).",
-        "The fix applies consistently to all backend leaderboard endpoints that accept a timeframe (e.g., getLeaderboard and getTopPlayersByScore), so they cannot disagree for the same timeframe."
+        "On the affected screen(s), the Win and Loss labels/values appear horizontally next to each other (not vertically stacked) on common breakpoints (mobile and desktop).",
+        "No overlapping/truncation occurs; spacing remains visually consistent with the rest of the UI."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Ensure recording and removing results (recordDailyWin/recordDailyLoss/decrementDailyLog) continue to work without requiring any data migration, and the corrected timeframe filtering works immediately for existing stored daily logs.",
-      "target": "backend",
+      "text": "Fix the Admin tab delete buttons so they immediately delete (a) a selected user and (b) a selected user-day availability entry, and then update the Admin UI to reflect the deletion without requiring a manual refresh.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "user-1"
+          "msg-user-1",
+          "msg-user-2"
         ],
         "quotes": [
-          "Yes please fix"
+          "the delete buttons in admin tab do not function",
+          "it should remove the item immediately for both users and availabilities"
         ]
       },
       "acceptanceCriteria": [
-        "Existing daily logs stored before this change remain readable and do not cause traps after upgrade.",
-        "After recording a win/loss for a day that is outside the weekly/monthly windows, that result does not appear in weekly/monthly leaderboards but does appear in the all-time leaderboard.",
-        "After removing (decrementing) wins/losses for a day, the leaderboard updates correctly for all three filters based on the day’s inclusion/exclusion in the timeframe window."
+        "Clicking the delete button for a user removes that user from the Registered Users table after the mutation completes.",
+        "Clicking the delete button for an availability removes that availability row from the All Availabilities table after the mutation completes.",
+        "After deleting a user, the All Availabilities table also updates (since the backend deletes that user’s availabilities).",
+        "Deletion uses valid Principal objects (no unsafe casts) so the backend calls succeed."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Add an admin-only sign-in time log: record each user’s latest sign-in timestamp and display it in the Admin tab (Admin Panel) as a readable date/time per user.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-user-2",
+          "msg-user-3"
+        ],
+        "quotes": [
+          "also can you add a user time log for when they sign in",
+          "1)only for admin in admin tab"
+        ]
+      },
+      "acceptanceCriteria": [
+        "On login, the app records the caller’s latest login timestamp (one per user, overwriting the prior value is acceptable).",
+        "Admins can view a list/table in the Admin page showing users and their latest login timestamp formatted in a human-readable way (e.g., using the existing date formatting utilities).",
+        "Non-admin users cannot access the login timestamp list (backend enforces admin access; frontend does not show it)."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Add in-app toast notifications (small pop-up toasts) that trigger: (a) when another user sets an availability, and (b) when the current user experiences any positive rank change on the leaderboard.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-user-1",
+          "msg-user-2",
+          "msg-user-3"
+        ],
+        "quotes": [
+          "can we add in app notifications",
+          "yes have it for when another user sets an availability, or when someone jumps in rank on the leaderboard tab",
+          "any positive change"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Availability notification: while a signed-in user is viewing the Calendar and/or Day Detail views, the UI detects new availability added by a different principal and shows a toast notification.",
+        "Leaderboard notification: while a signed-in user is on the Leaderboard tab, the UI detects when the caller’s rank position improves (any positive change) and shows a toast notification.",
+        "Notifications are implemented as small toast pop-ups (per existing toast usage) and do not require push notifications.",
+        "Notification logic does not spam: repeated polling/refetching without changes does not re-trigger the same toast."
       ]
     }
   ],
   "constraints": [
     "Backend must remain a single Motoko actor in backend/main.mo (no new backend services).",
-    "Do not change the user flow for selecting a date and recording/removing wins/losses in the frontend.",
-    "Do not edit files under frontend/src/components/ui (compose them only)."
+    "Do not edit files under frontend/src/components/ui (compose them only).",
+    "Do not edit immutable hook entrypoints listed in SYSTEM_CONTEXT (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx).",
+    "Use English for all user-facing UI text."
   ],
   "nonGoals": [
-    "Adding new timeframe options beyond Weekly/Monthly/All Time.",
-    "Introducing or integrating any external database or analytics service.",
-    "Changing Internet Identity authentication behavior."
+    "Push notifications or OS-level notifications.",
+    "Real-time messaging/WebSocket-style subscriptions; polling/refetch-based detection is acceptable.",
+    "Adding third-party authentication providers (only Internet Identity is supported)."
   ],
   "imageRequirements": {
     "required": [],

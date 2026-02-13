@@ -1,40 +1,73 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
-  "architectural_notes": [
-    "Leaderboard timeframe filters should compare integer day numbers (e.g., selected day index) rather than nanosecond timestamps to ensure correct 7/30-day windows."
-  ],
+  "summary": "App with leaderboard and admin functionality; requested UI tweaks, admin delete fix, admin sign-in logging, and in-app notifications.",
+  "architectural_notes": [],
   "known_issues": [
-    "Leaderboard weekly/monthly filters are not filtering correctly and may return all-time results due to timestamp comparison logic."
+    "Admin tab delete buttons do not function for Users and Availabilities."
   ],
   "isFixRequest": true,
-  "existing_features": [],
-  "new_feature_requests": [
+  "existing_features": [
     {
-      "id": "AR-1",
-      "summary": "Fix leaderboard weekly/monthly timeframe filtering (currently shows all-time results) by comparing integer day numbers instead of timestamps",
-      "reqIds": [],
-      "status": "in_progress"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Update backend leaderboard timeframe filtering so the Weekly and Monthly filters return only results inside the intended day windows by comparing integer day IDs (the same day IDs used when recording results) instead of comparing nanosecond timestamps.",
+      "id": "feature-update-the-ui-where-win-and-loss-labels-are-currently-stacked-vertically-so-they-render-side-by-side-on-the-same-row-horizontal-layout-while-preserving-existing-styling-as-much-as-possible",
+      "title": "Update the UI where Win and Loss labels are currently stacked vertically so they render side-by-side on the same row (horizontal layout) while preserving existing styling as much as possible.",
       "reqIds": [
         "REQ-1"
       ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-admin-tab-delete-buttons-so-they-immediately-delete-a-a-selected-user-and-b-a-selected-user-day-availability-entry-and-then-update-the-admin-ui-to-reflect-the-deletion-without-requiring-a-manual-refresh",
+      "title": "Fix the Admin tab delete buttons so they immediately delete (a) a selected user and (b) a selected user-day availability entry, and then update the Admin UI to reflect the deletion without requiring a manual refresh.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-an-admin-only-sign-in-time-log-record-each-user-s-latest-sign-in-timestamp-and-display-it-in-the-admin-tab-admin-panel-as-a-readable-date-time-per-user",
+      "title": "Add an admin-only sign-in time log: record each user’s latest sign-in timestamp and display it in the Admin tab (Admin Panel) as a readable date/time per user.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-in-app-toast-notifications-small-pop-up-toasts-that-trigger-a-when-another-user-sets-an-availability-and-b-when-the-current-user-experiences-any-positive-rank-change-on-the-leaderboard",
+      "title": "Add in-app toast notifications (small pop-up toasts) that trigger: (a) when another user sets an availability, and (b) when the current user experiences any positive rank change on the leaderboard.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "UI: Place Win and Loss labels side-by-side (horizontal) instead of stacked vertically.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Fix: Admin tab delete buttons should remove items immediately for both Users and Availabilities.",
+      "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-3",
-      "summary": "Ensure recording and removing results (recordDailyWin/recordDailyLoss/decrementDailyLog) continue to work without requiring any data migration, and the corrected timeframe filtering works immediately for existing stored daily logs.",
-      "reqIds": [
-        "REQ-2"
-      ],
+      "summary": "Feature: Add user sign-in time log visible only to admins in the Admin tab.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Feature: In-app toast notifications for (a) when another user sets an availability and (b) when a user has any positive rank change on the leaderboard.",
+      "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Fix leaderboard weekly/monthly timeframe filtering to use integer day comparisons",
+  "projectName": "Leaderboard win/loss layout tweak, fix admin deletes, add admin login log, and in-app notifications",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

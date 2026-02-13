@@ -93,7 +93,6 @@ actor {
   let dailyLogs = Map.empty<(Principal, Int), DailyLog>();
   var messageCounter : Int = 0;
 
-  // New function to check any user's availability for a day
   public query ({ caller }) func anyUserHasAvailability(day : Int) : async Bool {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view availability");
@@ -104,7 +103,6 @@ actor {
     false;
   };
 
-  // New function to check which days (from given range of days) have availability from any user
   public query ({ caller }) func daysWithAnyAvailability(days : [Int]) : async [Bool] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view availability");
@@ -112,7 +110,6 @@ actor {
     days.map(func(day) { anyUserHasAvailabilitySync(day) });
   };
 
-  // Helper function for synchronous context
   func anyUserHasAvailabilitySync(day : Int) : Bool {
     for (((_user, dayKey), _availability) in availabilities.entries()) {
       if (dayKey == day) { return true };
@@ -223,15 +220,12 @@ actor {
     loginRecords.toArray();
   };
 
-  public query ({ caller }) func getTopPlayersByScore(limit : Nat, timeframe : Text) : async [(Principal, UserStats.T)] {
+  public query ({ caller }) func getTopPlayersByScore(limit : Nat) : async [(Principal, UserStats.T)] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view stats");
     };
 
-    let filteredStats = userStats.entries().toArray().map(
-      func(entry) { filterStatsForTimeframe(entry, timeframe) }
-    );
-    let sortedLeaderboard = filteredStats.sort(UserStats.compareByScore);
+    let sortedLeaderboard = userStats.entries().toArray().sort(UserStats.compareByScore);
 
     Array.tabulate(
       Nat.min(sortedLeaderboard.size(), limit),
@@ -354,16 +348,12 @@ actor {
     userStats.add(caller, stats);
   };
 
-  public query ({ caller }) func getLeaderboard(timeFilter : Text) : async [(Principal, UserStats.T)] {
+  public query ({ caller }) func getLeaderboard() : async [(Principal, UserStats.T)] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view leaderboard");
     };
 
-    let filteredStats = userStats.entries().toArray().map(
-      func(entry) { filterStatsForTimeframe(entry, timeFilter) }
-    );
-
-    filteredStats.sort(UserStats.compareByScore);
+    userStats.entries().toArray().sort(UserStats.compareByScore);
   };
 
   public shared ({ caller }) func recordDailyWin(day : Int) : async () {
@@ -390,7 +380,6 @@ actor {
     updateDailyLog(caller, day, false);
   };
 
-  // New function to decrement daily logs
   public shared ({ caller }) func decrementDailyLog(day : Int, isWin : Bool) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can modify daily logs");
@@ -575,49 +564,7 @@ actor {
     numerator / denominator;
   };
 
-  func filterStatsForTimeframe(entry : (Principal, UserStats.T), timeframe : Text) : (Principal, UserStats.T) {
-    let (principal, stats) = entry;
-    let currentDay = getCurrentDay();
-
-    let daysInTimeframe : ?Nat = switch (timeframe) {
-      case ("weekly") { ?7 };
-      case ("monthly") { ?30 };
-      case ("all") { null };
-      case (_) { ?30 };
-    };
-
-    var filteredWins = 0;
-    var filteredLosses = 0;
-
-    for (((logPrincipal, day), log) in dailyLogs.entries()) {
-      if (principal == logPrincipal) {
-        let withinTimeframe = switch (daysInTimeframe) {
-          case (null) { true };
-          case (?days) { day >= (currentDay - days) };
-        };
-        if (withinTimeframe) {
-          filteredWins += log.wins;
-          filteredLosses += log.losses;
-        };
-      };
-    };
-
-    let filteredStats = {
-      wins = filteredWins;
-      losses = filteredLosses;
-      totalGames = filteredWins + filteredLosses;
-      streak = stats.streak;
-    };
-
-    (principal, filteredStats);
-  };
-
   func getCurrentDay() : Int {
     Time.now() / (24 * 60 * 60 * 1_000_000_000 : Int);
-  };
-
-  func getDayTimestamp(day : Int) : Int {
-    let dayTimestampNanos = 24 * 60 * 60 * 1_000_000_000 : Int;
-    dayTimestampNanos * day;
   };
 };

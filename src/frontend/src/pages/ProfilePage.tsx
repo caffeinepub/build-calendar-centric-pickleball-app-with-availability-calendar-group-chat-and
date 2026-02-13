@@ -16,8 +16,8 @@ export default function ProfilePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Leaderboard Rankings</CardTitle>
-          <CardDescription>Your current rankings across all timeframes</CardDescription>
+          <CardTitle>Leaderboard Ranking</CardTitle>
+          <CardDescription>Your current all-time ranking</CardDescription>
         </CardHeader>
         <CardContent>
           <ProfileLeaderboardRanks />

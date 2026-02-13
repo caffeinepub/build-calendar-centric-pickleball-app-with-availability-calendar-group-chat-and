@@ -57,10 +57,10 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getDayAvailability(day: bigint): Promise<Array<[Principal, Availability]>>;
-    getLeaderboard(timeFilter: string): Promise<Array<[Principal, T]>>;
+    getLeaderboard(): Promise<Array<[Principal, T]>>;
     getRecentMessages(limit: bigint): Promise<Array<[Principal, string, bigint]>>;
     getScoreLeaderboardWithStats(): Promise<Array<[Principal, T, bigint]>>;
-    getTopPlayersByScore(limit: bigint, timeframe: string): Promise<Array<[Principal, T]>>;
+    getTopPlayersByScore(limit: bigint): Promise<Array<[Principal, T]>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUserStats(user: Principal): Promise<T | null>;
     hasAvailability(day: bigint): Promise<boolean>;

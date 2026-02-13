@@ -1,11 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Fix backend leaderboard weekly/monthly timeframe filtering so it correctly limits results to the intended day windows using integer day ID comparisons.
+**Goal:** Improve the Leaderboard layout, fix Admin deletions, add an admin-only login timestamp log, and introduce in-app toast notifications for key activity.
 
 **Planned changes:**
-- Update backend leaderboard aggregation to filter daily logs for Weekly (last 7 days, inclusive) and Monthly (last 30 days, inclusive) by comparing stored integer day IDs against the current day ID, instead of comparing nanosecond timestamps.
-- Ensure all backend leaderboard endpoints that accept a timeframe apply the same filtering logic so they return consistent results for weekly/monthly/all.
-- Preserve existing record/remove result behavior (recordDailyWin/recordDailyLoss/decrementDailyLog) without data migration, and ensure existing stored daily logs continue to work with the corrected filtering immediately.
+- Update the affected UI so Win and Loss labels/values render side-by-side (horizontal) instead of stacked vertically, preserving existing styling and spacing across mobile and desktop.
+- Fix Admin tab delete actions for (a) users and (b) availability entries so deletions succeed immediately and the Admin UI updates without manual refresh (including refreshing availabilities after deleting a user).
+- Record each user’s latest sign-in timestamp on login and display it in the Admin tab as a human-readable date/time, restricted to admins (backend-enforced).
+- Add in-app toast notifications that trigger (a) when another user adds availability while the viewer is on Calendar/Day Detail views, and (b) when the current user’s leaderboard rank improves while viewing the Leaderboard tab, avoiding repeat/spam on unchanged polling.
 
-**User-visible outcome:** Weekly and Monthly leaderboard views show only results from the last 7 or 30 days respectively (inclusive), All Time remains unchanged, and wins/losses/totalGames/streak/score and ordering reflect only the selected timeframe across all leaderboard endpoints.
+**User-visible outcome:** Win/Loss is displayed in a cleaner horizontal row, Admin deletes work and update instantly, admins can see users’ latest sign-in times, and users receive toast notifications for new availability activity and positive rank changes.

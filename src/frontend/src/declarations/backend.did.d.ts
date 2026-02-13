@@ -82,7 +82,7 @@ export interface _SERVICE {
     [bigint],
     Array<[Principal, Availability]>
   >,
-  'getLeaderboard' : ActorMethod<[string], Array<[Principal, T]>>,
+  'getLeaderboard' : ActorMethod<[], Array<[Principal, T]>>,
   'getRecentMessages' : ActorMethod<
     [bigint],
     Array<[Principal, string, bigint]>
@@ -91,7 +91,7 @@ export interface _SERVICE {
     [],
     Array<[Principal, T, bigint]>
   >,
-  'getTopPlayersByScore' : ActorMethod<[bigint, string], Array<[Principal, T]>>,
+  'getTopPlayersByScore' : ActorMethod<[bigint], Array<[Principal, T]>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getUserStats' : ActorMethod<[Principal], [] | [T]>,
   'hasAvailability' : ActorMethod<[bigint], boolean>,
