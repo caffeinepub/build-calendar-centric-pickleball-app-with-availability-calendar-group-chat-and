@@ -1,59 +1,31 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add remove-win/remove-loss actions to Leaderboard UI and wire decrement mutations",
+  "title": "Align leaderboard UI filters with corrected weekly/monthly/all timeframe logic",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Add “Remove Win” and “Remove Loss” buttons next to existing Win/Loss buttons in the Leaderboard date action row.",
+      "id": "REQ-4",
+      "summary": "Ensure Weekly/Monthly/All Time leaderboard filters refresh and display ranks consistent with backend timeframe totals while keeping the existing date-selection record/remove flow unchanged.",
       "acceptanceCriteria": [
-        "In the Leaderboard page action area (where a user selects an available date), there are now four buttons: Win, Loss, Remove Win, Remove Loss.",
-        "The new remove buttons are positioned directly next to the existing add buttons (same control group).",
-        "User-facing button labels are in English."
+        "Switching between Weekly/Monthly/All Time updates the leaderboard table to show only results within that timeframe (or all-time).",
+        "The 'Select a date to record results' control continues to work as-is (user selects a date; wins/losses can be added/removed for that date).",
+        "The timeframe label/range display in the leaderboard UI remains coherent with the meaning of weekly=last 7 days and monthly=last 30 days."
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/LeaderboardPage.tsx",
           "operation": "modify",
-          "description": "Update the date-selection action row UI to render four action buttons (Win, Loss, Remove Win, Remove Loss) in the same button group immediately next to each other, using existing composed UI components (do not edit immutable ui components)."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Implement remove-win/remove-loss behavior with non-negative guard, toasts, and pending-state disabling consistent with existing add flows.",
-      "acceptanceCriteria": [
-        "If no date is selected, clicking either remove button shows an error toast and does not call the backend.",
-        "If a date is selected and the day has at least 1 win (or loss), clicking the corresponding remove button results in a success toast and updated leaderboard/match history data.",
-        "If the selected day’s win (or loss) count is already 0, the operation does not produce negative values; the UI remains consistent with backend state (no negative counts shown).",
-        "While a record/remove mutation is pending, the action buttons are disabled in a way consistent with current Win/Loss behavior (preventing double submits)."
-      ],
-      "file_operations": [
+          "description": "Audit and adjust the leaderboard filter wiring so each tab (weekly/monthly/all) reliably drives the correct backend getLeaderboard(timeFilter) fetch, and ensure the table and header range label update immediately when the filter changes (no stale cached view across tabs). Keep the existing record/remove controls and selected-day flow unchanged."
+        },
         {
-          "path": "frontend/src/pages/LeaderboardPage.tsx",
+          "path": "frontend/src/lib/date.ts",
           "operation": "modify",
-          "description": "Add click handlers for Remove Win/Remove Loss that: (1) show an error toast and return early when no date is selected, (2) consult caller match history data for the selected day (via existing match history query hook) to avoid attempting decrements below 0, (3) trigger the remove mutations and show success/error toasts consistent with current Win/Loss flows, and (4) disable all four action buttons while any win/loss add/remove mutation is pending to prevent double submits."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Add React Query mutations for removing a daily win and a daily loss, invalidating the same query keys as add-win/add-loss and wiring them into the Leaderboard page.",
-      "acceptanceCriteria": [
-        "Two new hooks exist in frontend/src/hooks/useQueries.ts for remove-win and remove-loss.",
-        "On success, the hooks invalidate at least: ['callerStats'], ['leaderboard'], and ['callerMatchHistory'] (matching existing add-win/add-loss invalidations).",
-        "The Leaderboard page uses the new hooks for the remove buttons."
-      ],
-      "file_operations": [
+          "description": "Update formatTimeframeWindow (and any supporting timeframe helpers if needed) so the displayed window/label explicitly matches the semantics of weekly=last 7 days (inclusive of today) and monthly=last 30 days (inclusive of today), while leaving 'All Time' unchanged."
+        },
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Add two new React Query mutation hooks for remove-win and remove-loss that call the new backend capability for decrementing a daily log, and on success invalidate the same query keys as the existing recordDailyWin/recordDailyLoss hooks: ['callerStats'], ['leaderboard'], and ['callerMatchHistory']."
-        },
-        {
-          "path": "frontend/src/pages/LeaderboardPage.tsx",
-          "operation": "modify",
-          "description": "Import and use the new remove-win/remove-loss hooks for the new buttons, and ensure the same query invalidation-driven refresh behavior as add-win/add-loss (leaderboard + match history + caller stats update after success)."
+          "description": "Verify react-query cache keys and invalidation behavior so recording/removing wins/losses triggers refresh of all leaderboard variants (weekly/monthly/all) and any dependent rank displays, matching the backend's corrected timeframe totals."
         }
       ]
     }

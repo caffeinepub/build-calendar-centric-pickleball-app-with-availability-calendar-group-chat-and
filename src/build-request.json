@@ -1,94 +1,96 @@
 {
   "kind": "build_request",
-  "title": "Add remove-win and remove-loss actions to Leaderboard and persist decrements",
+  "title": "Fix leaderboard weekly/monthly time filtering using user-selected result date timestamps",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update the Leaderboard tab UI to include two additional buttons, “Remove Win” and “Remove Loss”, displayed immediately next to the existing “Win” and “Loss” add buttons in the date-selection action row.",
-      "target": "frontend",
+      "text": "Update backend leaderboard timeframe filtering so that:\n- Weekly leaderboard shows only results from the last 7 days.\n- Monthly leaderboard shows only results from the last 30 days.\n- The date the user selected when recording a win/loss is the date used for timeframe inclusion.\n- The returned leaderboard totals (wins/losses/totalGames/streak/score ordering) reflect only results inside the selected timeframe (not all-time totals).",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "recent-4"
         ],
         "quotes": [
-          "on the leaderboard tab when users enter the wins and losses, there is only buttons to add wins and losses however I want an additional one to remove wins and losses",
-          "2)appear right next to existing"
+          "1)last 7 days for weekly and last 30 days for monthly\n2)use selected date to generate timestamp for filtering\n3)only results from selected filter"
         ]
       },
       "acceptanceCriteria": [
-        "In the Leaderboard page action area (where a user selects an available date), there are now four buttons: Win, Loss, Remove Win, Remove Loss.",
-        "The new remove buttons are positioned directly next to the existing add buttons (same control group).",
-        "User-facing button labels are in English."
+        "Calling getLeaderboard(\"weekly\") only counts wins/losses whose recorded result date falls within the last 7 days (inclusive of today).",
+        "Calling getLeaderboard(\"monthly\") only counts wins/losses whose recorded result date falls within the last 30 days (inclusive of today).",
+        "Calling getLeaderboard(\"all\") continues to return all-time totals.",
+        "Filtering does not rely on comparing a YYYYMMDD day ID to an epoch-days value; timeframe inclusion is computed using consistent date/timestamp representations.",
+        "Leaderboard ordering remains consistent with existing score comparator (score desc, then wins desc)."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Implement remove-win/remove-loss behavior in the frontend so that clicking “Remove Win” or “Remove Loss” decrements the corresponding count by 1 for the selected day, never allowing the day’s wins or losses to go below 0, and shows success/error toasts consistent with the existing add-win/add-loss flows.",
-      "target": "frontend",
+      "text": "Store and use a discrete timestamp derived from the user-selected result date when recording wins/losses so timeframe filtering is accurate.\n- When a win/loss is recorded for a selected day, persist a timestamp representation for that result date that can be compared to 'now' to compute last-7-days/last-30-days windows.\n- Ensure decrement/remove operations continue to work correctly with the new stored representation.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "recent-3",
+          "recent-4"
         ],
         "quotes": [
-          "1) yes"
+          "Is there a way we can filter by making a discrete timestamp when users add wins and losses? They already have to select the date when they add results so would this help with the filtering feature?",
+          "use selected date to generate timestamp for filtering"
         ]
       },
       "acceptanceCriteria": [
-        "If no date is selected, clicking either remove button shows an error toast and does not call the backend.",
-        "If a date is selected and the day has at least 1 win (or loss), clicking the corresponding remove button results in a success toast and updated leaderboard/match history data.",
-        "If the selected day’s win (or loss) count is already 0, the operation does not produce negative values; the UI remains consistent with backend state (no negative counts shown).",
-        "While a record/remove mutation is pending, the action buttons are disabled in a way consistent with current Win/Loss behavior (preventing double submits)."
+        "Recording a win/loss persists enough information to accurately determine whether that result falls within the last 7/30 days at query time.",
+        "Removing (decrementing) a win/loss for a day updates the stored data and the affected leaderboard timeframes correctly.",
+        "No regressions to the existing rule that users can only record results on days they have marked as available."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Add React Query mutations for removing a daily win and removing a daily loss that call new backend actor methods, and invalidate the same query keys as the existing recordDailyWin/recordDailyLoss mutations (callerStats, leaderboard, callerMatchHistory).",
-      "target": "frontend",
+      "text": "Add any necessary Motoko state migration for existing stored match results so existing daily logs continue to be readable and leaderboard queries do not trap after upgrade.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "recent-6"
         ],
         "quotes": [
-          "3)yes and yes"
+          "Im ready"
         ]
       },
       "acceptanceCriteria": [
-        "Two new hooks exist in frontend/src/hooks/useQueries.ts for remove-win and remove-loss.",
-        "On success, the hooks invalidate at least: ['callerStats'], ['leaderboard'], and ['callerMatchHistory'] (matching existing add-win/add-loss invalidations).",
-        "The Leaderboard page uses the new hooks for the remove buttons."
+        "Upgrading the canister preserves existing recorded wins/losses and they still appear in the all-time leaderboard after deployment.",
+        "Leaderboard queries (weekly/monthly/all) succeed after upgrade without traps caused by incompatible stored types.",
+        "Migration is only introduced if required by the chosen state representation change (e.g., if a stored type changes)."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Extend the Motoko backend to support decrementing a caller’s daily wins/losses for a given day (selected in the UI), updating the same underlying storage used by recordDailyWin/recordDailyLoss, never allowing wins/losses to go below 0, and recomputing overall stats afterward so the leaderboard reflects the change.",
-      "target": "backend",
+      "text": "Ensure the frontend leaderboard filters (Weekly/Monthly/All Time) display rankings that match the corrected backend timeframe logic, without requiring changes to the user’s flow for selecting a date and recording/removing wins/losses.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "recent-4",
+          "recent-6"
         ],
         "quotes": [
-          "3)yes and yes",
-          "1) yes"
+          "1)last 7 days for weekly and last 30 days for monthly",
+          "Im ready"
         ]
       },
       "acceptanceCriteria": [
-        "Backend exposes two new shared methods for the caller: one to remove a daily win for a day, and one to remove a daily loss for a day.",
-        "Both methods enforce the same authorization guard pattern as recordDailyWin/recordDailyLoss (user permission required).",
-        "Both methods do not allow the stored daily log to become negative (wins and losses are Nat). If the count is already 0 or no log exists for that day, the backend leaves the value at 0 (no underflow) and does not corrupt state.",
-        "After a successful decrement/no-op, the caller’s overall stats are updated so getLeaderboard() returns updated totals.",
-        "The existing recordDailyWin/recordDailyLoss behavior continues to work unchanged."
+        "Switching between Weekly/Monthly/All Time updates the leaderboard table to show only results within that timeframe (or all-time).",
+        "The 'Select a date to record results' control continues to work as-is (user selects a date; wins/losses can be added/removed for that date).",
+        "The timeframe label/range display in the leaderboard UI remains coherent with the meaning of weekly=last 7 days and monthly=last 30 days."
       ]
     }
   ],
   "constraints": [
     "Backend must remain a single Motoko actor in backend/main.mo (no additional backend services).",
-    "Do not edit any frontend files under frontend/src/components/ui or other immutable paths listed in SYSTEM_CONTEXT; compose existing UI components instead."
+    "Use English for any user-facing text.",
+    "Do not edit frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui."
   ],
   "nonGoals": [
-    "Changing leaderboard ranking/sorting/scoring logic beyond what naturally changes from updated win/loss totals.",
-    "Adding new authentication methods (Internet Identity remains the only auth).",
-    "Adding per-click confirmation dialogs or audit/history tracking beyond existing dailyLogs and derived stats."
+    "Do not add new leaderboard filter types beyond weekly/monthly/all.",
+    "Do not change the scoring formula or ranking tie-break rules (beyond making timeframe filtering correct).",
+    "Do not add third-party analytics, external databases, or real-time/WebSocket features."
   ],
   "imageRequirements": {
     "required": [],

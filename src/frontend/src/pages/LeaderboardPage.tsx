@@ -19,13 +19,13 @@ import {
 import { useUserDirectoryWithAvatars } from '../hooks/useUserDirectory';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import AvatarName from '../components/user/AvatarName';
-import { formatDayId } from '../lib/date';
+import { formatDayId, formatTimeframeWindow } from '../lib/date';
 import { toast } from 'sonner';
 
 type TimeFilter = 'weekly' | 'monthly' | 'all';
 
 export default function LeaderboardPage() {
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('weekly');
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -56,7 +56,7 @@ export default function LeaderboardPage() {
 }
 
 function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
-  const { data: leaderboard = [], isLoading } = useGetLeaderboard(timeFilter);
+  const { data: leaderboard = [], isLoading, isFetching } = useGetLeaderboard(timeFilter);
   const principals = leaderboard.map(([principal]) => principal);
   const { data: userDirectory, isLoading: isLoadingDirectory } = useUserDirectoryWithAvatars(principals);
   const { identity } = useInternetIdentity();
@@ -158,22 +158,21 @@ function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
     );
   }
 
-  if (leaderboard.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">
-          No players enrolled yet. Players appear automatically when they sign in.
-        </CardContent>
-      </Card>
-    );
-  }
-
   const hasAvailableDays = availableDays.length > 0;
+  
+  // Calculate the timeframe window display
+  const timeframeDisplay = formatTimeframeWindow(timeFilter);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Rankings</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Rankings</CardTitle>
+          <div className="text-sm text-muted-foreground">
+            {isFetching && <span className="mr-2">⟳</span>}
+            {timeframeDisplay}
+          </div>
+        </div>
         {callerPrincipal && (
           <div className="pt-4 space-y-3">
             <div className="flex items-center gap-3">
@@ -190,9 +189,9 @@ function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
                 </AlertDescription>
               </Alert>
             ) : (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
                 <Select value={selectedDay || ''} onValueChange={setSelectedDay}>
-                  <SelectTrigger className="w-full max-w-xs">
+                  <SelectTrigger className="w-full sm:w-auto sm:min-w-[240px]">
                     <SelectValue placeholder="Choose an available date" />
                   </SelectTrigger>
                   <SelectContent>
@@ -203,47 +202,57 @@ function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
                     ))}
                   </SelectContent>
                 </Select>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="default"
-                    className="gap-2"
-                    onClick={handleRecordWin}
-                    disabled={!selectedDay || isPending}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Win
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-2"
-                    onClick={handleRecordLoss}
-                    disabled={!selectedDay || isPending}
-                  >
-                    <Minus className="h-4 w-4" />
-                    Loss
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="gap-2"
-                    onClick={handleRemoveWin}
-                    disabled={!selectedDay || isPending}
-                  >
-                    <Minus className="h-4 w-4" />
-                    Remove Win
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="gap-2"
-                    onClick={handleRemoveLoss}
-                    disabled={!selectedDay || isPending}
-                  >
-                    <Minus className="h-4 w-4" />
-                    Remove Loss
-                  </Button>
+                
+                <div className="flex gap-3 flex-wrap">
+                  {/* Win Section */}
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-sm font-medium text-muted-foreground">Win</span>
+                    <div className="flex gap-2 justify-center">
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="w-16"
+                        onClick={handleRecordWin}
+                        disabled={!selectedDay || isPending}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="w-16"
+                        onClick={handleRemoveWin}
+                        disabled={!selectedDay || isPending}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Loss Section */}
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-sm font-medium text-muted-foreground">Loss</span>
+                    <div className="flex gap-2 justify-center">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-16"
+                        onClick={handleRecordLoss}
+                        disabled={!selectedDay || isPending}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="w-16"
+                        onClick={handleRemoveLoss}
+                        disabled={!selectedDay || isPending}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -251,58 +260,67 @@ function LeaderboardTable({ timeFilter }: { timeFilter: string }) {
         )}
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-16">Rank</TableHead>
-              <TableHead>Player</TableHead>
-              <TableHead className="text-right">Wins</TableHead>
-              <TableHead className="text-right">Losses</TableHead>
-              <TableHead className="text-right">Games</TableHead>
-              <TableHead className="text-right">Win %</TableHead>
-              <TableHead className="text-right">Streak</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {leaderboard.map(([principal, stats], index) => {
-              const userEntry = userDirectory?.get(principal.toString());
-              const displayName = userEntry?.displayName || 'Loading...';
-              const avatarUrl = userEntry?.avatarUrl;
-              const winPercentage = stats.totalGames > 0
-                ? ((Number(stats.wins) / Number(stats.totalGames)) * 100).toFixed(1)
-                : '0.0';
-              
-              return (
-                <TableRow key={principal.toString()}>
-                  <TableCell className="font-medium">
-                    {index === 0 && <Trophy className="inline h-4 w-4 text-yellow-500 mr-1" />}
-                    {index + 1}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <AvatarName
-                      principal={principal}
-                      displayName={displayName}
-                      avatarUrl={avatarUrl}
-                      size="md"
-                      isLoading={isLoadingDirectory}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">{stats.wins.toString()}</TableCell>
-                  <TableCell className="text-right">{stats.losses.toString()}</TableCell>
-                  <TableCell className="text-right">{stats.totalGames.toString()}</TableCell>
-                  <TableCell className="text-right">{winPercentage}%</TableCell>
-                  <TableCell className="text-right">
-                    {Number(stats.streak) !== 0 && (
-                      <Badge variant={Number(stats.streak) > 0 ? 'default' : 'destructive'}>
-                        {Number(stats.streak) > 0 ? '+' : ''}{stats.streak.toString()}
-                      </Badge>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+        {leaderboard.length === 0 ? (
+          <div className="py-12 text-center text-muted-foreground">
+            {timeFilter === 'all' 
+              ? 'No players enrolled yet. Players appear automatically when they sign in.'
+              : `No results recorded in the ${timeFilter === 'weekly' ? 'last 7 days' : 'last 30 days'}.`
+            }
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-16">Rank</TableHead>
+                <TableHead>Player</TableHead>
+                <TableHead className="text-right">Wins</TableHead>
+                <TableHead className="text-right">Losses</TableHead>
+                <TableHead className="text-right">Games</TableHead>
+                <TableHead className="text-right">Win %</TableHead>
+                <TableHead className="text-right">Streak</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {leaderboard.map(([principal, stats], index) => {
+                const userEntry = userDirectory?.get(principal.toString());
+                const displayName = userEntry?.displayName || 'Loading...';
+                const avatarUrl = userEntry?.avatarUrl;
+                const winPercentage = stats.totalGames > 0
+                  ? ((Number(stats.wins) / Number(stats.totalGames)) * 100).toFixed(1)
+                  : '0.0';
+                
+                return (
+                  <TableRow key={principal.toString()}>
+                    <TableCell className="font-medium">
+                      {index === 0 && <Trophy className="inline h-4 w-4 text-yellow-500 mr-1" />}
+                      {index + 1}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      <AvatarName
+                        principal={principal}
+                        displayName={displayName}
+                        avatarUrl={avatarUrl}
+                        size="md"
+                        isLoading={isLoadingDirectory}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">{stats.wins.toString()}</TableCell>
+                    <TableCell className="text-right">{stats.losses.toString()}</TableCell>
+                    <TableCell className="text-right">{stats.totalGames.toString()}</TableCell>
+                    <TableCell className="text-right">{winPercentage}%</TableCell>
+                    <TableCell className="text-right">
+                      {Number(stats.streak) !== 0 && (
+                        <Badge variant={Number(stats.streak) > 0 ? 'default' : 'destructive'}>
+                          {Number(stats.streak) > 0 ? '+' : ''}{stats.streak.toString()}
+                        </Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );

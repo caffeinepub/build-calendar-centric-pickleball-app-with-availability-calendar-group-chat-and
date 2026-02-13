@@ -1,34 +1,20 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "App with calendar availability indicator and a leaderboard where users can record wins/losses.",
+  "summary": "Project includes a leaderboard that needs correct time-based filtering (weekly/monthly) based on user-selected result dates.",
   "architectural_notes": [
-    "Leaderboard win/loss decrement actions must clamp at 0 and update the same backend storage as increment actions."
+    "Use the user-selected result date to generate/store a timestamp used for leaderboard filtering windows (last 7 days / last 30 days)."
   ],
-  "known_issues": [],
-  "isFixRequest": false,
+  "known_issues": [
+    "Leaderboard weekly/monthly filters are not currently filtering correctly."
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-update-the-leaderboard-tab-ui-to-include-two-additional-buttons-remove-win-and-remove-loss-displayed-immediately-next-to-the-existing-win-and-loss-add-buttons-in-the-date-selection-action-row",
-      "title": "Update the Leaderboard tab UI to include two additional buttons, “Remove Win” and “Remove Loss”, displayed immediately next to the existing “Win” and “Loss” add buttons in the date-selection action row.",
+      "id": "feature-ensure-the-frontend-leaderboard-filters-weekly-monthly-all-time-display-rankings-that-match-the-corrected-backend-timeframe-logic-without-requiring-changes-to-the-user-s-flow-for-selecting-a-date-and-recording-removing-wins-losses",
+      "title": "Ensure the frontend leaderboard filters (Weekly/Monthly/All Time) display rankings that match the corrected backend timeframe logic, without requiring changes to the user’s flow for selecting a date and recording/removing wins/losses.",
       "reqIds": [
-        "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-remove-win-remove-loss-behavior-in-the-frontend-so-that-clicking-remove-win-or-remove-loss-decrements-the-corresponding-count-by-1-for-the-selected-day-never-allowing-the-day-s-wins-or-losses-to-go-below-0-and-shows-success-error-toasts-consistent-with-the-existing-add-win-add-loss-flows",
-      "title": "Implement remove-win/remove-loss behavior in the frontend so that clicking “Remove Win” or “Remove Loss” decrements the corresponding count by 1 for the selected day, never allowing the day’s wins or losses to go below 0, and shows success/error toasts consistent with the existing add-win/add-loss flows.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-react-query-mutations-for-removing-a-daily-win-and-removing-a-daily-loss-that-call-new-backend-actor-methods-and-invalidate-the-same-query-keys-as-the-existing-recorddailywin-recorddailyloss-mutations-callerstats-leaderboard-callermatchhistory",
-      "title": "Add React Query mutations for removing a daily win and removing a daily loss that call new backend actor methods, and invalidate the same query keys as the existing recordDailyWin/recordDailyLoss mutations (callerStats, leaderboard, callerMatchHistory).",
-      "reqIds": [
-        "REQ-3"
+        "REQ-4"
       ],
       "version": 1
     }
@@ -36,20 +22,36 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Add remove-win and remove-loss buttons on the leaderboard to decrement counts (never below zero) and persist updates to the backend.",
+      "summary": "Implement leaderboard time filters: weekly = last 7 days, monthly = last 30 days, using user-selected result date as timestamp; leaderboard should show only results within selected filter window.",
       "reqIds": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Update backend leaderboard timeframe filtering so that:\n- Weekly leaderboard shows only results from the last 7 days.\n- Monthly leaderboard shows only results from the last 30 days.\n- The date the user selected when recording a win/loss is the date used for timeframe inclusion.\n- The returned leaderboard totals (wins/losses/totalGames/streak/score ordering) reflect only results inside the selected timeframe (not all-time totals).",
+      "reqIds": [
+        "REQ-1"
+      ],
       "status": "pending"
     },
     {
-      "id": "AR-5",
-      "summary": "Extend the Motoko backend to support decrementing a caller’s daily wins/losses for a given day (selected in the UI), updating the same underlying storage used by recordDailyWin/recordDailyLoss, never allowing wins/losses to go below 0, and recomputing overall stats afterward so the leaderboard reflects the change.",
+      "id": "AR-3",
+      "summary": "Store and use a discrete timestamp derived from the user-selected result date when recording wins/losses so timeframe filtering is accurate.\n- When a win/loss is recorded for a selected day, persist a timestamp representation for that result date that can be compared to 'now' to compute last-7-days/last-30-days windows.\n- Ensure decrement/remove operations continue to work correctly with the new stored representation.",
       "reqIds": [
-        "REQ-4"
+        "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Add any necessary Motoko state migration for existing stored match results so existing daily logs continue to be readable and leaderboard queries do not trap after upgrade.",
+      "reqIds": [
+        "REQ-3"
       ],
       "status": "pending"
     }
   ],
-  "projectName": "Add remove-win and remove-loss actions to Leaderboard and persist decrements",
+  "projectName": "Fix leaderboard weekly/monthly time filtering using user-selected result date timestamps",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

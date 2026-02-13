@@ -7,12 +7,15 @@ import Int "mo:core/Int";
 import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
+import Migration "migration";
 
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 
+// Use migration module to map old data to new structure
+(with migration = Migration.run)
 actor {
   let accessControlState = AccessControl.initState();
   include MixinStorage();
@@ -626,4 +629,3 @@ actor {
     dayTimestampNanos * day;
   };
 };
-

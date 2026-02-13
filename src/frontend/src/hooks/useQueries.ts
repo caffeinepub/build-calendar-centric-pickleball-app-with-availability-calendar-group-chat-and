@@ -36,9 +36,12 @@ export function useGetLeaderboard(timeFilter: string) {
     queryKey: ['leaderboard', timeFilter],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getLeaderboard(timeFilter);
+      const result = await actor.getLeaderboard(timeFilter);
+      return result;
     },
     enabled: !!actor && !isFetching,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 }
 

@@ -1,12 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Add “Remove Win” and “Remove Loss” actions on the Leaderboard so users can decrement daily win/loss counts with persistence and updated stats.
+**Goal:** Correct weekly/monthly leaderboard filtering so it uses the user-selected result date (not all-time totals) and returns accurate timeframe-specific rankings.
 
 **Planned changes:**
-- Update the Leaderboard tab action row (date-selection area) to show four buttons: Win, Loss, Remove Win, Remove Loss, with the remove buttons immediately next to the existing add buttons.
-- Implement frontend remove-win/remove-loss behavior: require a selected date, prevent decrements below 0, disable action buttons while mutations are pending, and show success/error toasts consistent with existing add flows.
-- Add React Query mutations/hooks for removing a daily win and removing a daily loss, calling new backend actor methods and invalidating the same query keys as existing add mutations (callerStats, leaderboard, callerMatchHistory).
-- Extend the Motoko backend actor to support decrementing a caller’s daily wins/losses for a given day with the same authorization guard as existing record methods, preventing underflow, and recomputing overall stats so leaderboard totals update.
+- Update backend leaderboard queries so weekly includes only results from the last 7 days (inclusive of today) and monthly includes only results from the last 30 days (inclusive of today), based on the user-selected result date.
+- Persist a discrete timestamp (or equivalent comparable representation) derived from the selected result date when recording wins/losses, and ensure decrement/remove operations remain correct with this stored representation.
+- Add Motoko state migration only if needed to keep existing stored results readable and prevent traps after upgrade.
+- Ensure frontend Weekly/Monthly/All Time filters display results that match the corrected backend timeframe logic without changing the existing date-selection and add/remove flow.
 
-**User-visible outcome:** On the Leaderboard tab, users can select a date and both add or remove wins/losses for that day; counts never go negative, and the leaderboard/match history update to reflect decrements.
+**User-visible outcome:** Switching between Weekly, Monthly, and All Time shows leaderboard rankings and totals that correctly reflect only the results recorded within that timeframe (or all-time), using the date the user selected when logging results.

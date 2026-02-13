@@ -2,50 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-leaderboard-tab-ui-to-include-two-additional-buttons-remove-win-and-remove-loss-displayed-immediately-next-to-the-existing-win-and-loss-add-buttons-in-the-date-selection-action-row",
-      "featureTitle": "Update the Leaderboard tab UI to include two additional buttons, “Remove Win” and “Remove Loss”, displayed immediately next to the existing “Win” and “Loss” add buttons in the date-selection action row.",
-      "files": [
-        "frontend/src/pages/LeaderboardPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "blob-storage@4.0.0"
-      ],
-      "testIds": [
-        "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-implement-remove-win-remove-loss-behavior-in-the-frontend-so-that-clicking-remove-win-or-remove-loss-decrements-the-corresponding-count-by-1-for-the-selected-day-never-allowing-the-day-s-wins-or-losses-to-go-below-0-and-shows-success-error-toasts-consistent-with-the-existing-add-win-add-loss-flows",
-      "featureTitle": "Implement remove-win/remove-loss behavior in the frontend so that clicking “Remove Win” or “Remove Loss” decrements the corresponding count by 1 for the selected day, never allowing the day’s wins or losses to go below 0, and shows success/error toasts consistent with the existing add-win/add-loss flows.",
-      "files": [
-        "frontend/src/pages/LeaderboardPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "blob-storage@4.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-react-query-mutations-for-removing-a-daily-win-and-removing-a-daily-loss-that-call-new-backend-actor-methods-and-invalidate-the-same-query-keys-as-the-existing-recorddailywin-recorddailyloss-mutations-callerstats-leaderboard-callermatchhistory",
-      "featureTitle": "Add React Query mutations for removing a daily win and removing a daily loss that call new backend actor methods, and invalidate the same query keys as the existing recordDailyWin/recordDailyLoss mutations (callerStats, leaderboard, callerMatchHistory).",
+      "featureId": "feature-ensure-the-frontend-leaderboard-filters-weekly-monthly-all-time-display-rankings-that-match-the-corrected-backend-timeframe-logic-without-requiring-changes-to-the-user-s-flow-for-selecting-a-date-and-recording-removing-wins-losses",
+      "featureTitle": "Ensure the frontend leaderboard filters (Weekly/Monthly/All Time) display rankings that match the corrected backend timeframe logic, without requiring changes to the user’s flow for selecting a date and recording/removing wins/losses.",
       "files": [
         "frontend/src/hooks/useQueries.ts",
+        "frontend/src/lib/date.ts",
         "frontend/src/pages/LeaderboardPage.tsx"
       ],
       "components": [
@@ -58,7 +19,7 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-3"
+        "REQ-4"
       ],
       "confidence": "high"
     }
