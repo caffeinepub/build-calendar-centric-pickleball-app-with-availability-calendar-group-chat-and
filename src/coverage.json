@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-14T02:29:29.365Z",
+  "generatedAt": "2026-02-14T21:48:28.054Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -12,67 +12,37 @@
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Create a single, reusable global UI pattern for loading states (spinner/skeleton + message) and apply it consistently across the app screens, replacing ad-hoc loading UI (e.g., AuthGate full-screen loader and page-level loaders such as LeaderboardPage).",
+        "summary": "Restore an “Add Availability” button that is always visible when viewing a specific day’s availability details (the day detail view reached by clicking a date on the calendar), positioned above the availability list inside the day detail content area.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/common/LoadingState.tsx",
-          "frontend/src/App.tsx",
-          "frontend/src/pages/LeaderboardPage.tsx",
-          "frontend/src/pages/DayDetailPage.tsx",
-          "frontend/src/pages/AdminPage.tsx",
-          "frontend/src/components/chat/ChatPanel.tsx"
+          "frontend/src/pages/DayDetailPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/common/LoadingState.tsx",
-          "frontend/src/App.tsx",
-          "frontend/src/pages/LeaderboardPage.tsx",
-          "frontend/src/pages/DayDetailPage.tsx",
-          "frontend/src/pages/AdminPage.tsx",
-          "frontend/src/components/chat/ChatPanel.tsx"
+          "frontend/src/pages/DayDetailPage.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Create a single, reusable global UI pattern for error states (icon/title/message + optional retry action) and apply it consistently across the app screens and data-fetching components, replacing ad-hoc error messages (e.g., inline destructive text blocks) with the global pattern.",
+        "summary": "Ensure the day detail “Add Availability” button routes to the existing add/edit availability screen for the selected day, passing the currently selected day as the date search parameter so the form opens on that day.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/common/ErrorState.tsx",
-          "frontend/src/components/profile/ProfileMatchHistory.tsx",
-          "frontend/src/pages/LeaderboardPage.tsx",
-          "frontend/src/components/chat/ChatPanel.tsx"
+          "frontend/src/pages/DayDetailPage.tsx",
+          "frontend/src/pages/AddAvailabilityPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/common/ErrorState.tsx",
-          "frontend/src/components/profile/ProfileMatchHistory.tsx",
-          "frontend/src/pages/LeaderboardPage.tsx",
-          "frontend/src/components/chat/ChatPanel.tsx"
+          "frontend/src/pages/DayDetailPage.tsx",
+          "frontend/src/pages/AddAvailabilityPage.tsx"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Perform an app-wide UI spacing and consistency pass across all pages and common layouts to achieve a more polished, uniform look (headers, max-width containers, section spacing, card padding, and button alignment), while keeping existing functionality unchanged.",
+        "summary": "Show the day detail “Add Availability” button even when the selected day currently has no availability entries (the empty-state view).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/layout/PageLayout.tsx",
-          "frontend/src/components/layout/AppLayout.tsx",
-          "frontend/src/pages/CalendarMonthPage.tsx",
-          "frontend/src/pages/LeaderboardPage.tsx",
-          "frontend/src/pages/ProfilePage.tsx",
-          "frontend/src/pages/AddAvailabilityPage.tsx",
-          "frontend/src/pages/DayDetailPage.tsx",
-          "frontend/src/pages/ChatPage.tsx",
-          "frontend/src/pages/AdminPage.tsx"
+          "frontend/src/pages/DayDetailPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/layout/PageLayout.tsx",
-          "frontend/src/components/layout/AppLayout.tsx",
-          "frontend/src/pages/CalendarMonthPage.tsx",
-          "frontend/src/pages/LeaderboardPage.tsx",
-          "frontend/src/pages/ProfilePage.tsx",
-          "frontend/src/pages/AddAvailabilityPage.tsx",
-          "frontend/src/pages/DayDetailPage.tsx",
-          "frontend/src/pages/ChatPage.tsx",
-          "frontend/src/pages/AdminPage.tsx"
+          "frontend/src/pages/DayDetailPage.tsx"
         ]
       }
     ]
@@ -82,21 +52,8 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/components/chat/ChatPanel.tsx",
-    "frontend/src/components/common/ErrorState.tsx",
-    "frontend/src/components/common/LoadingState.tsx",
-    "frontend/src/components/layout/AppLayout.tsx",
-    "frontend/src/components/layout/PageLayout.tsx",
-    "frontend/src/components/profile/ProfileMatchHistory.tsx",
-    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/AddAvailabilityPage.tsx",
-    "frontend/src/pages/AdminPage.tsx",
-    "frontend/src/pages/CalendarMonthPage.tsx",
-    "frontend/src/pages/ChatPage.tsx",
     "frontend/src/pages/DayDetailPage.tsx",
-    "frontend/src/pages/LeaderboardPage.tsx",
-    "frontend/src/pages/ProfilePage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

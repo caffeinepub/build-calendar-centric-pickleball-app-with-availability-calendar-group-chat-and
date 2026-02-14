@@ -1,80 +1,72 @@
 {
   "kind": "build_request",
-  "title": "Add global loading/error UI components and apply spacing/consistency polish across the app",
+  "title": "Restore missing “Add Availability” button on day detail popup/page",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Create a single, reusable global UI pattern for loading states (spinner/skeleton + message) and apply it consistently across the app screens, replacing ad-hoc loading UI (e.g., AuthGate full-screen loader and page-level loaders such as LeaderboardPage).",
+      "text": "Restore an “Add Availability” button that is always visible when viewing a specific day’s availability details (the day detail view reached by clicking a date on the calendar), positioned above the availability list inside the day detail content area.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-14",
-          "msg-13"
+          "recent-messages"
         ],
         "quotes": [
-          "Build",
-          "1)single global"
+          "Okay i noticed that when I click a date on the calendar, the day pops up showing users availability, however the button to add availability to that day has dissappeared",
+          "1)always appear\n2)inside the day pop up above availability list\n3)restored how it was"
         ]
       },
       "acceptanceCriteria": [
-        "A shared loading component (or small set of shared components for full-page vs. inline loading) exists in the frontend codebase and is used by the main app authentication/loading gate and the primary pages.",
-        "Loading UI uses consistent styling (typography, spacing, spinner sizing/colors) across all locations where it appears.",
-        "No user-facing loading text is left inconsistent (e.g., a mix of 'Loading...' and differently styled loading labels) unless intentionally parameterized via props."
+        "When navigating to a day detail view from the calendar, an “Add Availability” button is visible without requiring any additional interactions.",
+        "The “Add Availability” button is displayed above the list of users’ availability entries within the day detail UI.",
+        "The button label is exactly “Add Availability” (English user-facing text)."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Create a single, reusable global UI pattern for error states (icon/title/message + optional retry action) and apply it consistently across the app screens and data-fetching components, replacing ad-hoc error messages (e.g., inline destructive text blocks) with the global pattern.",
+      "text": "Ensure the day detail “Add Availability” button routes to the existing add/edit availability screen for the selected day, passing the currently selected day as the date search parameter so the form opens on that day.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-12",
-          "msg-14"
+          "recent-messages"
         ],
         "quotes": [
-          "1)single global",
           "Build"
         ]
       },
       "acceptanceCriteria": [
-        "A shared error component exists and supports at least: title, message, and an optional retry callback.",
-        "At least the main pages and key data components that currently render errors (e.g., match history) use the shared error UI.",
-        "User-facing error text is in English and follows a consistent tone and structure across the app."
+        "Clicking the day detail “Add Availability” button navigates to “/add-availability” and includes the selected day as a search parameter (e.g., search.date).",
+        "On the Add/Edit Availability page, the displayed date matches the day the user clicked from the calendar.",
+        "No backend/canister changes are required for this navigation behavior."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Perform an app-wide UI spacing and consistency pass across all pages and common layouts to achieve a more polished, uniform look (headers, max-width containers, section spacing, card padding, and button alignment), while keeping existing functionality unchanged.",
+      "text": "Show the day detail “Add Availability” button even when the selected day currently has no availability entries (the empty-state view).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-13",
-          "msg-14"
+          "recent-messages"
         ],
         "quotes": [
-          "2)apply across entire app",
-          "Build"
+          "always appear"
         ]
       },
       "acceptanceCriteria": [
-        "All top-level pages use a consistent page wrapper approach (consistent max width, horizontal padding behavior, and vertical spacing between sections).",
-        "Headings and icon+heading rows (e.g., 'Calendar', 'Leaderboard', 'Profile') follow consistent sizing, spacing, and alignment across pages.",
-        "Card sections (CardHeader/CardContent) and common interactive rows use consistent padding and gap spacing across pages.",
-        "No functionality regressions: navigation, forms, leaderboard actions, chat, and profile flows still work as before."
+        "If a day has zero availability entries, the day detail screen still displays the “Add Availability” button above the empty-state message.",
+        "The empty-state message remains visible and readable, and the button remains clearly discoverable above it."
       ]
     }
   ],
   "constraints": [
-    "Do not implement or change empty states (the user explicitly opted out of empty state work).",
-    "Do not edit files under frontend/src/components/ui (Shadcn components are read-only and must be composed rather than modified).",
-    "Do not edit immutable hook entry points listed in SYSTEM_CONTEXT (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx).",
-    "Keep backend unchanged unless strictly required for UI polish (no new backend features are part of this request)."
+    "Do not modify any files under frontend/src/components/ui (compose existing UI components instead).",
+    "Do not edit immutable frontend hook files: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx.",
+    "Keep backend as a single Motoko actor; no backend changes are required for this fix."
   ],
   "nonGoals": [
-    "Adding onboarding, settings, FAQ/help, analytics, or new product features.",
-    "Changing leaderboard ranking logic or adding new leaderboard features.",
-    "Reworking app branding, PWA behavior, or offline/service-worker logic beyond what is necessary to standardize loading/error presentation."
+    "Do not redesign the calendar month view or change how dates are selected.",
+    "Do not change availability data models, persistence, or access control.",
+    "Do not add new authentication providers or identity flows."
   ],
   "imageRequirements": {
     "required": [],

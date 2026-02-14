@@ -1,32 +1,32 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "App polish work before publishing: implement a single global style for loading/error states and apply UI spacing/consistency improvements across the entire app.",
-  "architectural_notes": [
-    "Introduce shared/global UI components/styles for loading indicators and error messaging to ensure consistency across all screens."
+  "summary": "New project",
+  "architectural_notes": [],
+  "known_issues": [
+    "\"Add Availability\" button missing in calendar day popup after selecting a date (should appear above availability list)."
   ],
-  "known_issues": [],
-  "isFixRequest": false,
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-create-a-single-reusable-global-ui-pattern-for-loading-states-spinner-skeleton-message-and-apply-it-consistently-across-the-app-screens-replacing-ad-hoc-loading-ui-e-g-authgate-full-screen-loader-and-page-level-loaders-such-as-leaderboardpage",
-      "title": "Create a single, reusable global UI pattern for loading states (spinner/skeleton + message) and apply it consistently across the app screens, replacing ad-hoc loading UI (e.g., AuthGate full-screen loader and page-level loaders such as LeaderboardPage).",
+      "id": "feature-restore-an-add-availability-button-that-is-always-visible-when-viewing-a-specific-day-s-availability-details-the-day-detail-view-reached-by-clicking-a-date-on-the-calendar-positioned-above-the-availability-list-inside-the-day-detail-content-area",
+      "title": "Restore an “Add Availability” button that is always visible when viewing a specific day’s availability details (the day detail view reached by clicking a date on the calendar), positioned above the availability list inside the day detail content area.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-create-a-single-reusable-global-ui-pattern-for-error-states-icon-title-message-optional-retry-action-and-apply-it-consistently-across-the-app-screens-and-data-fetching-components-replacing-ad-hoc-error-messages-e-g-inline-destructive-text-blocks-with-the-global-pattern",
-      "title": "Create a single, reusable global UI pattern for error states (icon/title/message + optional retry action) and apply it consistently across the app screens and data-fetching components, replacing ad-hoc error messages (e.g., inline destructive text blocks) with the global pattern.",
+      "id": "feature-ensure-the-day-detail-add-availability-button-routes-to-the-existing-add-edit-availability-screen-for-the-selected-day-passing-the-currently-selected-day-as-the-date-search-parameter-so-the-form-opens-on-that-day",
+      "title": "Ensure the day detail “Add Availability” button routes to the existing add/edit availability screen for the selected day, passing the currently selected day as the date search parameter so the form opens on that day.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-perform-an-app-wide-ui-spacing-and-consistency-pass-across-all-pages-and-common-layouts-to-achieve-a-more-polished-uniform-look-headers-max-width-containers-section-spacing-card-padding-and-button-alignment-while-keeping-existing-functionality-unchanged",
-      "title": "Perform an app-wide UI spacing and consistency pass across all pages and common layouts to achieve a more polished, uniform look (headers, max-width containers, section spacing, card padding, and button alignment), while keeping existing functionality unchanged.",
+      "id": "feature-show-the-day-detail-add-availability-button-even-when-the-selected-day-currently-has-no-availability-entries-the-empty-state-view",
+      "title": "Show the day detail “Add Availability” button even when the selected day currently has no availability entries (the empty-state view).",
       "reqIds": [
         "REQ-3"
       ],
@@ -36,18 +36,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Implement a single global loading and error message style used across the entire app",
+      "summary": "Restore missing \"Add Availability\" button in calendar day popup (always visible above availability list)",
       "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Review and update UI spacing and consistency across the entire app for a more polished feel",
-      "reqIds": [],
-      "status": "pending"
+      "status": "in_progress"
     }
   ],
-  "projectName": "Add global loading/error UI components and apply spacing/consistency polish across the app",
+  "projectName": "Restore missing “Add Availability” button on day detail popup/page",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

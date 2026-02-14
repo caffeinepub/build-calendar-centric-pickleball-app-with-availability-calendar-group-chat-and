@@ -24,9 +24,17 @@ export default function AddAvailabilityPage() {
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as { date?: string };
   
-  const [selectedDate, setSelectedDate] = useState<Date>(
-    search.date ? new Date(Number(BigInt(search.date).toString().slice(0, 4)), Number(BigInt(search.date).toString().slice(4, 6)) - 1, Number(BigInt(search.date).toString().slice(6, 8))) : new Date()
-  );
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    if (search.date) {
+      const dateStr = search.date;
+      return new Date(
+        Number(dateStr.slice(0, 4)),
+        Number(dateStr.slice(4, 6)) - 1,
+        Number(dateStr.slice(6, 8))
+      );
+    }
+    return new Date();
+  });
   
   const [hour, setHour] = useState('');
   const [minute, setMinute] = useState('');
@@ -36,6 +44,19 @@ export default function AddAvailabilityPage() {
   const dayId = getDayId(selectedDate);
   const { data: existingAvailability } = useGetCallerAvailability(dayId);
   const { mutate: addAvailability, isPending } = useAddAvailability();
+
+  // Sync selectedDate when search.date changes
+  useEffect(() => {
+    if (search.date) {
+      const dateStr = search.date;
+      const newDate = new Date(
+        Number(dateStr.slice(0, 4)),
+        Number(dateStr.slice(4, 6)) - 1,
+        Number(dateStr.slice(6, 8))
+      );
+      setSelectedDate(newDate);
+    }
+  }, [search.date]);
 
   useEffect(() => {
     if (existingAvailability) {

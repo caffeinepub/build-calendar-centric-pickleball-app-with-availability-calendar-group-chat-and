@@ -1,134 +1,57 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Global loading/error components + app-wide spacing and consistency polish",
+  "title": "Restore always-visible Add Availability button in day detail view",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add shared loading UI components (full-page + inline) and replace ad-hoc loaders across core app screens/components.",
+      "summary": "Add an always-visible “Add Availability” button above the availability list within the day detail content area.",
       "acceptanceCriteria": [
-        "A shared loading component (or small set of shared components for full-page vs. inline loading) exists in the frontend codebase and is used by the main app authentication/loading gate and the primary pages.",
-        "Loading UI uses consistent styling (typography, spacing, spinner sizing/colors) across all locations where it appears.",
-        "No user-facing loading text is left inconsistent (e.g., a mix of 'Loading...' and differently styled loading labels) unless intentionally parameterized via props."
+        "When navigating to a day detail view from the calendar, an “Add Availability” button is visible without requiring any additional interactions.",
+        "The “Add Availability” button is displayed above the list of users’ availability entries within the day detail UI.",
+        "The button label is exactly “Add Availability” (English user-facing text)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/common/LoadingState.tsx",
-          "operation": "create",
-          "description": "Create reusable loading UI components (e.g., FullPageLoading and InlineLoading) that standardize spinner sizing/colors, spacing, and optional message handling via props."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Replace the AuthGate full-screen loader with the shared FullPageLoading component, ensuring the loading message is consistently styled/parameterized."
-        },
-        {
-          "path": "frontend/src/pages/LeaderboardPage.tsx",
-          "operation": "modify",
-          "description": "Replace the page-level loading card spinner/text with the shared loading UI (likely InlineLoading within CardContent or a shared pattern) to match global styling. Do not change empty states."
-        },
-        {
           "path": "frontend/src/pages/DayDetailPage.tsx",
           "operation": "modify",
-          "description": "Replace the current page loading block with the shared loading UI to standardize spinner and message presentation. Do not change empty state UI."
-        },
-        {
-          "path": "frontend/src/pages/AdminPage.tsx",
-          "operation": "modify",
-          "description": "Replace the initial admin-role loading block (and any other ad-hoc spinners in the page where appropriate) with the shared loading UI pattern while preserving admin gating and existing behavior."
-        },
-        {
-          "path": "frontend/src/components/chat/ChatPanel.tsx",
-          "operation": "modify",
-          "description": "Replace the chat loading spinner/text with the shared inline loading UI to standardize loading appearance. Do not change the chat empty state."
+          "description": "Restore an always-visible primary action inside the day detail CardContent: render a Link-wrapped Button labeled exactly “Add Availability” positioned above the availability list (and above the empty-state content when applicable), without modifying any files under frontend/src/components/ui."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Add a shared error UI component (with optional retry) and replace ad-hoc error rendering across key screens/components.",
+      "summary": "Wire the day detail “Add Availability” button to navigate to the existing add/edit availability screen for the selected day via a date search parameter.",
       "acceptanceCriteria": [
-        "A shared error component exists and supports at least: title, message, and an optional retry callback.",
-        "At least the main pages and key data components that currently render errors (e.g., match history) use the shared error UI.",
-        "User-facing error text is in English and follows a consistent tone and structure across the app."
+        "Clicking the day detail “Add Availability” button navigates to “/add-availability” and includes the selected day as a search parameter (e.g., search.date).",
+        "On the Add/Edit Availability page, the displayed date matches the day the user clicked from the calendar.",
+        "No backend/canister changes are required for this navigation behavior."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/common/ErrorState.tsx",
-          "operation": "create",
-          "description": "Create a reusable error UI component that supports title, message, and an optional retry action callback, with consistent iconography/typography/spacing."
+          "path": "frontend/src/pages/DayDetailPage.tsx",
+          "operation": "modify",
+          "description": "Ensure the restored “Add Availability” button uses TanStack Router Link to \"/add-availability\" and passes the selected day detail param as the search parameter (search: { date })."
         },
         {
-          "path": "frontend/src/components/profile/ProfileMatchHistory.tsx",
+          "path": "frontend/src/pages/AddAvailabilityPage.tsx",
           "operation": "modify",
-          "description": "Replace the current inline destructive error text with the shared ErrorState component, keeping the existing empty state behavior unchanged."
-        },
-        {
-          "path": "frontend/src/pages/LeaderboardPage.tsx",
-          "operation": "modify",
-          "description": "Add/standardize error rendering using ErrorState for leaderboard-related failures where errors are currently surfaced inconsistently (while preserving existing toast usage and not altering empty states)."
-        },
-        {
-          "path": "frontend/src/components/chat/ChatPanel.tsx",
-          "operation": "modify",
-          "description": "Add/standardize error rendering for message load/send failures using the shared ErrorState pattern where appropriate, without changing the existing empty state UI."
+          "description": "Ensure the Add/Edit Availability page reliably initializes (and, if needed, re-syncs) its selectedDate from the incoming search.date so the header/date display matches the day clicked from the calendar/day detail, without any backend changes."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Standardize page wrappers, headers, and spacing across pages/layouts for a more uniform polished UI without changing functionality.",
+      "summary": "Display the day detail “Add Availability” button even when there are zero availability entries (empty state).",
       "acceptanceCriteria": [
-        "All top-level pages use a consistent page wrapper approach (consistent max width, horizontal padding behavior, and vertical spacing between sections).",
-        "Headings and icon+heading rows (e.g., 'Calendar', 'Leaderboard', 'Profile') follow consistent sizing, spacing, and alignment across pages.",
-        "Card sections (CardHeader/CardContent) and common interactive rows use consistent padding and gap spacing across pages.",
-        "No functionality regressions: navigation, forms, leaderboard actions, chat, and profile flows still work as before."
+        "If a day has zero availability entries, the day detail screen still displays the “Add Availability” button above the empty-state message.",
+        "The empty-state message remains visible and readable, and the button remains clearly discoverable above it."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/layout/PageLayout.tsx",
-          "operation": "create",
-          "description": "Create shared layout primitives for consistent page structure (e.g., Page container wrapper and a PageHeader component supporting optional icon + title + right-side actions) to unify max-width and spacing."
-        },
-        {
-          "path": "frontend/src/components/layout/AppLayout.tsx",
-          "operation": "modify",
-          "description": "Align the main content wrapper spacing defaults (container/padding/vertical rhythm) with the new PageLayout approach, without changing routing or overall layout structure."
-        },
-        {
-          "path": "frontend/src/pages/CalendarMonthPage.tsx",
-          "operation": "modify",
-          "description": "Adopt the shared PageLayout/PageHeader for consistent header styling and section spacing; ensure the primary action button alignment matches other pages. Keep existing functionality and do not change empty states."
-        },
-        {
-          "path": "frontend/src/pages/LeaderboardPage.tsx",
-          "operation": "modify",
-          "description": "Adopt the shared PageLayout/PageHeader for consistent max-width and heading row alignment (icon + title), and normalize section spacing/card padding where needed without altering behavior."
-        },
-        {
-          "path": "frontend/src/pages/ProfilePage.tsx",
-          "operation": "modify",
-          "description": "Adopt the shared PageLayout/PageHeader for consistent max-width and heading row alignment (icon + title), and normalize spacing between ProfileCard and subsequent cards."
-        },
-        {
-          "path": "frontend/src/pages/AddAvailabilityPage.tsx",
-          "operation": "modify",
-          "description": "Adopt the shared PageLayout/PageHeader for consistent header row alignment and page spacing; normalize form section spacing/button row alignment while keeping form behavior unchanged."
-        },
-        {
           "path": "frontend/src/pages/DayDetailPage.tsx",
           "operation": "modify",
-          "description": "Adopt the shared PageLayout/PageHeader for consistent header row (back button + title) alignment and page spacing; keep existing empty state and actions unchanged."
-        },
-        {
-          "path": "frontend/src/pages/ChatPage.tsx",
-          "operation": "modify",
-          "description": "Adopt the shared PageLayout/PageHeader for consistent max-width and heading spacing, while preserving the existing height constraints and chat functionality."
-        },
-        {
-          "path": "frontend/src/pages/AdminPage.tsx",
-          "operation": "modify",
-          "description": "Adopt the shared PageLayout/PageHeader for consistent admin page heading and section spacing, while preserving admin guard logic and table behaviors."
+          "description": "Update the empty-state branch to render the same “Add Availability” Link/Button inside the day detail CardContent above the empty-state message, keeping the message readable and not removing existing layout structure."
         }
       ]
     }

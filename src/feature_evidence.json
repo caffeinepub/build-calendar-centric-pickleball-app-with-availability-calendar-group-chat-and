@@ -2,15 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-create-a-single-reusable-global-ui-pattern-for-loading-states-spinner-skeleton-message-and-apply-it-consistently-across-the-app-screens-replacing-ad-hoc-loading-ui-e-g-authgate-full-screen-loader-and-page-level-loaders-such-as-leaderboardpage",
-      "featureTitle": "Create a single, reusable global UI pattern for loading states (spinner/skeleton + message) and apply it consistently across the app screens, replacing ad-hoc loading UI (e.g., AuthGate full-screen loader and page-level loaders such as LeaderboardPage).",
+      "featureId": "feature-restore-an-add-availability-button-that-is-always-visible-when-viewing-a-specific-day-s-availability-details-the-day-detail-view-reached-by-clicking-a-date-on-the-calendar-positioned-above-the-availability-list-inside-the-day-detail-content-area",
+      "featureTitle": "Restore an “Add Availability” button that is always visible when viewing a specific day’s availability details (the day detail view reached by clicking a date on the calendar), positioned above the availability list inside the day detail content area.",
       "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/chat/ChatPanel.tsx",
-        "frontend/src/components/common/LoadingState.tsx",
-        "frontend/src/pages/AdminPage.tsx",
-        "frontend/src/pages/DayDetailPage.tsx",
-        "frontend/src/pages/LeaderboardPage.tsx"
+        "frontend/src/pages/DayDetailPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -27,13 +22,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-create-a-single-reusable-global-ui-pattern-for-error-states-icon-title-message-optional-retry-action-and-apply-it-consistently-across-the-app-screens-and-data-fetching-components-replacing-ad-hoc-error-messages-e-g-inline-destructive-text-blocks-with-the-global-pattern",
-      "featureTitle": "Create a single, reusable global UI pattern for error states (icon/title/message + optional retry action) and apply it consistently across the app screens and data-fetching components, replacing ad-hoc error messages (e.g., inline destructive text blocks) with the global pattern.",
+      "featureId": "feature-ensure-the-day-detail-add-availability-button-routes-to-the-existing-add-edit-availability-screen-for-the-selected-day-passing-the-currently-selected-day-as-the-date-search-parameter-so-the-form-opens-on-that-day",
+      "featureTitle": "Ensure the day detail “Add Availability” button routes to the existing add/edit availability screen for the selected day, passing the currently selected day as the date search parameter so the form opens on that day.",
       "files": [
-        "frontend/src/components/chat/ChatPanel.tsx",
-        "frontend/src/components/common/ErrorState.tsx",
-        "frontend/src/components/profile/ProfileMatchHistory.tsx",
-        "frontend/src/pages/LeaderboardPage.tsx"
+        "frontend/src/pages/AddAvailabilityPage.tsx",
+        "frontend/src/pages/DayDetailPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -50,18 +43,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-perform-an-app-wide-ui-spacing-and-consistency-pass-across-all-pages-and-common-layouts-to-achieve-a-more-polished-uniform-look-headers-max-width-containers-section-spacing-card-padding-and-button-alignment-while-keeping-existing-functionality-unchanged",
-      "featureTitle": "Perform an app-wide UI spacing and consistency pass across all pages and common layouts to achieve a more polished, uniform look (headers, max-width containers, section spacing, card padding, and button alignment), while keeping existing functionality unchanged.",
+      "featureId": "feature-show-the-day-detail-add-availability-button-even-when-the-selected-day-currently-has-no-availability-entries-the-empty-state-view",
+      "featureTitle": "Show the day detail “Add Availability” button even when the selected day currently has no availability entries (the empty-state view).",
       "files": [
-        "frontend/src/components/layout/AppLayout.tsx",
-        "frontend/src/components/layout/PageLayout.tsx",
-        "frontend/src/pages/AddAvailabilityPage.tsx",
-        "frontend/src/pages/AdminPage.tsx",
-        "frontend/src/pages/CalendarMonthPage.tsx",
-        "frontend/src/pages/ChatPage.tsx",
-        "frontend/src/pages/DayDetailPage.tsx",
-        "frontend/src/pages/LeaderboardPage.tsx",
-        "frontend/src/pages/ProfilePage.tsx"
+        "frontend/src/pages/DayDetailPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",

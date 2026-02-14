@@ -1,11 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Standardize loading and error UI across the app and apply a light UI spacing/consistency polish without changing functionality.
+**Goal:** Restore the missing “Add Availability” button in the calendar day detail view and ensure it correctly navigates to the add/edit availability screen for the selected day.
 
 **Planned changes:**
-- Add shared, reusable loading UI component(s) (e.g., full-page vs inline) with consistent styling and configurable messaging.
-- Add a shared, reusable error UI component (icon/title/message + optional retry action) and replace ad-hoc error displays with it across key screens/components.
-- Apply app-wide spacing/alignment consistency updates (page wrappers, max-width/padding, headings, card padding, button/row alignment) across top-level pages and common layouts while keeping behavior unchanged.
+- Add an always-visible “Add Availability” button to the day detail view content area, positioned above the availability list.
+- Ensure the button appears in both populated and empty-state day detail views (when there are zero availability entries).
+- Wire the button to navigate to `/add-availability` while passing the selected day as a date search parameter so the add/edit form opens on that day.
 
-**User-visible outcome:** Loading and error states look consistent throughout the app, and pages/layouts feel more uniform and polished with improved spacing and alignment.
+**User-visible outcome:** When a user clicks a date on the calendar, the day detail view shows an “Add Availability” button above the availability content (even if none exists yet), and clicking it opens the Add/Edit Availability page for that same date.

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, Clock, StickyNote, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Clock, StickyNote, Pencil, Trash2, Plus } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Separator } from '../components/ui/separator';
@@ -88,8 +88,16 @@ export default function DayDetailPage() {
           title={formatDate(dateObj)}
         />
         <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            No one is available on this date yet.
+          <CardContent className="py-6 space-y-4">
+            <Link to="/add-availability" search={{ date }}>
+              <Button className="w-full gap-2">
+                <Plus className="h-4 w-4" />
+                Add Availability
+              </Button>
+            </Link>
+            <div className="py-6 text-center text-muted-foreground">
+              No one is available on this date yet.
+            </div>
           </CardContent>
         </Card>
       </Page>
@@ -112,6 +120,13 @@ export default function DayDetailPage() {
           <CardTitle>Available Players</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Link to="/add-availability" search={{ date }}>
+            <Button className="w-full gap-2">
+              <Plus className="h-4 w-4" />
+              Add Availability
+            </Button>
+          </Link>
+          
           {availabilities.map(([principal, availability], index) => {
             const principalStr = principal.toString();
             const user = userDirectory?.get(principalStr);
