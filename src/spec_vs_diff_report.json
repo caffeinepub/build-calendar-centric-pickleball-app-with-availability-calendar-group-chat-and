@@ -1,29 +1,41 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-14T01:44:39.326Z",
-  "summary": "REQ-1 appears implemented: the web manifest’s three home-screen icon entries (192x192 any, 512x512 any, 512x512 maskable) now all use the provided external URL as `src`, with no `/assets/generated/pwa-icon...` references shown in the `icons` array. Two additional non-requested metadata/documentation updates were made.",
-  "missing_requirements": [],
-  "hallucinated_features": [
+  "generatedAt": "2026-02-14T01:58:27.759Z",
+  "summary": "Diff adds a custom service worker (sw.js) with precache + runtime caching and an offline fallback page, an in-app offline banner, iOS splash screen link tags in index.html, install UX (Install button + instructions dialog + hook), and safe-area/standalone layout CSS adjustments. However, the diff does not show any code that registers the service worker from the app, and the required splash image assets themselves are not evidenced as added under frontend/public/assets/generated.",
+  "missing_requirements": [
     {
-      "description": "Updated project tracking/metadata file `project_state.json` (new_feature_requests, architectural_notes, summary) even though the BuildRequest only asked to change the PWA manifest icons.",
-      "reason": "Not requested in REQ-1 and outside the stated constraint to keep changes limited to PWA home-screen icons in the web manifest.",
+      "id": "REQ-1",
+      "requirement": "Register the service worker in the app so it becomes active after first load (with standard update/refresh behavior).",
+      "reason": "A service worker file is added (frontend/public/sw.js) but the diff summary does not show any change in an entrypoint (e.g., main.tsx/App.tsx) that calls navigator.serviceWorker.register(...) to actually register it.",
       "evidence": [
-        "project_state.json"
+        "frontend/public/sw.js",
+        "frontend-file-summaries.txt (App.tsx described, but no mention of SW registration)"
       ]
     },
     {
-      "description": "Modified `frontend-file-summaries.txt` with extensive frontend component/hook descriptions unrelated to the manifest icon change.",
-      "reason": "Not requested in REQ-1 and not part of updating the PWA manifest icons.",
+      "id": "REQ-3",
+      "requirement": "Store the required iOS splash screen assets in frontend/public/assets/generated and reference them from the frontend.",
+      "reason": "index.html references the splash images under /assets/generated/, but the diff summary does not show the actual image files being added to frontend/public/assets/generated (they may be binary and omitted, but there is no evidence they were created/committed).",
       "evidence": [
-        "frontend-file-summaries.txt"
+        "frontend/index.html"
       ]
     }
   ],
-  "confidence": 0.78,
+  "hallucinated_features": [],
+  "confidence": 0.66,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/public/manifest.webmanifest",
+    "frontend/index.html",
+    "frontend/public/offline.html",
+    "frontend/public/sw.js",
+    "frontend/src/components/layout/AppLayout.tsx",
+    "frontend/src/components/layout/Navigation.tsx",
+    "frontend/src/components/layout/TopBar.tsx",
+    "frontend/src/components/pwa/InstallInstructionsDialog.tsx",
+    "frontend/src/components/pwa/OfflineBanner.tsx",
+    "frontend/src/hooks/usePWAInstallPrompt.ts",
+    "frontend/src/index.css",
     "project_state.json"
   ]
 }

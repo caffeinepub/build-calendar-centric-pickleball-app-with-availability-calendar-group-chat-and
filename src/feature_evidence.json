@@ -2,10 +2,13 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-pwa-manifest-icons-so-that-all-home-screen-icon-entries-192x192-512x512-and-maskable-512x512-use-the-provided-external-image-url-as-their-src-value-instead-of-local-assets-generated-paths-external-image-url-use-exactly-as-provided-https-blob-caffeine-ai-v1-blob-blob-hash-sha256-3a5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf-owner-id-bjzp7-xyaaa-aaaaf-qbsta-cai-project-id-0198d89b-d4eb-711d-abfd-9b50202a1152",
-      "featureTitle": "Update the PWA manifest icons so that all home-screen icon entries (192x192, 512x512, and maskable 512x512) use the provided external image URL as their `src` value instead of local `/assets/generated/...` paths.\n\nExternal image URL (use exactly as provided):\nhttps://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152",
+      "featureId": "feature-add-offline-support-for-the-pwa-by-implementing-a-service-worker-that-precaches-the-app-shell-and-provides-a-clear-offline-fallback-behavior-when-the-network-is-unavailable",
+      "featureTitle": "Add offline support for the PWA by implementing a service worker that precaches the app shell and provides a clear offline fallback behavior when the network is unavailable.",
       "files": [
-        "frontend/public/manifest.webmanifest"
+        "frontend/public/offline.html",
+        "frontend/public/sw.js",
+        "frontend/src/components/layout/AppLayout.tsx",
+        "frontend/src/components/pwa/OfflineBanner.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -18,6 +21,91 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-improve-caching-performance-via-a-smarter-service-worker-caching-strategy-e-g-precache-for-core-assets-and-appropriate-runtime-caching-rules-to-reduce-load-time-and-improve-repeat-visits",
+      "featureTitle": "Improve caching/performance via a smarter service-worker caching strategy (e.g., precache for core assets and appropriate runtime caching rules) to reduce load time and improve repeat visits.",
+      "files": [
+        "frontend/public/sw.js"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-and-integrate-a-custom-pwa-splash-screen-that-matches-the-app-branding-including-ios-startup-images-and-required-metadata-link-tags",
+      "featureTitle": "Create and integrate a custom PWA splash screen that matches the app branding, including iOS startup images and required metadata/link tags.",
+      "files": [
+        "frontend/index.html"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-a-better-install-prompt-ux-provide-a-more-noticeable-helpful-install-entry-point-and-guidance-for-platforms-where-the-native-beforeinstallprompt-is-unavailable-e-g-ios",
+      "featureTitle": "Implement a better install prompt UX: provide a more noticeable, helpful install entry point and guidance for platforms where the native `beforeinstallprompt` is unavailable (e.g., iOS).",
+      "files": [
+        "frontend/src/components/layout/TopBar.tsx",
+        "frontend/src/components/pwa/InstallInstructionsDialog.tsx",
+        "frontend/src/hooks/usePWAInstallPrompt.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-polish-the-standalone-installed-layout-so-the-pwa-feels-native-handle-safe-area-insets-prevent-awkward-scrolling-overflow-and-ensure-header-navigation-spacing-looks-correct-in-standalone-mode-on-mobile",
+      "featureTitle": "Polish the standalone (installed) layout so the PWA feels native: handle safe-area insets, prevent awkward scrolling/overflow, and ensure header/navigation spacing looks correct in standalone mode on mobile.",
+      "files": [
+        "frontend/src/components/layout/AppLayout.tsx",
+        "frontend/src/components/layout/Navigation.tsx",
+        "frontend/src/components/layout/TopBar.tsx",
+        "frontend/src/index.css"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
       ],
       "confidence": "high"
     }

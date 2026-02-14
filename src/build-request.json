@@ -1,40 +1,129 @@
 {
   "kind": "build_request",
-  "title": "Use external URL for all PWA home-screen icon sizes",
+  "title": "Implement PWA enhancements: offline mode, splash screen, caching, install UX, and standalone polish",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update the PWA manifest icons so that all home-screen icon entries (192x192, 512x512, and maskable 512x512) use the provided external image URL as their `src` value instead of local `/assets/generated/...` paths.\n\nExternal image URL (use exactly as provided):\nhttps://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152",
+      "text": "Add offline support for the PWA by implementing a service worker that precaches the app shell and provides a clear offline fallback behavior when the network is unavailable.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "msg-recent-7",
+          "msg-recent-9"
         ],
         "quotes": [
-          "2)https://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152",
-          "3)replace all",
-          "Build it"
+          "Can we implement all of these except for app shortcuts",
+          "Build"
         ]
       },
       "acceptanceCriteria": [
-        "`frontend/public/manifest.webmanifest` has three icon entries (192x192, 512x512 any, 512x512 maskable) whose `src` is the provided external URL.",
-        "No remaining `/assets/generated/pwa-icon...` references exist in the manifest `icons` array.",
-        "After building and loading the app, the manifest served by the app reflects the updated icon `src` values."
+        "A service worker is registered by the app and becomes active after first load (with standard update/refresh behavior).",
+        "Key static assets required to render the UI shell are precached so that reopening the installed app without network still loads the shell.",
+        "When the user is offline, the app shows a clear offline state (e.g., dedicated offline screen or persistent banner) rather than failing silently.",
+        "Offline behavior does not require backend changes and does not break authenticated flows when online."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Improve caching/performance via a smarter service-worker caching strategy (e.g., precache for core assets and appropriate runtime caching rules) to reduce load time and improve repeat visits.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent-7",
+          "msg-recent-9"
+        ],
+        "quotes": [
+          "Can we implement all of these except for app shortcuts",
+          "Build"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Core UI assets (HTML/app bundle/CSS and other stable assets) are served quickly on repeat visits via cache.",
+        "Runtime caching rules avoid serving stale HTML indefinitely (ensure users still receive new deployments).",
+        "Caching strategy does not interfere with Internet Identity authentication flow or canister calls (no caching of authenticated API responses unless explicitly safe)."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Create and integrate a custom PWA splash screen that matches the app branding, including iOS startup images and required metadata/link tags.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent-7",
+          "msg-recent-9"
+        ],
+        "quotes": [
+          "Can we implement all of these except for app shortcuts",
+          "Build"
+        ]
+      },
+      "acceptanceCriteria": [
+        "`frontend/index.html` includes the appropriate iOS splash/startup image `<link rel=\"apple-touch-startup-image\" ...>` entries referencing generated static assets.",
+        "Splash screen assets are stored in `frontend/public/assets/generated` and referenced directly from the frontend (not served through the backend).",
+        "When launched from the home screen on iOS, the splash screen displays instead of a blank white/black screen (device support limited to the included sizes)."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Implement a better install prompt UX: provide a more noticeable, helpful install entry point and guidance for platforms where the native `beforeinstallprompt` is unavailable (e.g., iOS).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent-7",
+          "msg-recent-9"
+        ],
+        "quotes": [
+          "Can we implement all of these except for app shortcuts",
+          "Build"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Users who are not installed can discover an install call-to-action without needing to find it incidentally.",
+        "When `beforeinstallprompt` is available, the UX triggers the native prompt via the existing hook behavior.",
+        "When `beforeinstallprompt` is not available (common on iOS), the UX shows clear English instructions for installing via the browser share/menu flow.",
+        "The install UX does not appear when the app is already running in standalone mode."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Polish the standalone (installed) layout so the PWA feels native: handle safe-area insets, prevent awkward scrolling/overflow, and ensure header/navigation spacing looks correct in standalone mode on mobile.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent-7",
+          "msg-recent-9"
+        ],
+        "quotes": [
+          "Can we implement all of these except for app shortcuts",
+          "Build"
+        ]
+      },
+      "acceptanceCriteria": [
+        "In standalone mode on mobile, key layout regions (TopBar/Navigation/Main) respect safe-area insets and do not overlap notches/home indicators.",
+        "The app avoids unintended double scrollbars and preserves expected full-height layout behavior.",
+        "Changes do not require editing files listed as immutable in SYSTEM_CONTEXT."
       ]
     }
   ],
   "constraints": [
-    "Frontend immutable paths must not be edited: `frontend/src/hooks/useInternetIdentity.ts`, `frontend/src/hooks/useInternetIdentity.tsx`, `frontend/src/hooks/useActor.ts`, `frontend/src/main.tsx`, and anything under `frontend/src/components/ui`.",
-    "Keep the change limited to PWA home-screen icons in the web manifest; do not introduce new backend services or external dependencies."
+    "Do not implement PWA app shortcuts.",
+    "Do not change the PWA manifest icon `src` values away from the provided external image URL in `frontend/public/manifest.webmanifest`.",
+    "Do not edit files under `frontend/src/components/ui` or any paths listed in `frontend.immutablePaths` from SYSTEM_CONTEXT.",
+    "Use English for all user-facing text."
   ],
   "nonGoals": [
-    "Do not change favicon (`/assets/generated/favicon.dim_32x32.png`) or Apple touch icon (`/assets/generated/apple-touch-icon.dim_180x180.png`) in `frontend/index.html` unless explicitly requested.",
-    "Do not redesign UI/branding beyond updating the manifest icon sources.",
-    "Do not add a new authentication method (Internet Identity remains the only auth)."
+    "Add-to-home-screen app shortcuts / quick actions.",
+    "Backend (Motoko) feature work or schema changes for these PWA enhancements.",
+    "Third-party authentication providers (only Internet Identity is supported)."
   ],
   "imageRequirements": {
-    "required": [],
+    "required": [
+      "iOS splash screen image with centered app logo on a clean light background (pwa-splash-iphone-1290x2796.dim_1290x2796.png)",
+      "iOS splash screen image with centered app logo on a clean light background (pwa-splash-iphone-1179x2556.dim_1179x2556.png)",
+      "iOS splash screen image with centered app logo on a clean light background (pwa-splash-iphone-1242x2688.dim_1242x2688.png)",
+      "iOS splash screen image with centered app logo on a clean light background (pwa-splash-ipad-2048x2732.dim_2048x2732.png)"
+    ],
     "edits": []
   }
 }

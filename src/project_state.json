@@ -1,18 +1,51 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Project includes a PWA home-screen icon update: replace all manifest icon sizes with a single external image URL.",
+  "summary": "PWA feature enhancements: add offline support, custom splash screen, improved caching/performance, better install prompt, and polished standalone layout (excluding app shortcuts).",
   "architectural_notes": [
-    "PWA home-screen icons will be sourced from an external URL in the manifest instead of local generated assets; applies to 192x192, 512x512, and maskable icons."
+    "App is a PWA; planned enhancements include service worker-based offline support and caching optimizations."
   ],
   "known_issues": [],
   "isFixRequest": false,
+  "imageRequirements": "## Required Images\n- iOS splash screen image with centered app logo on a clean light background (pwa-splash-iphone-1290x2796.dim_1290x2796.png)\n- iOS splash screen image with centered app logo on a clean light background (pwa-splash-iphone-1179x2556.dim_1179x2556.png)\n- iOS splash screen image with centered app logo on a clean light background (pwa-splash-iphone-1242x2688.dim_1242x2688.png)\n- iOS splash screen image with centered app logo on a clean light background (pwa-splash-ipad-2048x2732.dim_2048x2732.png)",
   "existing_features": [
     {
-      "id": "feature-update-the-pwa-manifest-icons-so-that-all-home-screen-icon-entries-192x192-512x512-and-maskable-512x512-use-the-provided-external-image-url-as-their-src-value-instead-of-local-assets-generated-paths-external-image-url-use-exactly-as-provided-https-blob-caffeine-ai-v1-blob-blob-hash-sha256-3a5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf-owner-id-bjzp7-xyaaa-aaaaf-qbsta-cai-project-id-0198d89b-d4eb-711d-abfd-9b50202a1152",
-      "title": "Update the PWA manifest icons so that all home-screen icon entries (192x192, 512x512, and maskable 512x512) use the provided external image URL as their `src` value instead of local `/assets/generated/...` paths.\n\nExternal image URL (use exactly as provided):\nhttps://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152",
+      "id": "feature-add-offline-support-for-the-pwa-by-implementing-a-service-worker-that-precaches-the-app-shell-and-provides-a-clear-offline-fallback-behavior-when-the-network-is-unavailable",
+      "title": "Add offline support for the PWA by implementing a service worker that precaches the app shell and provides a clear offline fallback behavior when the network is unavailable.",
       "reqIds": [
         "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-improve-caching-performance-via-a-smarter-service-worker-caching-strategy-e-g-precache-for-core-assets-and-appropriate-runtime-caching-rules-to-reduce-load-time-and-improve-repeat-visits",
+      "title": "Improve caching/performance via a smarter service-worker caching strategy (e.g., precache for core assets and appropriate runtime caching rules) to reduce load time and improve repeat visits.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-and-integrate-a-custom-pwa-splash-screen-that-matches-the-app-branding-including-ios-startup-images-and-required-metadata-link-tags",
+      "title": "Create and integrate a custom PWA splash screen that matches the app branding, including iOS startup images and required metadata/link tags.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-better-install-prompt-ux-provide-a-more-noticeable-helpful-install-entry-point-and-guidance-for-platforms-where-the-native-beforeinstallprompt-is-unavailable-e-g-ios",
+      "title": "Implement a better install prompt UX: provide a more noticeable, helpful install entry point and guidance for platforms where the native `beforeinstallprompt` is unavailable (e.g., iOS).",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-polish-the-standalone-installed-layout-so-the-pwa-feels-native-handle-safe-area-insets-prevent-awkward-scrolling-overflow-and-ensure-header-navigation-spacing-looks-correct-in-standalone-mode-on-mobile",
+      "title": "Polish the standalone (installed) layout so the PWA feels native: handle safe-area insets, prevent awkward scrolling/overflow, and ensure header/navigation spacing looks correct in standalone mode on mobile.",
+      "reqIds": [
+        "REQ-5"
       ],
       "version": 1
     }
@@ -20,12 +53,36 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Update PWA manifest to use external image URL for all home-screen icon sizes (192, 512, maskable)",
+      "summary": "Add offline support for the PWA (service worker + offline fallback behavior)",
       "reqIds": [],
-      "status": "in_progress"
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Create and integrate a custom splash screen matching the app icon/branding",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Improve load performance via smarter caching strategy (service worker caching optimization)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Implement a better install prompt UX to encourage Add-to-Home-Screen installs",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Polish standalone layout/experience so the PWA feels more native when installed",
+      "reqIds": [],
+      "status": "pending"
     }
   ],
-  "projectName": "Use external URL for all PWA home-screen icon sizes",
+  "projectName": "Implement PWA enhancements: offline mode, splash screen, caching, install UX, and standalone polish",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

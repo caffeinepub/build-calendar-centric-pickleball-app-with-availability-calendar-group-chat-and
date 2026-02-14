@@ -1,21 +1,157 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Use external URL for all PWA home-screen icon sizes",
+  "title": "PWA enhancements: offline mode, caching, iOS splash, install UX, and standalone layout polish",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Replace PWA manifest home-screen icon sources with the provided external image URL for all required sizes/purposes.",
+      "summary": "Add offline support via a service worker that precaches the app shell and provides a clear offline fallback UI when the network is unavailable.",
       "acceptanceCriteria": [
-        "`frontend/public/manifest.webmanifest` has three icon entries (192x192, 512x512 any, 512x512 maskable) whose `src` is the provided external URL.",
-        "No remaining `/assets/generated/pwa-icon...` references exist in the manifest `icons` array.",
-        "After building and loading the app, the manifest served by the app reflects the updated icon `src` values."
+        "A service worker is registered by the app and becomes active after first load (with standard update/refresh behavior).",
+        "Key static assets required to render the UI shell are precached so that reopening the installed app without network still loads the shell.",
+        "When the user is offline, the app shows a clear offline state (e.g., dedicated offline screen or persistent banner) rather than failing silently.",
+        "Offline behavior does not require backend changes and does not break authenticated flows when online."
       ],
       "file_operations": [
         {
-          "path": "frontend/public/manifest.webmanifest",
+          "path": "frontend/public/sw.js",
+          "operation": "create",
+          "description": "Implement a service worker that precaches core app-shell assets and provides an offline fallback for navigations when the network is unavailable; include a safe update flow (e.g., activate/claim + cache versioning) so new deployments replace old caches."
+        },
+        {
+          "path": "frontend/public/offline.html",
+          "operation": "create",
+          "description": "Add a simple offline fallback page that clearly explains the app is offline (English text) and that some features require connectivity."
+        },
+        {
+          "path": "frontend/src/main.tsx",
           "operation": "modify",
-          "description": "Update the `icons` array so the three required entries (192x192 purpose:any, 512x512 purpose:any, 512x512 purpose:maskable) all set `src` to exactly `https://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152`, and remove any remaining `/assets/generated/pwa-icon...` references from the manifest icons."
+          "description": "Register the service worker on app startup in production and set up standard update behavior (e.g., detect updated worker and prompt user to refresh or auto-reload safely)."
+        },
+        {
+          "path": "frontend/src/components/pwa/OfflineBanner.tsx",
+          "operation": "create",
+          "description": "Create a persistent offline/online status banner component that listens to browser connectivity changes and displays a clear offline state without blocking the UI."
+        },
+        {
+          "path": "frontend/src/components/layout/AppLayout.tsx",
+          "operation": "modify",
+          "description": "Wire OfflineBanner into the main layout so offline state is visible across all routes when the user loses connectivity."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Improve caching/performance with a smarter service-worker strategy: precache core assets, add runtime caching where safe, and ensure HTML updates are not stuck on stale deployments.",
+      "acceptanceCriteria": [
+        "Core UI assets (HTML/app bundle/CSS and other stable assets) are served quickly on repeat visits via cache.",
+        "Runtime caching rules avoid serving stale HTML indefinitely (ensure users still receive new deployments).",
+        "Caching strategy does not interfere with Internet Identity authentication flow or canister calls (no caching of authenticated API responses unless explicitly safe)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/public/sw.js",
+          "operation": "modify",
+          "description": "Enhance caching rules: use precache for stable assets; use an update-safe navigation strategy (e.g., network-first for navigations with offline fallback) to avoid stale HTML; add runtime caching for static assets (images/fonts) while explicitly bypassing caching for Internet Identity/auth-related requests and canister-call network traffic."
+        },
+        {
+          "path": "frontend/src/main.tsx",
+          "operation": "modify",
+          "description": "Adjust service worker registration/update handling to ensure new deployments can take effect promptly (e.g., listen for controller changes/updated worker and refresh with clear user control as needed)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Integrate a custom iOS splash screen with required apple startup image link tags referencing generated static assets.",
+      "acceptanceCriteria": [
+        "`frontend/index.html` includes the appropriate iOS splash/startup image `<link rel=\"apple-touch-startup-image\" ...>` entries referencing generated static assets.",
+        "Splash screen assets are stored in `frontend/public/assets/generated` and referenced directly from the frontend (not served through the backend).",
+        "When launched from the home screen on iOS, the splash screen displays instead of a blank white/black screen (device support limited to the included sizes)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/public/assets/generated/pwa-splash-iphone-1290x2796.dim_1290x2796.png",
+          "operation": "create",
+          "description": "Add the generated iOS splash screen asset to the public generated assets folder: frontend/public/assets/generated/pwa-splash-iphone-1290x2796.dim_1290x2796.png."
+        },
+        {
+          "path": "frontend/public/assets/generated/pwa-splash-iphone-1179x2556.dim_1179x2556.png",
+          "operation": "create",
+          "description": "Add the generated iOS splash screen asset to the public generated assets folder: frontend/public/assets/generated/pwa-splash-iphone-1179x2556.dim_1179x2556.png."
+        },
+        {
+          "path": "frontend/public/assets/generated/pwa-splash-iphone-1242x2688.dim_1242x2688.png",
+          "operation": "create",
+          "description": "Add the generated iOS splash screen asset to the public generated assets folder: frontend/public/assets/generated/pwa-splash-iphone-1242x2688.dim_1242x2688.png."
+        },
+        {
+          "path": "frontend/public/assets/generated/pwa-splash-ipad-2048x2732.dim_2048x2732.png",
+          "operation": "create",
+          "description": "Add the generated iOS splash screen asset to the public generated assets folder: frontend/public/assets/generated/pwa-splash-ipad-2048x2732.dim_2048x2732.png."
+        },
+        {
+          "path": "frontend/index.html",
+          "operation": "modify",
+          "description": "Add required iOS splash/startup metadata and <link rel=\"apple-touch-startup-image\"> tags with appropriate media queries referencing: frontend/public/assets/generated/pwa-splash-iphone-1290x2796.dim_1290x2796.png, frontend/public/assets/generated/pwa-splash-iphone-1179x2556.dim_1179x2556.png, frontend/public/assets/generated/pwa-splash-iphone-1242x2688.dim_1242x2688.png, and frontend/public/assets/generated/pwa-splash-ipad-2048x2732.dim_2048x2732.png."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Implement a better install prompt UX with a visible CTA and iOS guidance when the native install prompt is unavailable, hiding the UX in standalone mode.",
+      "acceptanceCriteria": [
+        "Users who are not installed can discover an install call-to-action without needing to find it incidentally.",
+        "When `beforeinstallprompt` is available, the UX triggers the native prompt via the existing hook behavior.",
+        "When `beforeinstallprompt` is not available (common on iOS), the UX shows clear English instructions for installing via the browser share/menu flow.",
+        "The install UX does not appear when the app is already running in standalone mode."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/usePWAInstallPrompt.ts",
+          "operation": "modify",
+          "description": "Extend the install prompt hook to expose (a) whether the app is running in standalone mode, and (b) platform capability signals (e.g., iOS-like environments without beforeinstallprompt) to drive a unified install CTA that either triggers the native prompt or shows guidance."
+        },
+        {
+          "path": "frontend/src/components/pwa/InstallInstructionsDialog.tsx",
+          "operation": "create",
+          "description": "Create an install instructions UI (English text) that explains how to install on platforms without a native prompt (e.g., iOS Safari: Share button → Add to Home Screen)."
+        },
+        {
+          "path": "frontend/src/components/layout/TopBar.tsx",
+          "operation": "modify",
+          "description": "Replace the current install button behavior with a more discoverable install CTA shown whenever the app is not in standalone mode: trigger the native prompt when available, otherwise open the InstallInstructionsDialog; ensure the CTA is not shown in standalone mode."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Polish standalone layout for native feel by respecting safe-area insets and ensuring stable full-height layout without awkward scrolling/overflow on mobile.",
+      "acceptanceCriteria": [
+        "In standalone mode on mobile, key layout regions (TopBar/Navigation/Main) respect safe-area insets and do not overlap notches/home indicators.",
+        "The app avoids unintended double scrollbars and preserves expected full-height layout behavior.",
+        "Changes do not require editing files listed as immutable in SYSTEM_CONTEXT."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/index.css",
+          "operation": "modify",
+          "description": "Add global safe-area and viewport height handling (e.g., env(safe-area-inset-*) padding helpers, stable 100dvh layout, prevent unintended overflow) to improve standalone behavior on mobile without touching any immutable paths."
+        },
+        {
+          "path": "frontend/src/components/layout/TopBar.tsx",
+          "operation": "modify",
+          "description": "Adjust header spacing to respect safe-area inset top in standalone mode (via CSS classes/variables) so the TopBar does not collide with notches/status areas."
+        },
+        {
+          "path": "frontend/src/components/layout/Navigation.tsx",
+          "operation": "modify",
+          "description": "Adjust navigation spacing to align with the polished standalone layout and avoid overflow/double scroll scenarios on small mobile screens."
+        },
+        {
+          "path": "frontend/src/components/layout/AppLayout.tsx",
+          "operation": "modify",
+          "description": "Refine the overall layout structure (min-height/full-height and overflow behavior) so the app maintains a single expected scroll container and respects safe-area insets around main content in standalone mode."
         }
       ]
     }

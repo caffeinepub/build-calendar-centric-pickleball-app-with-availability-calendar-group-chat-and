@@ -77,7 +77,42 @@
     * {
         @apply border-border;
     }
+    
+    html,
     body {
         @apply bg-background text-foreground;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    #root {
+        height: 100%;
+        overflow: auto;
+    }
+
+    /* Safe area insets for standalone mode */
+    .safe-area-top {
+        padding-top: env(safe-area-inset-top);
+    }
+
+    .safe-area-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .safe-area-sides {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+    }
+
+    /* Full height layout for standalone mode */
+    .app-layout {
+        min-height: 100dvh;
+    }
+
+    /* Prevent overscroll bounce on iOS */
+    @supports (-webkit-touch-callout: none) {
+        body {
+            overscroll-behavior-y: none;
+        }
     }
 }

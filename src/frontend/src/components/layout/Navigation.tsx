@@ -19,7 +19,7 @@ export default function Navigation() {
   }
 
   return (
-    <nav className="border-b bg-card">
+    <nav className="border-b bg-card safe-area-sides">
       <div className="container">
         <div className="flex gap-1 overflow-x-auto py-2">
           {navItems.map((item) => {
