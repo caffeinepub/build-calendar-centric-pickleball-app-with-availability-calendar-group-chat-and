@@ -1,11 +1,10 @@
 # Specification
 
 ## Summary
-**Goal:** Add global in-app toast notifications for availability creation/updates and for when a user’s leaderboard rank improves.
+**Goal:** Update the PWA web manifest so all home-screen icon entries use the provided external image URL for their `src`.
 
 **Planned changes:**
-- Mount a single global Sonner `Toaster` at the app root/layout so existing `toast.*` calls render on all routes.
-- In `frontend/src/pages/AddAvailabilityPage.tsx`, show a success toast on successful availability add/update (before navigating away) and an error toast on submit failure, ensuring it fires once per submit.
-- In `frontend/src/pages/LeaderboardPage.tsx`, track the current user’s rank across leaderboard refreshes and show a toast only when their rank improves (not on initial load, and not when unchanged/worse).
+- Edit `frontend/public/manifest.webmanifest` to set the `src` for the 192x192, 512x512, and 512x512 maskable icon entries to the provided external URL.
+- Remove any remaining `/assets/generated/pwa-icon...` references from the manifest `icons` array (while leaving favicon and Apple touch icon unchanged).
 
-**User-visible outcome:** Users see immediate in-app toast confirmations when they add/update availability, and they get a toast on the Leaderboard page when they move up in rank during the session.
+**User-visible outcome:** When installing/adding the app to the home screen, the app icon is sourced from the provided external URL for all required PWA icon sizes.

@@ -1,74 +1,37 @@
 {
   "kind": "build_request",
-  "title": "Add in-app toast notifications for availability creation and leaderboard rank increases",
+  "title": "Use external URL for all PWA home-screen icon sizes",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add a global toast renderer so in-app toast notifications can be shown from any page using the existing `sonner` toast calls.",
+      "text": "Update the PWA manifest icons so that all home-screen icon entries (192x192, 512x512, and maskable 512x512) use the provided external image URL as their `src` value instead of local `/assets/generated/...` paths.\n\nExternal image URL (use exactly as provided):\nhttps://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-11"
+          "recent-messages"
         ],
         "quotes": [
-          "I want some type in app notification for when a users adds a new availability and when a user jumps up in rank on the leaderboard tab"
+          "2)https://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152",
+          "3)replace all",
+          "Build it"
         ]
       },
       "acceptanceCriteria": [
-        "A toast container (Sonner `Toaster`) is mounted once at the app layout/root level so toasts render on all routes.",
-        "Existing `toast.*` calls (e.g., on Leaderboard and Day Detail pages) display visible toasts without requiring per-page setup."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Show an in-app toast notification when the user successfully adds (or updates) an availability entry from the Add Availability page.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-11",
-          "msg-13"
-        ],
-        "quotes": [
-          "I want some type in app notification for when a users adds a new availability",
-          "Yes implement"
-        ]
-      },
-      "acceptanceCriteria": [
-        "On successful submission in `frontend/src/pages/AddAvailabilityPage.tsx`, show a success toast (English text) before navigating away (e.g., “Availability added” or “Availability updated”).",
-        "On mutation error, show an error toast with a sensible fallback message in English.",
-        "The toast triggers exactly once per successful submit."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Show an in-app toast notification on the Leaderboard page when the current user’s rank improves (moves to a smaller rank number) after leaderboard data refreshes.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-11",
-          "msg-13"
-        ],
-        "quotes": [
-          "when a user jumps up in rank on the leaderboard tab",
-          "Yes implement"
-        ]
-      },
-      "acceptanceCriteria": [
-        "When viewing `frontend/src/pages/LeaderboardPage.tsx`, the app detects the caller’s rank based on their position in the `useGetLeaderboard()` results.",
-        "If the caller’s rank improves compared to the previous observed rank during the same page session, show a success/info toast in English (e.g., “You moved up to #3”).",
-        "No “rank improved” toast is shown on the initial leaderboard load (only on subsequent updates).",
-        "No toast is shown when the rank stays the same or worsens."
+        "`frontend/public/manifest.webmanifest` has three icon entries (192x192, 512x512 any, 512x512 maskable) whose `src` is the provided external URL.",
+        "No remaining `/assets/generated/pwa-icon...` references exist in the manifest `icons` array.",
+        "After building and loading the app, the manifest served by the app reflects the updated icon `src` values."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under `frontend/src/hooks/useInternetIdentity.ts`, `frontend/src/hooks/useInternetIdentity.tsx`, `frontend/src/hooks/useActor.ts`, `frontend/src/main.tsx`, or anything in `frontend/src/components/ui` (compose them instead).",
-    "Keep all backend logic in the single Motoko actor (`backend/main.mo`). No backend changes are required for this feature."
+    "Frontend immutable paths must not be edited: `frontend/src/hooks/useInternetIdentity.ts`, `frontend/src/hooks/useInternetIdentity.tsx`, `frontend/src/hooks/useActor.ts`, `frontend/src/main.tsx`, and anything under `frontend/src/components/ui`.",
+    "Keep the change limited to PWA home-screen icons in the web manifest; do not introduce new backend services or external dependencies."
   ],
   "nonGoals": [
-    "Browser/system push notifications (Notifications API, push services) are out of scope.",
-    "Building a persistent notification center/inbox is out of scope."
+    "Do not change favicon (`/assets/generated/favicon.dim_32x32.png`) or Apple touch icon (`/assets/generated/apple-touch-icon.dim_180x180.png`) in `frontend/index.html` unless explicitly requested.",
+    "Do not redesign UI/branding beyond updating the manifest icon sources.",
+    "Do not add a new authentication method (Internet Identity remains the only auth)."
   ],
   "imageRequirements": {
     "required": [],

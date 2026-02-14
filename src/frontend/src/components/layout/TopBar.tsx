@@ -3,17 +3,19 @@ import { useGetCallerUserProfile } from '../../hooks/useCurrentUserProfile';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { LogOut, Moon, Sun } from 'lucide-react';
+import { LogOut, Moon, Sun, Download } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { getInitials } from '../../utils/file';
 import AppLogo from '../branding/AppLogo';
+import { usePWAInstallPrompt } from '../../hooks/usePWAInstallPrompt';
 
 export default function TopBar() {
   const { clear, identity } = useInternetIdentity();
   const { data: userProfile } = useGetCallerUserProfile();
   const queryClient = useQueryClient();
   const { theme, toggleTheme } = useTheme();
+  const { isInstallAvailable, promptInstall } = usePWAInstallPrompt();
 
   const handleLogout = async () => {
     await clear();
@@ -34,6 +36,18 @@ export default function TopBar() {
         
         {identity && (
           <div className="flex items-center gap-2">
+            {isInstallAvailable && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={promptInstall}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Install
+              </Button>
+            )}
+
             <Button
               variant="ghost"
               size="icon"

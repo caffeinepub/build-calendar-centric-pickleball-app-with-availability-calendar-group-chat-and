@@ -1,34 +1,18 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Implement in-app toast notifications for key user events (availability added, leaderboard rank increase).",
+  "summary": "Project includes a PWA home-screen icon update: replace all manifest icon sizes with a single external image URL.",
   "architectural_notes": [
-    "Prefer in-app notifications (toasts) over push; Internet Computer environment may not support traditional push services (e.g., Firebase), so notifications are primarily shown while the app is open."
+    "PWA home-screen icons will be sourced from an external URL in the manifest instead of local generated assets; applies to 192x192, 512x512, and maskable icons."
   ],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-add-a-global-toast-renderer-so-in-app-toast-notifications-can-be-shown-from-any-page-using-the-existing-sonner-toast-calls",
-      "title": "Add a global toast renderer so in-app toast notifications can be shown from any page using the existing `sonner` toast calls.",
+      "id": "feature-update-the-pwa-manifest-icons-so-that-all-home-screen-icon-entries-192x192-512x512-and-maskable-512x512-use-the-provided-external-image-url-as-their-src-value-instead-of-local-assets-generated-paths-external-image-url-use-exactly-as-provided-https-blob-caffeine-ai-v1-blob-blob-hash-sha256-3a5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf-owner-id-bjzp7-xyaaa-aaaaf-qbsta-cai-project-id-0198d89b-d4eb-711d-abfd-9b50202a1152",
+      "title": "Update the PWA manifest icons so that all home-screen icon entries (192x192, 512x512, and maskable 512x512) use the provided external image URL as their `src` value instead of local `/assets/generated/...` paths.\n\nExternal image URL (use exactly as provided):\nhttps://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152",
       "reqIds": [
         "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-show-an-in-app-toast-notification-when-the-user-successfully-adds-or-updates-an-availability-entry-from-the-add-availability-page",
-      "title": "Show an in-app toast notification when the user successfully adds (or updates) an availability entry from the Add Availability page.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-show-an-in-app-toast-notification-on-the-leaderboard-page-when-the-current-user-s-rank-improves-moves-to-a-smaller-rank-number-after-leaderboard-data-refreshes",
-      "title": "Show an in-app toast notification on the Leaderboard page when the current user’s rank improves (moves to a smaller rank number) after leaderboard data refreshes.",
-      "reqIds": [
-        "REQ-3"
       ],
       "version": 1
     }
@@ -36,18 +20,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Add in-app toast notification when a user adds new availability",
+      "summary": "Update PWA manifest to use external image URL for all home-screen icon sizes (192, 512, maskable)",
       "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Add in-app toast notification when a user moves up in rank on the leaderboard tab",
-      "reqIds": [],
-      "status": "pending"
+      "status": "in_progress"
     }
   ],
-  "projectName": "Add in-app toast notifications for availability creation and leaderboard rank increases",
+  "projectName": "Use external URL for all PWA home-screen icon sizes",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

@@ -1,53 +1,21 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Global Sonner toaster + toasts for availability submit and leaderboard rank improvements",
+  "title": "Use external URL for all PWA home-screen icon sizes",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Mount a single global Sonner Toaster at the app root so existing toast calls render on all routes.",
+      "summary": "Replace PWA manifest home-screen icon sources with the provided external image URL for all required sizes/purposes.",
       "acceptanceCriteria": [
-        "A toast container (Sonner `Toaster`) is mounted once at the app layout/root level so toasts render on all routes.",
-        "Existing `toast.*` calls (e.g., on Leaderboard and Day Detail pages) display visible toasts without requiring per-page setup."
+        "`frontend/public/manifest.webmanifest` has three icon entries (192x192, 512x512 any, 512x512 maskable) whose `src` is the provided external URL.",
+        "No remaining `/assets/generated/pwa-icon...` references exist in the manifest `icons` array.",
+        "After building and loading the app, the manifest served by the app reflects the updated icon `src` values."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/public/manifest.webmanifest",
           "operation": "modify",
-          "description": "Import and mount Sonner's `Toaster` once within the root layout tree (e.g., inside `Layout` alongside `Background`/`AppLayout`) so `toast.*` calls from any route render globally."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Show success/error toasts for Add Availability submit results before navigating away.",
-      "acceptanceCriteria": [
-        "On successful submission in `frontend/src/pages/AddAvailabilityPage.tsx`, show a success toast (English text) before navigating away (e.g., “Availability added” or “Availability updated”).",
-        "On mutation error, show an error toast with a sensible fallback message in English.",
-        "The toast triggers exactly once per successful submit."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/AddAvailabilityPage.tsx",
-          "operation": "modify",
-          "description": "Use `toast` from `sonner` to display (1) a success toast on `useAddAvailability` mutation success (choose text based on whether `existingAvailability` is present), then navigate; and (2) an error toast in `onError` with an English fallback message. Ensure submit remains disabled while pending so the success toast fires once per successful submit."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Detect and toast when the caller’s leaderboard rank improves after refreshes (not on initial load).",
-      "acceptanceCriteria": [
-        "When viewing `frontend/src/pages/LeaderboardPage.tsx`, the app detects the caller’s rank based on their position in the `useGetLeaderboard()` results.",
-        "If the caller’s rank improves compared to the previous observed rank during the same page session, show a success/info toast in English (e.g., “You moved up to #3”).",
-        "No “rank improved” toast is shown on the initial leaderboard load (only on subsequent updates).",
-        "No toast is shown when the rank stays the same or worsens."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/LeaderboardPage.tsx",
-          "operation": "modify",
-          "description": "Add page-session rank tracking (e.g., `useRef` for previous rank + a flag for initial observation) and a `useEffect` that recomputes the caller’s rank from `useGetLeaderboard()` results; if the new rank number is smaller than the previously observed rank (and not the first observation), show a Sonner toast like “You moved up to #X”. Do not toast on initial load or when rank is unchanged/worse."
+          "description": "Update the `icons` array so the three required entries (192x192 purpose:any, 512x512 purpose:any, 512x512 purpose:maskable) all set `src` to exactly `https://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152`, and remove any remaining `/assets/generated/pwa-icon...` references from the manifest icons."
         }
       ]
     }

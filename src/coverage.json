@@ -1,46 +1,24 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-14T01:01:17.747Z",
+  "generatedAt": "2026-02-14T01:44:39.328Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 3,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Add a global toast renderer so in-app toast notifications can be shown from any page using the existing `sonner` toast calls.",
+        "summary": "Update the PWA manifest icons so that all home-screen icon entries (192x192, 512x512, and maskable 512x512) use the provided external image URL as their `src` value instead of local `/assets/generated/...` paths.\n\nExternal image URL (use exactly as provided):\nhttps://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3A5e8468951155e9387499978e83162188afd39a6d2ce119a1b96650eded40facf&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/App.tsx"
+          "frontend/public/manifest.webmanifest"
         ],
         "matchedFiles": [
-          "frontend/src/App.tsx"
-        ]
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Show an in-app toast notification when the user successfully adds (or updates) an availability entry from the Add Availability page.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/AddAvailabilityPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/AddAvailabilityPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Show an in-app toast notification on the Leaderboard page when the current user’s rank improves (moves to a smaller rank number) after leaderboard data refreshes.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/LeaderboardPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/LeaderboardPage.tsx"
+          "frontend/public/manifest.webmanifest"
         ]
       }
     ]
@@ -50,9 +28,7 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/pages/AddAvailabilityPage.tsx",
-    "frontend/src/pages/LeaderboardPage.tsx",
+    "frontend/public/manifest.webmanifest",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",
