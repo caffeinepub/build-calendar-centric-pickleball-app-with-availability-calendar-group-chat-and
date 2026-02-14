@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Update the all-time Leaderboard table to remove the Score column and restore Win % and Streak using all-time stats.
+**Goal:** Add global in-app toast notifications for availability creation/updates and for when a user’s leaderboard rank improves.
 
 **Planned changes:**
-- Remove the “Score” column from the All-Time Rankings leaderboard table (header and row values) and eliminate any user-facing “Score” references on the Leaderboard page.
-- Add back a “Win %” column in the all-time leaderboard, computed as wins / totalGames from the existing all-time stats (show 0% when totalGames is 0).
-- Add back a “Streak” column in the all-time leaderboard, sourced from the existing all-time streak value (show 0 when no games exist).
-- Ensure the backend leaderboard API continues returning all-time wins, losses, totalGames, and streak, and that these fields update after recording/removing wins/losses without adding weekly/monthly logic.
+- Mount a single global Sonner `Toaster` at the app root/layout so existing `toast.*` calls render on all routes.
+- In `frontend/src/pages/AddAvailabilityPage.tsx`, show a success toast on successful availability add/update (before navigating away) and an error toast on submit failure, ensuring it fires once per submit.
+- In `frontend/src/pages/LeaderboardPage.tsx`, track the current user’s rank across leaderboard refreshes and show a toast only when their rank improves (not on initial load, and not when unchanged/worse).
 
-**User-visible outcome:** The Leaderboard (All-Time Rankings) no longer shows “Score” and instead shows per-player Win % and Streak based on all-time results, updating correctly as games are added or removed.
+**User-visible outcome:** Users see immediate in-app toast confirmations when they add/update availability, and they get a toast on the Leaderboard page when they move up in rank during the session.

@@ -1,32 +1,32 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Project includes an all-time-only leaderboard; user requests restoring win percentage and streak (computed from all-time data) and removing the score field from the leaderboard tab.",
+  "summary": "Implement in-app toast notifications for key user events (availability added, leaderboard rank increase).",
   "architectural_notes": [
-    "Leaderboard remains all-time-only; win percentage and streak should be computed from all-time data (not weekly/monthly)."
+    "Prefer in-app notifications (toasts) over push; Internet Computer environment may not support traditional push services (e.g., Firebase), so notifications are primarily shown while the app is open."
   ],
   "known_issues": [],
-  "isFixRequest": true,
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-update-the-leaderboard-tab-all-time-rankings-table-to-remove-the-score-stat-entirely-header-and-row-values-so-it-is-not-displayed-anywhere-in-the-leaderboard-table-ui",
-      "title": "Update the Leaderboard tab (All-Time Rankings table) to remove the \"Score\" stat entirely (header and row values) so it is not displayed anywhere in the leaderboard table UI.",
+      "id": "feature-add-a-global-toast-renderer-so-in-app-toast-notifications-can-be-shown-from-any-page-using-the-existing-sonner-toast-calls",
+      "title": "Add a global toast renderer so in-app toast notifications can be shown from any page using the existing `sonner` toast calls.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-restore-the-win-statistic-in-the-all-time-leaderboard-table-calculated-from-all-time-data-only-wins-totalgames-and-display-it-as-a-dedicated-column-for-each-player",
-      "title": "Restore the \"Win %\" statistic in the all-time leaderboard table, calculated from all-time data only (wins / totalGames), and display it as a dedicated column for each player.",
+      "id": "feature-show-an-in-app-toast-notification-when-the-user-successfully-adds-or-updates-an-availability-entry-from-the-add-availability-page",
+      "title": "Show an in-app toast notification when the user successfully adds (or updates) an availability entry from the Add Availability page.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-restore-the-streak-statistic-in-the-all-time-leaderboard-table-and-display-it-as-a-dedicated-column-for-each-player-using-the-existing-all-time-streak-value-returned-by-the-backend-leaderboard-api",
-      "title": "Restore the \"Streak\" statistic in the all-time leaderboard table and display it as a dedicated column for each player, using the existing all-time streak value returned by the backend leaderboard API.",
+      "id": "feature-show-an-in-app-toast-notification-on-the-leaderboard-page-when-the-current-user-s-rank-improves-moves-to-a-smaller-rank-number-after-leaderboard-data-refreshes",
+      "title": "Show an in-app toast notification on the Leaderboard page when the current user’s rank improves (moves to a smaller rank number) after leaderboard data refreshes.",
       "reqIds": [
         "REQ-3"
       ],
@@ -36,20 +36,18 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Leaderboard tab: remove 'score' field; restore win percentage and streak calculated from all-time data only",
+      "summary": "Add in-app toast notification when a user adds new availability",
       "reqIds": [],
       "status": "pending"
     },
     {
-      "id": "AR-5",
-      "summary": "Ensure the backend leaderboard API continues to provide all-time stats needed for the restored columns (wins, losses, totalGames, streak) and that leaderboard updates after recording/removing wins/losses reflect these fields without requiring weekly/monthly logic.",
-      "reqIds": [
-        "REQ-4"
-      ],
+      "id": "AR-2",
+      "summary": "Add in-app toast notification when a user moves up in rank on the leaderboard tab",
+      "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Leaderboard tab: remove Score column and restore Win % + Streak (all-time)",
+  "projectName": "Add in-app toast notifications for availability creation and leaderboard rank increases",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

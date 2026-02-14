@@ -17,6 +17,7 @@ import {
   getDefaultTimeComponents,
   type TimeComponents,
 } from '../utils/time';
+import { toast } from 'sonner';
 
 export default function AddAvailabilityPage() {
   const navigate = useNavigate();
@@ -63,7 +64,11 @@ export default function AddAvailabilityPage() {
       { day: dayId, time: timeString, notes: notes.trim() || null },
       {
         onSuccess: () => {
+          toast.success(existingAvailability ? 'Availability updated' : 'Availability added');
           navigate({ to: '/day/$date', params: { date: dayId.toString() } });
+        },
+        onError: (error: any) => {
+          toast.error(error?.message || 'Failed to save availability. Please try again.');
         },
       }
     );

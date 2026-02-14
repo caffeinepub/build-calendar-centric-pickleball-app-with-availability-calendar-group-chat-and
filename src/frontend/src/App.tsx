@@ -15,6 +15,7 @@ import LeaderboardPage from './pages/LeaderboardPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
 import Background from './components/theme/Background';
+import { Toaster } from './components/ui/sonner';
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { identity, isInitializing } = useInternetIdentity();
@@ -71,6 +72,7 @@ function Layout() {
       <AppLayout>
         <Outlet />
       </AppLayout>
+      <Toaster />
     </Background>
   );
 }

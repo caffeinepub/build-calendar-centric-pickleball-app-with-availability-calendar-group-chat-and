@@ -329,7 +329,10 @@ export function useDeleteUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allRegisteredUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['allAvailabilities'] });
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['dayAvailability'] });
+      queryClient.invalidateQueries({ queryKey: ['daysWithAnyAvailability'] });
     },
   });
 }

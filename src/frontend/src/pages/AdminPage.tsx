@@ -15,6 +15,7 @@ import { useUserDirectoryWithAvatars } from '../hooks/useUserDirectory';
 import { formatDateTime, formatDayId } from '../lib/date';
 import AccessDeniedScreen from '../components/auth/AccessDeniedScreen';
 import AvatarName from '../components/user/AvatarName';
+import { toast } from 'sonner';
 
 export default function AdminPage() {
   const { data: isAdmin, isLoading } = useIsCallerAdmin();
@@ -48,24 +49,35 @@ export default function AdminPage() {
     return <AccessDeniedScreen />;
   }
 
-  const handleDeleteUser = (principal: string) => {
-    setDeletingUserId(principal);
-    deleteUser(
-      { toString: () => principal } as any,
-      {
-        onSettled: () => {
-          setDeletingUserId(null);
-        },
-      }
-    );
+  const handleDeleteUser = (principal: any) => {
+    const principalStr = principal.toString();
+    setDeletingUserId(principalStr);
+    deleteUser(principal, {
+      onSuccess: () => {
+        toast.success('User deleted successfully');
+      },
+      onError: (error: any) => {
+        toast.error(error?.message || 'Failed to delete user');
+      },
+      onSettled: () => {
+        setDeletingUserId(null);
+      },
+    });
   };
 
-  const handleDeleteAvailability = (principal: string, day: bigint) => {
-    const id = `${principal}-${day}`;
+  const handleDeleteAvailability = (principal: any, day: bigint) => {
+    const principalStr = principal.toString();
+    const id = `${principalStr}-${day}`;
     setDeletingAvailabilityId(id);
     deleteAvailability(
-      { user: { toString: () => principal } as any, day },
+      { user: principal, day },
       {
+        onSuccess: () => {
+          toast.success('Availability deleted successfully');
+        },
+        onError: (error: any) => {
+          toast.error(error?.message || 'Failed to delete availability');
+        },
         onSettled: () => {
           setDeletingAvailabilityId(null);
         },
@@ -145,10 +157,14 @@ export default function AdminPage() {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => handleDeleteUser(principalStr)}
+                            onClick={() => handleDeleteUser(principal)}
                             disabled={isDeleting}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            {isDeleting ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -161,6 +177,8 @@ export default function AdminPage() {
         </CardContent>
       </Card>
 
+      <Separator />
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -168,7 +186,7 @@ export default function AdminPage() {
             All Availabilities
           </CardTitle>
           <CardDescription>
-            All availability entries across all users and days
+            All user availability entries across all dates
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -177,7 +195,7 @@ export default function AdminPage() {
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : sortedAvailabilities.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No availabilities found</p>
+            <p className="text-center text-muted-foreground py-8">No availabilities recorded</p>
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -195,11 +213,11 @@ export default function AdminPage() {
                     const userEntry = userDirectory?.get(principalStr);
                     const displayName = userEntry?.displayName || 'Loading...';
                     const avatarUrl = userEntry?.avatarUrl;
-                    const availabilityId = `${principalStr}-${day}`;
-                    const isDeleting = deletingAvailabilityId === availabilityId;
+                    const id = `${principalStr}-${day}`;
+                    const isDeleting = deletingAvailabilityId === id;
 
                     return (
-                      <TableRow key={availabilityId}>
+                      <TableRow key={id}>
                         <TableCell>
                           <AvatarName
                             principal={principal}
@@ -212,17 +230,21 @@ export default function AdminPage() {
                         <TableCell className="text-sm">
                           {formatDayId(day)}
                         </TableCell>
-                        <TableCell className="text-sm font-medium">
+                        <TableCell className="text-sm text-muted-foreground">
                           {time}
                         </TableCell>
                         <TableCell>
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => handleDeleteAvailability(principalStr, day)}
+                            onClick={() => handleDeleteAvailability(principal, day)}
                             disabled={isDeleting}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            {isDeleting ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
                           </Button>
                         </TableCell>
                       </TableRow>

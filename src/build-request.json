@@ -1,102 +1,74 @@
 {
   "kind": "build_request",
-  "title": "Leaderboard tab: remove Score column and restore Win % + Streak (all-time)",
+  "title": "Add in-app toast notifications for availability creation and leaderboard rank increases",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update the Leaderboard tab (All-Time Rankings table) to remove the \"Score\" stat entirely (header and row values) so it is not displayed anywhere in the leaderboard table UI.",
+      "text": "Add a global toast renderer so in-app toast notifications can be shown from any page using the existing `sonner` toast calls.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4",
-          "msg-6",
-          "msg-10"
+          "msg-11"
         ],
         "quotes": [
-          "Also they added score for some reason which shouldnt be there",
-          "1)yes",
-          "Apply changes"
+          "I want some type in app notification for when a users adds a new availability and when a user jumps up in rank on the leaderboard tab"
         ]
       },
       "acceptanceCriteria": [
-        "Leaderboard table no longer contains a column labeled \"Score\".",
-        "No score value is rendered in any leaderboard row.",
-        "No user-facing text references \"Score\" on the Leaderboard page."
+        "A toast container (Sonner `Toaster`) is mounted once at the app layout/root level so toasts render on all routes.",
+        "Existing `toast.*` calls (e.g., on Leaderboard and Day Detail pages) display visible toasts without requiring per-page setup."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Restore the \"Win %\" statistic in the all-time leaderboard table, calculated from all-time data only (wins / totalGames), and display it as a dedicated column for each player.",
+      "text": "Show an in-app toast notification when the user successfully adds (or updates) an availability entry from the Add Availability page.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5",
-          "msg-6"
+          "msg-11",
+          "msg-13"
         ],
         "quotes": [
-          "Yes restore them",
-          "2)yes"
+          "I want some type in app notification for when a users adds a new availability",
+          "Yes implement"
         ]
       },
       "acceptanceCriteria": [
-        "Leaderboard table includes a \"Win %\" column.",
-        "Win % is computed from the existing all-time stats returned by the backend (wins and totalGames) and does not depend on weekly/monthly timeframes.",
-        "When totalGames is 0, Win % displays as 0% (or equivalent non-error value) and the UI does not crash."
+        "On successful submission in `frontend/src/pages/AddAvailabilityPage.tsx`, show a success toast (English text) before navigating away (e.g., “Availability added” or “Availability updated”).",
+        "On mutation error, show an error toast with a sensible fallback message in English.",
+        "The toast triggers exactly once per successful submit."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Restore the \"Streak\" statistic in the all-time leaderboard table and display it as a dedicated column for each player, using the existing all-time streak value returned by the backend leaderboard API.",
+      "text": "Show an in-app toast notification on the Leaderboard page when the current user’s rank improves (moves to a smaller rank number) after leaderboard data refreshes.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5",
-          "msg-6"
+          "msg-11",
+          "msg-13"
         ],
         "quotes": [
-          "Yes restore them",
-          "2)yes"
+          "when a user jumps up in rank on the leaderboard tab",
+          "Yes implement"
         ]
       },
       "acceptanceCriteria": [
-        "Leaderboard table includes a \"Streak\" column.",
-        "Streak values displayed are sourced from the backend leaderboard stats (all-time) and update appropriately after recording/removing wins/losses.",
-        "The leaderboard page renders successfully for users with no games recorded (streak shown as 0 or equivalent)."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Ensure the backend leaderboard API continues to provide all-time stats needed for the restored columns (wins, losses, totalGames, streak) and that leaderboard updates after recording/removing wins/losses reflect these fields without requiring weekly/monthly logic.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-5",
-          "msg-6",
-          "msg-10"
-        ],
-        "quotes": [
-          "Yes restore them",
-          "2)yes",
-          "Apply changes"
-        ]
-      },
-      "acceptanceCriteria": [
-        "backend/main.mo getLeaderboard returns per-user stats that include wins, losses, totalGames, and streak (all-time).",
-        "After recording/removing a win/loss, the returned leaderboard stats reflect updated wins/losses/totalGames/streak for the caller.",
-        "No weekly/monthly timeframe parameters or filtering are reintroduced."
+        "When viewing `frontend/src/pages/LeaderboardPage.tsx`, the app detects the caller’s rank based on their position in the `useGetLeaderboard()` results.",
+        "If the caller’s rank improves compared to the previous observed rank during the same page session, show a success/info toast in English (e.g., “You moved up to #3”).",
+        "No “rank improved” toast is shown on the initial leaderboard load (only on subsequent updates).",
+        "No toast is shown when the rank stays the same or worsens."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single-actor Motoko canister (all logic in backend/main.mo).",
-    "Do not edit files under frontend/src/components/ui or any paths listed as immutable in SYSTEM_CONTEXT.",
-    "Use English for any user-facing text."
+    "Do not edit files under `frontend/src/hooks/useInternetIdentity.ts`, `frontend/src/hooks/useInternetIdentity.tsx`, `frontend/src/hooks/useActor.ts`, `frontend/src/main.tsx`, or anything in `frontend/src/components/ui` (compose them instead).",
+    "Keep all backend logic in the single Motoko actor (`backend/main.mo`). No backend changes are required for this feature."
   ],
   "nonGoals": [
-    "Do not reintroduce weekly or monthly leaderboard views, filters, or timeframe toggles.",
-    "Do not add any new leaderboard statistics beyond Win %, Streak, and the existing wins/losses/games columns.",
-    "Do not change the leaderboard ranking methodology unless required to remove the Score display (sorting may remain as-is)."
+    "Browser/system push notifications (Notifications API, push services) are out of scope.",
+    "Building a persistent notification center/inbox is out of scope."
   ],
   "imageRequirements": {
     "required": [],

@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-leaderboard-tab-all-time-rankings-table-to-remove-the-score-stat-entirely-header-and-row-values-so-it-is-not-displayed-anywhere-in-the-leaderboard-table-ui",
-      "featureTitle": "Update the Leaderboard tab (All-Time Rankings table) to remove the \"Score\" stat entirely (header and row values) so it is not displayed anywhere in the leaderboard table UI.",
+      "featureId": "feature-add-a-global-toast-renderer-so-in-app-toast-notifications-can-be-shown-from-any-page-using-the-existing-sonner-toast-calls",
+      "featureTitle": "Add a global toast renderer so in-app toast notifications can be shown from any page using the existing `sonner` toast calls.",
       "files": [
-        "frontend/src/pages/LeaderboardPage.tsx"
+        "frontend/src/App.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -22,10 +22,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-restore-the-win-statistic-in-the-all-time-leaderboard-table-calculated-from-all-time-data-only-wins-totalgames-and-display-it-as-a-dedicated-column-for-each-player",
-      "featureTitle": "Restore the \"Win %\" statistic in the all-time leaderboard table, calculated from all-time data only (wins / totalGames), and display it as a dedicated column for each player.",
+      "featureId": "feature-show-an-in-app-toast-notification-when-the-user-successfully-adds-or-updates-an-availability-entry-from-the-add-availability-page",
+      "featureTitle": "Show an in-app toast notification when the user successfully adds (or updates) an availability entry from the Add Availability page.",
       "files": [
-        "frontend/src/pages/LeaderboardPage.tsx"
+        "frontend/src/pages/AddAvailabilityPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -42,8 +42,8 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-restore-the-streak-statistic-in-the-all-time-leaderboard-table-and-display-it-as-a-dedicated-column-for-each-player-using-the-existing-all-time-streak-value-returned-by-the-backend-leaderboard-api",
-      "featureTitle": "Restore the \"Streak\" statistic in the all-time leaderboard table and display it as a dedicated column for each player, using the existing all-time streak value returned by the backend leaderboard API.",
+      "featureId": "feature-show-an-in-app-toast-notification-on-the-leaderboard-page-when-the-current-user-s-rank-improves-moves-to-a-smaller-rank-number-after-leaderboard-data-refreshes",
+      "featureTitle": "Show an in-app toast notification on the Leaderboard page when the current user’s rank improves (moves to a smaller rank number) after leaderboard data refreshes.",
       "files": [
         "frontend/src/pages/LeaderboardPage.tsx"
       ],

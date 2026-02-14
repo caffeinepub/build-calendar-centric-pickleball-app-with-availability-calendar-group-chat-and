@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Trophy, Plus, Minus, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
@@ -36,6 +36,34 @@ export default function LeaderboardPage() {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   const callerPrincipal = identity?.getPrincipal().toString();
+
+  // Track rank changes for toast notifications
+  const previousRankRef = useRef<number | null>(null);
+  const isInitialLoadRef = useRef(true);
+
+  // Detect rank improvements
+  useEffect(() => {
+    if (!callerPrincipal || leaderboard.length === 0) return;
+
+    const currentRank = leaderboard.findIndex(([principal]) => principal.toString() === callerPrincipal);
+    
+    if (currentRank === -1) return;
+
+    const currentRankNumber = currentRank + 1; // Convert to 1-based rank
+
+    if (isInitialLoadRef.current) {
+      // First observation - just store the rank, don't toast
+      previousRankRef.current = currentRankNumber;
+      isInitialLoadRef.current = false;
+    } else if (previousRankRef.current !== null && currentRankNumber < previousRankRef.current) {
+      // Rank improved (smaller number is better)
+      toast.success(`You moved up to #${currentRankNumber}!`);
+      previousRankRef.current = currentRankNumber;
+    } else if (previousRankRef.current !== null && currentRankNumber !== previousRankRef.current) {
+      // Rank changed but didn't improve - just update the ref without toasting
+      previousRankRef.current = currentRankNumber;
+    }
+  }, [leaderboard, callerPrincipal]);
 
   const isPending = isRecordingWin || isRecordingLoss || isRemovingWin || isRemovingLoss;
 
@@ -188,7 +216,7 @@ export default function LeaderboardPage() {
                     </SelectContent>
                   </Select>
 
-                  <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                  <div className="flex gap-4 w-full sm:w-auto">
                     <div className="flex flex-col gap-2">
                       <span className="text-xs font-medium text-muted-foreground text-center">Win</span>
                       <div className="flex gap-2">

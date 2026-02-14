@@ -1,24 +1,30 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T23:03:06.404Z",
-  "summary": "Frontend appears to have updated the Leaderboard page to show Win % and Streak instead of Score (per file summary), but the provided diff content is truncated and does not show the actual leaderboard table rendering changes or the backend getLeaderboard output. Backend changes clearly add new availability-related query APIs that were not requested.",
+  "generatedAt": "2026-02-14T01:01:17.745Z",
+  "summary": "REQ-1/2/3 appear implemented: a global Sonner Toaster is mounted in the root layout, Add Availability shows success/error toasts on mutation outcomes, and Leaderboard detects caller rank improvements and toasts only on subsequent refreshes (not initial load). No backend changes are present in the diff summary.",
   "missing_requirements": [],
   "hallucinated_features": [
     {
-      "description": "Added backend APIs to check whether any user has availability for a day and a batch API for multiple days (global availability scanning).",
-      "reason": "BuildRequest is specifically about removing the Score column from the leaderboard UI and restoring Win % and Streak (all-time). It does not request new availability endpoints or global availability logic.",
+      "description": "Added/updated internal project tracking entries for feature requests (AR-1..AR-5) marked as pending in project_state.json, which was not requested as part of the BuildRequest.",
+      "reason": "The BuildRequest only asks for frontend toast behavior changes; it does not request updates to repository metadata/state tracking files.",
       "evidence": [
-        "backend/main.mo (added public query func anyUserHasAvailability(day : Int) : async Bool)",
-        "backend/main.mo (added public query func daysWithAnyAvailability(days : [Int]) : async [Bool])",
-        "backend/main.mo (added helper func anyUserHasAvailabilitySync(day : Int) : Bool)"
+        "project_state.json"
+      ]
+    },
+    {
+      "description": "Updated a repository-wide change summary file describing many unrelated UI/feature changes beyond the toast requirements.",
+      "reason": "The BuildRequest is scoped specifically to toast renderer + two toast behaviors; updating a broad summary file is not requested functionality.",
+      "evidence": [
+        "frontend-file-summaries.txt"
       ]
     }
   ],
-  "confidence": 0.64,
+  "confidence": 0.84,
   "changed_files": [
-    "backend/main.mo",
     "frontend-file-summaries.txt",
+    "frontend/src/App.tsx",
+    "frontend/src/pages/AddAvailabilityPage.tsx",
     "frontend/src/pages/LeaderboardPage.tsx",
     "project_state.json"
   ]

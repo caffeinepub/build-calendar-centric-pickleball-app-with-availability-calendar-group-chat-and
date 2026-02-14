@@ -1,58 +1,53 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Leaderboard: remove Score column and restore Win % + Streak (all-time)",
+  "title": "Global Sonner toaster + toasts for availability submit and leaderboard rank improvements",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Remove the Score stat from the All-Time Rankings leaderboard table UI (header and row values) and eliminate any user-facing \"Score\" text on the page.",
+      "summary": "Mount a single global Sonner Toaster at the app root so existing toast calls render on all routes.",
       "acceptanceCriteria": [
-        "Leaderboard table no longer contains a column labeled \"Score\".",
-        "No score value is rendered in any leaderboard row.",
-        "No user-facing text references \"Score\" on the Leaderboard page."
+        "A toast container (Sonner `Toaster`) is mounted once at the app layout/root level so toasts render on all routes.",
+        "Existing `toast.*` calls (e.g., on Leaderboard and Day Detail pages) display visible toasts without requiring per-page setup."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/LeaderboardPage.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Update the All-Time Rankings <Table> to remove the Score <TableHead> and the per-row Score <TableCell>. Remove the score calculation usage from rendering and ensure no remaining user-facing \"Score\" text exists on the page."
-        },
-        {
-          "path": "frontend/src/pages/LeaderboardPage.tsx",
-          "operation": "modify",
-          "description": "Delete the now-unused score helper (e.g., calculateScore) and any related imports/logic so the Score stat is not computed or displayed anywhere in the leaderboard table UI."
+          "description": "Import and mount Sonner's `Toaster` once within the root layout tree (e.g., inside `Layout` alongside `Background`/`AppLayout`) so `toast.*` calls from any route render globally."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Restore the Win % column in the all-time leaderboard table, computed from all-time wins and totalGames with safe zero-games handling.",
+      "summary": "Show success/error toasts for Add Availability submit results before navigating away.",
       "acceptanceCriteria": [
-        "Leaderboard table includes a \"Win %\" column.",
-        "Win % is computed from the existing all-time stats returned by the backend (wins and totalGames) and does not depend on weekly/monthly timeframes.",
-        "When totalGames is 0, Win % displays as 0% (or equivalent non-error value) and the UI does not crash."
+        "On successful submission in `frontend/src/pages/AddAvailabilityPage.tsx`, show a success toast (English text) before navigating away (e.g., “Availability added” or “Availability updated”).",
+        "On mutation error, show an error toast with a sensible fallback message in English.",
+        "The toast triggers exactly once per successful submit."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/LeaderboardPage.tsx",
+          "path": "frontend/src/pages/AddAvailabilityPage.tsx",
           "operation": "modify",
-          "description": "Add a \"Win %\" column to the All-Time Rankings table and compute it per row from stats.wins and stats.totalGames (all-time). Implement safe formatting to display 0% when totalGames is 0, and ensure bigint-to-number conversion does not crash the UI."
+          "description": "Use `toast` from `sonner` to display (1) a success toast on `useAddAvailability` mutation success (choose text based on whether `existingAvailability` is present), then navigate; and (2) an error toast in `onError` with an English fallback message. Ensure submit remains disabled while pending so the success toast fires once per successful submit."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Restore the Streak column in the all-time leaderboard table using the all-time streak value provided by the backend.",
+      "summary": "Detect and toast when the caller’s leaderboard rank improves after refreshes (not on initial load).",
       "acceptanceCriteria": [
-        "Leaderboard table includes a \"Streak\" column.",
-        "Streak values displayed are sourced from the backend leaderboard stats (all-time) and update appropriately after recording/removing wins/losses.",
-        "The leaderboard page renders successfully for users with no games recorded (streak shown as 0 or equivalent)."
+        "When viewing `frontend/src/pages/LeaderboardPage.tsx`, the app detects the caller’s rank based on their position in the `useGetLeaderboard()` results.",
+        "If the caller’s rank improves compared to the previous observed rank during the same page session, show a success/info toast in English (e.g., “You moved up to #3”).",
+        "No “rank improved” toast is shown on the initial leaderboard load (only on subsequent updates).",
+        "No toast is shown when the rank stays the same or worsens."
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/LeaderboardPage.tsx",
           "operation": "modify",
-          "description": "Add a \"Streak\" column to the All-Time Rankings table and render the per-user streak directly from stats.streak (all-time), defaulting to 0 (or equivalent) when needed to avoid crashes for users with no games."
+          "description": "Add page-session rank tracking (e.g., `useRef` for previous rank + a flag for initial observation) and a `useEffect` that recomputes the caller’s rank from `useGetLeaderboard()` results; if the new rank number is smaller than the previously observed rank (and not the first observation), show a Sonner toast like “You moved up to #X”. Do not toast on initial load or when rank is unchanged/worse."
         }
       ]
     }
