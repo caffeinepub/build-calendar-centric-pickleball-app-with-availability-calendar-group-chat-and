@@ -3,14 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import ProfileCard from '../components/profile/ProfileCard';
 import ProfileLeaderboardRanks from '../components/profile/ProfileLeaderboardRanks';
 import ProfileMatchHistory from '../components/profile/ProfileMatchHistory';
+import { Page, PageHeader } from '../components/layout/PageLayout';
 
 export default function ProfilePage() {
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <User className="h-8 w-8 text-primary" />
-        <h2 className="text-3xl font-bold">Profile</h2>
-      </div>
+    <Page maxWidth="4xl">
+      <PageHeader
+        icon={<User className="h-8 w-8 text-primary" />}
+        title="Profile"
+      />
 
       <ProfileCard />
 
@@ -33,6 +34,6 @@ export default function ProfilePage() {
           <ProfileMatchHistory />
         </CardContent>
       </Card>
-    </div>
+    </Page>
   );
 }

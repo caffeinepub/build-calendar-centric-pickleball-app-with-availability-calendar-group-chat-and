@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
 import { Link } from '@tanstack/react-router';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { useDaysWithAnyAvailability } from '../hooks/useQueries';
 import { getDayId, getMonthGridDays, formatMonthYear, isToday } from '../lib/date';
 import ChatPanel from '../components/chat/ChatPanel';
+import { Page, PageHeader } from '../components/layout/PageLayout';
 
 export default function CalendarMonthPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -26,16 +27,19 @@ export default function CalendarMonthPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold">Calendar</h2>
-        <Link to="/add-availability">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Availability
-          </Button>
-        </Link>
-      </div>
+    <Page>
+      <PageHeader
+        icon={<Calendar className="h-8 w-8 text-primary" />}
+        title="Calendar"
+        action={
+          <Link to="/add-availability">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add Availability
+            </Button>
+          </Link>
+        }
+      />
 
       <Card>
         <CardHeader>
@@ -78,7 +82,7 @@ export default function CalendarMonthPage() {
       <div style={{ height: 'clamp(400px, calc(100vh - 700px), 667px)' }}>
         <ChatPanel />
       </div>
-    </div>
+    </Page>
   );
 }
 

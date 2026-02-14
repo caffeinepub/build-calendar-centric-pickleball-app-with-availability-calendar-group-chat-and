@@ -20,6 +20,8 @@ import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import AvatarName from '../components/user/AvatarName';
 import { formatDayId } from '../lib/date';
 import { toast } from 'sonner';
+import { Page, PageHeader } from '../components/layout/PageLayout';
+import { InlineLoading } from '../components/common/LoadingState';
 
 export default function LeaderboardPage() {
   const { data: leaderboard = [], isLoading } = useGetLeaderboard();
@@ -143,45 +145,44 @@ export default function LeaderboardPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center gap-3">
-          <Trophy className="h-8 w-8 text-primary" />
-          <h2 className="text-3xl font-bold">Leaderboard</h2>
-        </div>
+      <Page>
+        <PageHeader
+          icon={<Trophy className="h-8 w-8 text-primary" />}
+          title="Leaderboard"
+        />
         <Card>
-          <CardContent className="py-12 text-center">
-            <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
-            <p className="text-muted-foreground">Loading leaderboard...</p>
+          <CardContent className="py-12">
+            <InlineLoading message="Loading leaderboard..." />
           </CardContent>
         </Card>
-      </div>
+      </Page>
     );
   }
 
   if (leaderboard.length === 0) {
     return (
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center gap-3">
-          <Trophy className="h-8 w-8 text-primary" />
-          <h2 className="text-3xl font-bold">Leaderboard</h2>
-        </div>
+      <Page>
+        <PageHeader
+          icon={<Trophy className="h-8 w-8 text-primary" />}
+          title="Leaderboard"
+        />
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             No players enrolled yet. Players appear automatically when they sign in.
           </CardContent>
         </Card>
-      </div>
+      </Page>
     );
   }
 
   const hasAvailableDays = availableDays.length > 0;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <Trophy className="h-8 w-8 text-primary" />
-        <h2 className="text-3xl font-bold">Leaderboard</h2>
-      </div>
+    <Page>
+      <PageHeader
+        icon={<Trophy className="h-8 w-8 text-primary" />}
+        title="Leaderboard"
+      />
 
       <Card>
         <CardHeader>
@@ -325,6 +326,6 @@ export default function LeaderboardPage() {
           </Table>
         </CardContent>
       </Card>
-    </div>
+    </Page>
   );
 }

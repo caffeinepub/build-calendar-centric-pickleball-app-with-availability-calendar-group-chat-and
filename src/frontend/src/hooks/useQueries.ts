@@ -166,14 +166,14 @@ export function useDeleteCallerDayAvailability() {
   });
 }
 
-export function useGetRecentMessages(limit: number = 50) {
+export function useGetRecentMessages(limit: bigint = 100n) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Array<[Principal, string, bigint]>>({
-    queryKey: ['recentMessages', limit],
+    queryKey: ['recentMessages', limit.toString()],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getRecentMessages(BigInt(limit));
+      return actor.getRecentMessages(limit);
     },
     enabled: !!actor && !isFetching,
     refetchInterval: 5000,

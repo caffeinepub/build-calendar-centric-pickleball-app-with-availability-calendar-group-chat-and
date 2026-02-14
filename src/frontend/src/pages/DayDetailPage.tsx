@@ -17,181 +17,177 @@ import {
 import { useGetDayAvailability, useDeleteCallerDayAvailability } from '../hooks/useQueries';
 import { useUserDirectoryWithAvatars } from '../hooks/useUserDirectory';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { dateFromDayId, formatDate } from '../lib/date';
+import { formatDate } from '../lib/date';
 import AvatarName from '../components/user/AvatarName';
 import { toast } from 'sonner';
+import { Page, PageHeader } from '../components/layout/PageLayout';
+import { InlineLoading } from '../components/common/LoadingState';
 
 export default function DayDetailPage() {
-  const { date: dateParam } = useParams({ from: '/day/$date' });
-  const dayId = BigInt(dateParam);
-  const date = dateFromDayId(dayId);
+  const { date } = useParams({ strict: false }) as { date: string };
   const navigate = useNavigate();
-
-  const { identity } = useInternetIdentity();
-  const currentPrincipal = identity?.getPrincipal().toString();
-
+  const dayId = BigInt(date);
   const { data: availabilities = [], isLoading } = useGetDayAvailability(dayId);
   const principals = availabilities.map(([principal]) => principal);
   const { data: userDirectory, isLoading: isLoadingDirectory } = useUserDirectoryWithAvatars(principals);
-
+  const { identity } = useInternetIdentity();
   const { mutate: deleteAvailability, isPending: isDeleting } = useDeleteCallerDayAvailability();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [principalToDelete, setPrincipalToDelete] = useState<string | null>(null);
+  const callerPrincipal = identity?.getPrincipal().toString();
 
-  const handleEditClick = () => {
-    navigate({ to: '/add-availability', search: { date: dayId.toString() } });
-  };
+  const dateObj = new Date(
+    Number(date.slice(0, 4)),
+    Number(date.slice(4, 6)) - 1,
+    Number(date.slice(6, 8))
+  );
 
-  const handleDeleteClick = (principal: string) => {
-    setPrincipalToDelete(principal);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = () => {
+  const handleDelete = () => {
     deleteAvailability(dayId, {
       onSuccess: () => {
-        toast.success('Your availability has been deleted');
-        setDeleteDialogOpen(false);
-        setPrincipalToDelete(null);
+        toast.success('Availability deleted successfully');
+        setShowDeleteDialog(false);
+        navigate({ to: '/' });
       },
-      onError: (error) => {
-        toast.error(`Failed to delete availability: ${error.message}`);
-        setDeleteDialogOpen(false);
-        setPrincipalToDelete(null);
+      onError: (error: any) => {
+        toast.error(error?.message || 'Failed to delete availability');
+        setShowDeleteDialog(false);
       },
     });
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
+      <Page maxWidth="4xl">
+        <PageHeader
+          icon={
+            <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/' })}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          }
+          title={formatDate(dateObj)}
+        />
+        <Card>
+          <CardContent className="py-12">
+            <InlineLoading message="Loading availability..." />
+          </CardContent>
+        </Card>
+      </Page>
+    );
+  }
+
+  if (availabilities.length === 0) {
+    return (
+      <Page maxWidth="4xl">
+        <PageHeader
+          icon={
+            <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/' })}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          }
+          title={formatDate(dateObj)}
+        />
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            No one is available on this date yet.
+          </CardContent>
+        </Card>
+      </Page>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link to="/">
-          <Button variant="ghost" size="icon">
+    <Page maxWidth="4xl">
+      <PageHeader
+        icon={
+          <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/' })}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-        </Link>
-        <h2 className="text-3xl font-bold">{formatDate(date)}</h2>
-      </div>
+        }
+        title={formatDate(dateObj)}
+      />
 
-      {availabilities.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <img
-              src="/assets/generated/calendar-empty.dim_1200x800.png"
-              alt="No availability"
-              className="mx-auto mb-6 h-48 w-auto opacity-50"
-            />
-            <p className="text-lg text-muted-foreground mb-4">
-              No one is available on this day yet
-            </p>
-            <Link to="/add-availability" search={{ date: dayId.toString() }}>
-              <Button>Add Your Availability</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Available Players ({availabilities.length})</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {availabilities.map(([principal, availability], index) => {
-                const userEntry = userDirectory?.get(principal.toString());
-                const displayName = userEntry?.displayName || 'Loading...';
-                const avatarUrl = userEntry?.avatarUrl;
-                const isCurrentUser = currentPrincipal === principal.toString();
-                
-                return (
-                  <div key={principal.toString()}>
-                    {index > 0 && <Separator className="my-4" />}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <AvatarName
-                          principal={principal}
-                          displayName={displayName}
-                          avatarUrl={avatarUrl}
-                          size="md"
-                          isLoading={isLoadingDirectory}
-                        />
-                        {isCurrentUser && (
-                          <div className="flex gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleEditClick}
-                              disabled={isDeleting}
-                            >
-                              <Pencil className="h-4 w-4 mr-1" />
-                              Edit
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteClick(principal.toString())}
-                              disabled={isDeleting}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              {isDeleting && principalToDelete === principal.toString() ? 'Deleting...' : 'Delete'}
-                            </Button>
-                          </div>
-                        )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Available Players</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {availabilities.map(([principal, availability], index) => {
+            const principalStr = principal.toString();
+            const user = userDirectory?.get(principalStr);
+            const isCurrentUser = principalStr === callerPrincipal;
+
+            return (
+              <div key={principalStr}>
+                {index > 0 && <Separator className="my-4" />}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <AvatarName
+                      principal={principal}
+                      displayName={user?.displayName || 'Loading...'}
+                      avatarUrl={user?.avatarUrl}
+                      isLoading={isLoadingDirectory}
+                      size="md"
+                    />
+                    {isCurrentUser && (
+                      <div className="flex gap-2">
+                        <Link
+                          to="/add-availability"
+                          search={{ date }}
+                        >
+                          <Button variant="outline" size="sm" className="gap-2">
+                            <Pencil className="h-4 w-4" />
+                            Edit
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-2 text-destructive hover:text-destructive"
+                          onClick={() => setShowDeleteDialog(true)}
+                          disabled={isDeleting}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </Button>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        {availability.time}
-                      </div>
-                      {availability.notes && (
-                        <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                          <StickyNote className="h-4 w-4 mt-0.5" />
-                          <span>{availability.notes}</span>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
-                );
-              })}
-            </CardContent>
-          </Card>
 
-          <Link to="/add-availability" search={{ date: dayId.toString() }}>
-            <Button className="w-full">Add Your Availability</Button>
-          </Link>
-        </div>
-      )}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>{availability.time}</span>
+                  </div>
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                  {availability.notes && (
+                    <div className="flex items-start gap-2 text-sm">
+                      <StickyNote className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <p className="text-muted-foreground">{availability.notes}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Availability</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete your availability for {formatDate(date)}? This action cannot be undone.
+              Are you sure you want to delete your availability for this date? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDelete}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
               {isDeleting ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </Page>
   );
 }

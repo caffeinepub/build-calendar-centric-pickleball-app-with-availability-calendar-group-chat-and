@@ -1,13 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Enhance the app’s PWA experience with offline support, improved caching, an iOS splash screen, clearer install UX, and better standalone-mode layout polish (excluding app shortcuts).
+**Goal:** Standardize loading and error UI across the app and apply a light UI spacing/consistency polish without changing functionality.
 
 **Planned changes:**
-- Add and register a service worker that precaches the app shell and provides a clear offline fallback UI when the network is unavailable.
-- Implement a caching strategy that speeds up repeat visits (precache core assets + runtime caching rules) while avoiding indefinitely stale HTML and avoiding unsafe caching of authenticated flows.
-- Add iOS PWA splash/startup images and required `apple-touch-startup-image` metadata/link tags in `frontend/index.html`, referencing static assets in `frontend/public/assets/generated`.
-- Improve install prompt UX with a prominent install call-to-action, using `beforeinstallprompt` where available and providing clear iOS installation instructions where it is not; hide this UX in standalone mode.
-- Polish standalone mobile layout to respect safe-area insets, prevent awkward overflow/double scrolling, and ensure header/navigation spacing looks correct.
+- Add shared, reusable loading UI component(s) (e.g., full-page vs inline) with consistent styling and configurable messaging.
+- Add a shared, reusable error UI component (icon/title/message + optional retry action) and replace ad-hoc error displays with it across key screens/components.
+- Apply app-wide spacing/alignment consistency updates (page wrappers, max-width/padding, headings, card padding, button/row alignment) across top-level pages and common layouts while keeping behavior unchanged.
 
-**User-visible outcome:** Users can install the app more easily, see a proper iOS splash screen on launch, experience faster repeat loads, and use the app with a clear offline state and improved standalone-mode layout on mobile.
+**User-visible outcome:** Loading and error states look consistent throughout the app, and pages/layouts feel more uniform and polished with improved spacing and alignment.

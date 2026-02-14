@@ -9,10 +9,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <OfflineBanner />
       <TopBar />
       <Navigation />
-      <main className="flex-1 container py-4 sm:py-6 px-4 sm:px-6 safe-area-sides safe-area-bottom">
+      <main className="flex-1 container py-6 px-4 sm:px-6 safe-area-sides safe-area-bottom">
         {children}
       </main>
-      <footer className="border-t py-4 sm:py-6 text-center text-sm text-muted-foreground safe-area-bottom safe-area-sides">
+      <footer className="border-t py-6 text-center text-sm text-muted-foreground safe-area-bottom safe-area-sides">
         <p>
           © {new Date().getFullYear()} · Built with ❤️ using{' '}
           <a

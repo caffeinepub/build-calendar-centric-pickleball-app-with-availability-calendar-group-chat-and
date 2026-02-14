@@ -18,6 +18,7 @@ import {
   type TimeComponents,
 } from '../utils/time';
 import { toast } from 'sonner';
+import { Page, PageHeader } from '../components/layout/PageLayout';
 
 export default function AddAvailabilityPage() {
   const navigate = useNavigate();
@@ -81,15 +82,15 @@ export default function AddAvailabilityPage() {
   const isFormValid = hour && minute && period;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={handleBack}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h2 className="text-3xl font-bold">
-          {existingAvailability ? 'Edit' : 'Add'} Availability
-        </h2>
-      </div>
+    <Page maxWidth="2xl">
+      <PageHeader
+        icon={
+          <Button variant="ghost" size="icon" onClick={handleBack}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        }
+        title={`${existingAvailability ? 'Edit' : 'Add'} Availability`}
+      />
 
       <Card>
         <CardHeader>
@@ -97,10 +98,10 @@ export default function AddAvailabilityPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label>Start Time</Label>
               <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <Label htmlFor="hour" className="text-xs text-muted-foreground">
                     Hour
                   </Label>
@@ -118,7 +119,7 @@ export default function AddAvailabilityPage() {
                   </Select>
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <Label htmlFor="minute" className="text-xs text-muted-foreground">
                     Minute
                   </Label>
@@ -136,7 +137,7 @@ export default function AddAvailabilityPage() {
                   </Select>
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <Label htmlFor="period" className="text-xs text-muted-foreground">
                     AM/PM
                   </Label>
@@ -156,7 +157,7 @@ export default function AddAvailabilityPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label htmlFor="notes">Notes (Optional)</Label>
               <Textarea
                 id="notes"
@@ -178,6 +179,6 @@ export default function AddAvailabilityPage() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </Page>
   );
 }
