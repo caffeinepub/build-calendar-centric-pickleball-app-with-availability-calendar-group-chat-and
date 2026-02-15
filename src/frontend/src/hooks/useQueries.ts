@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { UserProfile, T as UserStats, Availability, DayWithLog } from '../backend';
+import type { UserProfile, T as UserStats, Availability, DayWithLog, Post, ReactionType } from '../backend';
 import type { Principal } from '@dfinity/principal';
+import { ExternalBlob } from '../backend';
 
 export function useGetAllUserProfiles() {
   const { actor, isFetching } = useActor();
@@ -166,31 +167,123 @@ export function useDeleteCallerDayAvailability() {
   });
 }
 
-export function useGetRecentMessages(limit: bigint = 100n) {
+// Admin queries
+export function useGetAllRegisteredUsers() {
   const { actor, isFetching } = useActor();
 
-  return useQuery<Array<[Principal, string, bigint]>>({
-    queryKey: ['recentMessages', limit.toString()],
+  return useQuery<Array<[Principal, UserProfile, bigint]>>({
+    queryKey: ['allRegisteredUsers'],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getRecentMessages(limit);
+      return actor.getAllRegisteredUsers();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetAllAvailabilities() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Array<[Principal, bigint, string]>>({
+    queryKey: ['allAvailabilities'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllAvailabilities();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useDeleteUser() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (userToDelete: Principal) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.deleteUser(userToDelete);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allRegisteredUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['allAvailabilities'] });
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+    },
+  });
+}
+
+export function useDeleteUserDayAvailability() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ user, day }: { user: Principal; day: bigint }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.deleteUserDayAvailability(user, day);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allAvailabilities'] });
+      queryClient.invalidateQueries({ queryKey: ['dayAvailability'] });
+      queryClient.invalidateQueries({ queryKey: ['daysWithAnyAvailability'] });
+    },
+  });
+}
+
+// Chat/Posts queries
+export function useGetPosts(limit: bigint = 100n, offset: bigint = 0n) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Post[]>({
+    queryKey: ['posts', limit.toString(), offset.toString()],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getPosts(limit, offset);
     },
     enabled: !!actor && !isFetching,
     refetchInterval: 5000,
   });
 }
 
-export function useSendMessage() {
+export function useCreatePost() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (message: string) => {
+    mutationFn: async ({ content, parentId, image }: { content: string; parentId: bigint | null; image: ExternalBlob | null }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.sendMessage(message);
+      return actor.addPost(content, parentId, image);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recentMessages'] });
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}
+
+export function useAddReaction() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ postId, reactionType }: { postId: bigint; reactionType: ReactionType }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.addReaction(postId, reactionType);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}
+
+export function useRemoveReaction() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (postId: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.removeReaction(postId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
     },
   });
 }
@@ -288,68 +381,6 @@ export function useInitializeCallerLeaderboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['callerStats'] });
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
-    },
-  });
-}
-
-export function useGetAllRegisteredUsers() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Array<[Principal, UserProfile, bigint]>>({
-    queryKey: ['allRegisteredUsers'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllRegisteredUsers();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useGetAllAvailabilities() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Array<[Principal, bigint, string]>>({
-    queryKey: ['allAvailabilities'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllAvailabilities();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useDeleteUser() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (userToDelete: Principal) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.deleteUser(userToDelete);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allRegisteredUsers'] });
-      queryClient.invalidateQueries({ queryKey: ['allAvailabilities'] });
-      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
-      queryClient.invalidateQueries({ queryKey: ['dayAvailability'] });
-      queryClient.invalidateQueries({ queryKey: ['daysWithAnyAvailability'] });
-    },
-  });
-}
-
-export function useDeleteUserDayAvailability() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ user, day }: { user: Principal; day: bigint }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.deleteUserDayAvailability(user, day);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allAvailabilities'] });
-      queryClient.invalidateQueries({ queryKey: ['dayAvailability'] });
-      queryClient.invalidateQueries({ queryKey: ['daysWithAnyAvailability'] });
     },
   });
 }

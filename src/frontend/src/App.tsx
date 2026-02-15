@@ -4,6 +4,7 @@ import { useInternetIdentity } from './hooks/useInternetIdentity';
 import { useGetCallerUserProfile } from './hooks/useCurrentUserProfile';
 import { useInitializeCallerLeaderboard } from './hooks/useQueries';
 import { useActor } from './hooks/useActor';
+import { useQueryClient } from '@tanstack/react-query';
 import LoginScreen from './components/auth/LoginScreen';
 import ProfileSetupModal from './components/profile/ProfileSetupModal';
 import AppLayout from './components/layout/AppLayout';
@@ -17,12 +18,21 @@ import AdminPage from './pages/AdminPage';
 import Background from './components/theme/Background';
 import { Toaster } from './components/ui/sonner';
 import { FullPageLoading } from './components/common/LoadingState';
+import { ErrorState } from './components/common/ErrorState';
+import { Button } from './components/ui/button';
 
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { identity, isInitializing } = useInternetIdentity();
+  const { identity, isInitializing, clear } = useInternetIdentity();
   const { actor, isFetching: actorFetching } = useActor();
-  const { data: userProfile, isLoading: profileLoading, isFetched } = useGetCallerUserProfile();
+  const { 
+    data: userProfile, 
+    isLoading: profileLoading, 
+    isFetched, 
+    error: profileError, 
+    refetch: refetchProfile 
+  } = useGetCallerUserProfile();
   const { mutate: initializeLeaderboard } = useInitializeCallerLeaderboard();
+  const queryClient = useQueryClient();
   const hasInitialized = useRef(false);
 
   const isAuthenticated = !!identity;
@@ -42,8 +52,58 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthenticated]);
 
-  if (isInitializing || actorFetching || (isAuthenticated && profileLoading)) {
+  // Handle logout with cache clearing
+  const handleLogout = async () => {
+    await clear();
+    queryClient.clear();
+    hasInitialized.current = false;
+  };
+
+  // Show loading only while there is active progress
+  const isLoading = isInitializing || (isAuthenticated && actorFetching) || (isAuthenticated && actor && profileLoading && !profileError);
+
+  if (isLoading) {
     return <FullPageLoading message="Loading your account..." />;
+  }
+
+  // Show error state if profile fetch failed (actor errors are harder to detect without error property)
+  if (isAuthenticated && actor && profileError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <ErrorState
+            title="Connection Error"
+            message="Failed to load your profile. Please try again."
+            onRetry={() => refetchProfile()}
+          />
+          <div className="mt-4 flex justify-center">
+            <Button variant="outline" onClick={handleLogout}>
+              Log Out
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If authenticated but no actor after loading, show error
+  if (isAuthenticated && !actorFetching && !actor) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <ErrorState
+            title="Connection Error"
+            message="Failed to initialize your session. Please try logging in again."
+            onRetry={() => window.location.reload()}
+          />
+          <div className="mt-4 flex justify-center">
+            <Button variant="outline" onClick={handleLogout}>
+              Log Out
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {

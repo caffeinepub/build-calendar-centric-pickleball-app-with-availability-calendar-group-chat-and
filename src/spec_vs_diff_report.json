@@ -1,39 +1,28 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-14T21:48:28.051Z",
-  "summary": "REQ-2 is implemented: the DayDetail empty-state includes an “Add Availability” button linking to /add-availability with the selected day passed as search.date, and AddAvailabilityPage now reads/search-syncs that parameter to display the correct date. REQ-3 is implemented for the empty state. REQ-1 cannot be fully verified from the truncated diff because the populated (non-empty) day detail rendering is cut off; only the empty-state placement above the message is visible in the provided excerpt.",
-  "missing_requirements": [
-    {
-      "id": "REQ-1",
-      "requirement": "Restore an “Add Availability” button that is always visible when viewing a specific day’s availability details, positioned above the availability list inside the day detail content area.",
-      "reason": "The diff excerpt shows the button in the empty-state branch only. The non-empty (populated) day detail UI where the availability list is rendered is truncated, so there is no direct evidence in the diff summary that the button is present above the list in that state.",
-      "evidence": [
-        "frontend/src/pages/DayDetailPage.tsx (truncated — non-empty return branch cut off after CardHeader/CardTitle)"
-      ]
-    }
-  ],
+  "generatedAt": "2026-02-15T22:51:52.271Z",
+  "summary": "Diff implements mobile-safe chat layout: ChatPanel is now a flex column card with an internal ScrollArea for messages (min-h-0/overflow-hidden) and a fixed composer section; message text uses wrapping/break utilities; attached images and image previews are constrained to max width; ChatPage and CalendarMonthPage wrap ChatPanel in 100dvh-based height containers to avoid nested overflow.",
+  "missing_requirements": [],
   "hallucinated_features": [
     {
-      "description": "AddAvailabilityPage now synchronizes selectedDate state when the search.date parameter changes (useEffect to update selectedDate).",
-      "reason": "The BuildRequest only asked to restore the DayDetail “Add Availability” button and ensure routing passes the selected day; it did not request additional state-sync behavior beyond opening on the selected day.",
+      "description": "Upload progress UI and progress-tracking state for image uploads (\"Uploading: {uploadProgress}%\") added to the main composer and reply composer.",
+      "reason": "BuildRequest focuses on overflow/scrolling/wrapping/responsive images and container height; it explicitly lists non-goals as not adding new chat features. Upload progress feedback is a new UX feature not requested.",
       "evidence": [
-        "frontend/src/pages/AddAvailabilityPage.tsx (added useEffect: \"Sync selectedDate when search.date changes\")"
-      ]
-    },
-    {
-      "description": "After successfully adding/updating availability, the form now navigates to the day detail route (/day/$date) instead of an unspecified or previous navigation behavior.",
-      "reason": "The BuildRequest did not specify changing post-submit navigation; it only required that clicking the DayDetail button navigates to /add-availability with the date parameter.",
-      "evidence": [
-        "frontend/src/pages/AddAvailabilityPage.tsx (onSuccess: navigate({ to: '/day/$date', params: { date: dayId.toString() } }))"
+        "frontend/src/components/chat/ChatPanel.tsx",
+        "frontend/src/components/chat/ReplyComposer.tsx"
       ]
     }
   ],
-  "confidence": 0.63,
+  "confidence": 0.74,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/pages/AddAvailabilityPage.tsx",
-    "frontend/src/pages/DayDetailPage.tsx",
+    "frontend/src/components/chat/ChatPanel.tsx",
+    "frontend/src/components/chat/ImageAttachmentPicker.tsx",
+    "frontend/src/components/chat/ReplyComposer.tsx",
+    "frontend/src/components/chat/ThreadedPostTree.tsx",
+    "frontend/src/pages/CalendarMonthPage.tsx",
+    "frontend/src/pages/ChatPage.tsx",
     "project_state.json"
   ]
 }

@@ -6,12 +6,17 @@ interface ErrorStateProps {
   title?: string;
   message: string;
   onRetry?: () => void;
+  secondaryAction?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
 export function ErrorState({ 
   title = 'Error', 
   message, 
-  onRetry 
+  onRetry,
+  secondaryAction,
 }: ErrorStateProps) {
   return (
     <Alert variant="destructive" className="my-4">
@@ -19,16 +24,28 @@ export function ErrorState({
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription className="mt-2 space-y-3">
         <p>{message}</p>
-        {onRetry && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onRetry}
-            className="mt-2"
-          >
-            Try Again
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {onRetry && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onRetry}
+              className="mt-2"
+            >
+              Try Again
+            </Button>
+          )}
+          {secondaryAction && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={secondaryAction.onClick}
+              className="mt-2"
+            >
+              {secondaryAction.label}
+            </Button>
+          )}
+        </div>
       </AlertDescription>
     </Alert>
   );

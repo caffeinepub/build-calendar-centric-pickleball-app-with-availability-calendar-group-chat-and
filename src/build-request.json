@@ -1,75 +1,110 @@
 {
   "kind": "build_request",
-  "title": "Restore missing “Add Availability” button on day detail popup/page",
+  "title": "Fix mobile chat overflow with scrollable message list and wrapped content",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Restore an “Add Availability” button that is always visible when viewing a specific day’s availability details (the day detail view reached by clicking a date on the calendar), positioned above the availability list inside the day detail content area.",
+      "text": "Prevent chat messages from overflowing outside the chat panel on mobile by ensuring the message list area scrolls vertically while keeping the composer (message input + buttons) visible within the chat card.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "msg-3",
+          "msg-7",
+          "msg-9"
         ],
         "quotes": [
-          "Okay i noticed that when I click a date on the calendar, the day pops up showing users availability, however the button to add availability to that day has dissappeared",
-          "1)always appear\n2)inside the day pop up above availability list\n3)restored how it was"
-        ]
-      },
-      "acceptanceCriteria": [
-        "When navigating to a day detail view from the calendar, an “Add Availability” button is visible without requiring any additional interactions.",
-        "The “Add Availability” button is displayed above the list of users’ availability entries within the day detail UI.",
-        "The button label is exactly “Add Availability” (English user-facing text)."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Ensure the day detail “Add Availability” button routes to the existing add/edit availability screen for the selected day, passing the currently selected day as the date search parameter so the form opens on that day.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "recent-messages"
-        ],
-        "quotes": [
+          "when the messages and reply start to accumulate in chat the messages go outside the chat box",
+          "1)scroll vertically",
           "Build"
         ]
       },
       "acceptanceCriteria": [
-        "Clicking the day detail “Add Availability” button navigates to “/add-availability” and includes the selected day as a search parameter (e.g., search.date).",
-        "On the Add/Edit Availability page, the displayed date matches the day the user clicked from the calendar.",
-        "No backend/canister changes are required for this navigation behavior."
+        "On mobile-sized viewports, adding enough messages causes the chat message area to scroll vertically instead of growing beyond the chat panel bounds.",
+        "The message composer area (input, send button, attachment UI) remains accessible and does not get pushed off-screen as messages accumulate.",
+        "No horizontal scrolling is introduced in the chat panel during normal use."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Ensure long chat message text wraps onto the next line within the available chat width (including deeply nested replies) without causing horizontal overflow.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-8",
+          "msg-9"
+        ],
+        "quotes": [
+          "2)continue to next line",
+          "Build"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Long message content wraps naturally within the chat panel width on mobile (no text rendering outside the card).",
+        "Very long unbroken strings (e.g., long URLs) do not force horizontal overflow; they break/wrap within the message container.",
+        "Reply content exhibits the same wrapping behavior as top-level messages."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Show the day detail “Add Availability” button even when the selected day currently has no availability entries (the empty-state view).",
+      "text": "Make attached chat images responsive on mobile so that image previews and posted images never exceed the chat panel width and do not contribute to overflow.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "msg-3",
+          "msg-9"
         ],
         "quotes": [
-          "always appear"
+          "when the messages and reply start to accumulate in chat the messages go outside the chat box",
+          "Build"
         ]
       },
       "acceptanceCriteria": [
-        "If a day has zero availability entries, the day detail screen still displays the “Add Availability” button above the empty-state message.",
-        "The empty-state message remains visible and readable, and the button remains clearly discoverable above it."
+        "Posted images scale down to fit within the chat panel on mobile (no overflow beyond the card).",
+        "Image attachment previews in the composer also scale appropriately on mobile.",
+        "Image aspect ratio is preserved and images remain viewable (no unintended cropping that hides most of the image)."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Update the chat panel containers where they are embedded (e.g., standalone Chat page and Calendar month page) so the chat region uses a stable, mobile-safe height calculation and does not cause nested overflow issues when the message list scrolls.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-8",
+          "msg-9"
+        ],
+        "quotes": [
+          "3)I only tested on mobile",
+          "Build"
+        ]
+      },
+      "acceptanceCriteria": [
+        "On mobile, the chat panel fits within its parent container on the Chat page and Calendar month page without content spilling outside the intended chat box.",
+        "The chat message list scroll works correctly in both embeddings (standalone chat page and calendar page)."
       ]
     }
   ],
   "constraints": [
-    "Do not modify any files under frontend/src/components/ui (compose existing UI components instead).",
-    "Do not edit immutable frontend hook files: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx.",
-    "Keep backend as a single Motoko actor; no backend changes are required for this fix."
+    "Do not edit files under frontend/src/components/ui (read-only components must be composed, not modified).",
+    "Keep all user-facing text in English."
   ],
   "nonGoals": [
-    "Do not redesign the calendar month view or change how dates are selected.",
-    "Do not change availability data models, persistence, or access control.",
-    "Do not add new authentication providers or identity flows."
+    "Do not add new chat features (e.g., typing indicators, real-time updates, new reaction types).",
+    "Do not change backend data models or Motoko canister logic for this fix."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

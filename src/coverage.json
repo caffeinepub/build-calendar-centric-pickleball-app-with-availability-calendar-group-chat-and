@@ -1,48 +1,63 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-14T21:48:28.054Z",
+  "generatedAt": "2026-02-15T22:51:52.274Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 3,
+    "total": 4,
+    "implemented": 4,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Restore an “Add Availability” button that is always visible when viewing a specific day’s availability details (the day detail view reached by clicking a date on the calendar), positioned above the availability list inside the day detail content area.",
+        "summary": "Prevent chat messages from overflowing outside the chat panel on mobile by ensuring the message list area scrolls vertically while keeping the composer (message input + buttons) visible within the chat card.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/DayDetailPage.tsx"
+          "frontend/src/components/chat/ChatPanel.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/DayDetailPage.tsx"
+          "frontend/src/components/chat/ChatPanel.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Ensure the day detail “Add Availability” button routes to the existing add/edit availability screen for the selected day, passing the currently selected day as the date search parameter so the form opens on that day.",
+        "summary": "Ensure long chat message text wraps onto the next line within the available chat width (including deeply nested replies) without causing horizontal overflow.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/DayDetailPage.tsx",
-          "frontend/src/pages/AddAvailabilityPage.tsx"
+          "frontend/src/components/chat/ThreadedPostTree.tsx",
+          "frontend/src/components/chat/ReplyComposer.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/DayDetailPage.tsx",
-          "frontend/src/pages/AddAvailabilityPage.tsx"
+          "frontend/src/components/chat/ThreadedPostTree.tsx",
+          "frontend/src/components/chat/ReplyComposer.tsx"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Show the day detail “Add Availability” button even when the selected day currently has no availability entries (the empty-state view).",
+        "summary": "Make attached chat images responsive on mobile so that image previews and posted images never exceed the chat panel width and do not contribute to overflow.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/DayDetailPage.tsx"
+          "frontend/src/components/chat/ThreadedPostTree.tsx",
+          "frontend/src/components/chat/ImageAttachmentPicker.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/DayDetailPage.tsx"
+          "frontend/src/components/chat/ThreadedPostTree.tsx",
+          "frontend/src/components/chat/ImageAttachmentPicker.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Update the chat panel containers where they are embedded (e.g., standalone Chat page and Calendar month page) so the chat region uses a stable, mobile-safe height calculation and does not cause nested overflow issues when the message list scrolls.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/ChatPage.tsx",
+          "frontend/src/pages/CalendarMonthPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/ChatPage.tsx",
+          "frontend/src/pages/CalendarMonthPage.tsx"
         ]
       }
     ]
@@ -52,8 +67,12 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/pages/AddAvailabilityPage.tsx",
-    "frontend/src/pages/DayDetailPage.tsx",
+    "frontend/src/components/chat/ChatPanel.tsx",
+    "frontend/src/components/chat/ImageAttachmentPicker.tsx",
+    "frontend/src/components/chat/ReplyComposer.tsx",
+    "frontend/src/components/chat/ThreadedPostTree.tsx",
+    "frontend/src/pages/CalendarMonthPage.tsx",
+    "frontend/src/pages/ChatPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

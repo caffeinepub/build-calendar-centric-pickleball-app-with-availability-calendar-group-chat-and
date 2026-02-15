@@ -17,6 +17,22 @@ export interface DayWithLog {
   'losses' : bigint,
 }
 export type ExternalBlob = Uint8Array;
+export interface Post {
+  'id' : bigint,
+  'content' : string,
+  'author' : Principal,
+  'timestamp' : bigint,
+  'image' : [] | [ExternalBlob],
+  'parentId' : [] | [bigint],
+  'likesCount' : bigint,
+  'dislikesCount' : bigint,
+}
+export interface PostWithReplies {
+  'post' : Post,
+  'replies' : Array<PostWithReplies>,
+}
+export type ReactionType = { 'like' : null } |
+  { 'dislike' : null };
 export interface T {
   'streak' : bigint,
   'wins' : bigint,
@@ -59,6 +75,8 @@ export interface _SERVICE {
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addAvailability' : ActorMethod<[bigint, string, [] | [string]], undefined>,
+  'addPost' : ActorMethod<[string, [] | [bigint], [] | [ExternalBlob]], bigint>,
+  'addReaction' : ActorMethod<[bigint, ReactionType], undefined>,
   'anyUserHasAvailability' : ActorMethod<[bigint], boolean>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'daysWithAnyAvailability' : ActorMethod<[Array<bigint>], Array<boolean>>,
@@ -83,10 +101,9 @@ export interface _SERVICE {
     Array<[Principal, Availability]>
   >,
   'getLeaderboard' : ActorMethod<[], Array<[Principal, T]>>,
-  'getRecentMessages' : ActorMethod<
-    [bigint],
-    Array<[Principal, string, bigint]>
-  >,
+  'getPostWithReplies' : ActorMethod<[bigint], [] | [PostWithReplies]>,
+  'getPosts' : ActorMethod<[bigint, bigint], Array<Post>>,
+  'getReplies' : ActorMethod<[bigint], Array<Post>>,
   'getScoreLeaderboardWithStats' : ActorMethod<
     [],
     Array<[Principal, T, bigint]>
@@ -99,8 +116,8 @@ export interface _SERVICE {
   'recordDailyLoss' : ActorMethod<[bigint], undefined>,
   'recordDailyWin' : ActorMethod<[bigint], undefined>,
   'recordLoginTime' : ActorMethod<[], undefined>,
+  'removeReaction' : ActorMethod<[bigint], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
-  'sendMessage' : ActorMethod<[string], undefined>,
   'updateCallerStats' : ActorMethod<[T], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

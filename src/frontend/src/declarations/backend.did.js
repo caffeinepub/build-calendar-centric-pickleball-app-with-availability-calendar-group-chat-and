@@ -8,6 +8,7 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const PostWithReplies = IDL.Rec();
 export const _CaffeineStorageCreateCertificateResult = IDL.Record({
   'method' : IDL.Text,
   'blob_hash' : IDL.Text,
@@ -19,12 +20,16 @@ export const _CaffeineStorageRefillResult = IDL.Record({
   'success' : IDL.Opt(IDL.Bool),
   'topped_up_amount' : IDL.Opt(IDL.Nat),
 });
+export const ExternalBlob = IDL.Vec(IDL.Nat8);
+export const ReactionType = IDL.Variant({
+  'like' : IDL.Null,
+  'dislike' : IDL.Null,
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
-export const ExternalBlob = IDL.Vec(IDL.Nat8);
 export const UserProfile = IDL.Record({
   'name' : IDL.Text,
   'customProfilePicture' : IDL.Opt(ExternalBlob),
@@ -44,6 +49,19 @@ export const T = IDL.Record({
   'losses' : IDL.Nat,
   'totalGames' : IDL.Nat,
 });
+export const Post = IDL.Record({
+  'id' : IDL.Int,
+  'content' : IDL.Text,
+  'author' : IDL.Principal,
+  'timestamp' : IDL.Int,
+  'image' : IDL.Opt(ExternalBlob),
+  'parentId' : IDL.Opt(IDL.Int),
+  'likesCount' : IDL.Nat,
+  'dislikesCount' : IDL.Nat,
+});
+PostWithReplies.fill(
+  IDL.Record({ 'post' : Post, 'replies' : IDL.Vec(PostWithReplies) })
+);
 
 export const idlService = IDL.Service({
   '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -74,6 +92,12 @@ export const idlService = IDL.Service({
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addAvailability' : IDL.Func([IDL.Int, IDL.Text, IDL.Opt(IDL.Text)], [], []),
+  'addPost' : IDL.Func(
+      [IDL.Text, IDL.Opt(IDL.Int), IDL.Opt(ExternalBlob)],
+      [IDL.Int],
+      [],
+    ),
+  'addReaction' : IDL.Func([IDL.Int, ReactionType], [], []),
   'anyUserHasAvailability' : IDL.Func([IDL.Int], [IDL.Bool], ['query']),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'daysWithAnyAvailability' : IDL.Func(
@@ -124,11 +148,13 @@ export const idlService = IDL.Service({
       [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
       ['query'],
     ),
-  'getRecentMessages' : IDL.Func(
-      [IDL.Nat],
-      [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Text, IDL.Int))],
+  'getPostWithReplies' : IDL.Func(
+      [IDL.Int],
+      [IDL.Opt(PostWithReplies)],
       ['query'],
     ),
+  'getPosts' : IDL.Func([IDL.Nat, IDL.Nat], [IDL.Vec(Post)], ['query']),
+  'getReplies' : IDL.Func([IDL.Int], [IDL.Vec(Post)], ['query']),
   'getScoreLeaderboardWithStats' : IDL.Func(
       [],
       [IDL.Vec(IDL.Tuple(IDL.Principal, T, IDL.Int))],
@@ -150,14 +176,15 @@ export const idlService = IDL.Service({
   'recordDailyLoss' : IDL.Func([IDL.Int], [], []),
   'recordDailyWin' : IDL.Func([IDL.Int], [], []),
   'recordLoginTime' : IDL.Func([], [], []),
+  'removeReaction' : IDL.Func([IDL.Int], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-  'sendMessage' : IDL.Func([IDL.Text], [], []),
   'updateCallerStats' : IDL.Func([T], [], []),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const PostWithReplies = IDL.Rec();
   const _CaffeineStorageCreateCertificateResult = IDL.Record({
     'method' : IDL.Text,
     'blob_hash' : IDL.Text,
@@ -169,12 +196,13 @@ export const idlFactory = ({ IDL }) => {
     'success' : IDL.Opt(IDL.Bool),
     'topped_up_amount' : IDL.Opt(IDL.Nat),
   });
+  const ExternalBlob = IDL.Vec(IDL.Nat8);
+  const ReactionType = IDL.Variant({ 'like' : IDL.Null, 'dislike' : IDL.Null });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
-  const ExternalBlob = IDL.Vec(IDL.Nat8);
   const UserProfile = IDL.Record({
     'name' : IDL.Text,
     'customProfilePicture' : IDL.Opt(ExternalBlob),
@@ -194,6 +222,19 @@ export const idlFactory = ({ IDL }) => {
     'losses' : IDL.Nat,
     'totalGames' : IDL.Nat,
   });
+  const Post = IDL.Record({
+    'id' : IDL.Int,
+    'content' : IDL.Text,
+    'author' : IDL.Principal,
+    'timestamp' : IDL.Int,
+    'image' : IDL.Opt(ExternalBlob),
+    'parentId' : IDL.Opt(IDL.Int),
+    'likesCount' : IDL.Nat,
+    'dislikesCount' : IDL.Nat,
+  });
+  PostWithReplies.fill(
+    IDL.Record({ 'post' : Post, 'replies' : IDL.Vec(PostWithReplies) })
+  );
   
   return IDL.Service({
     '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -228,6 +269,12 @@ export const idlFactory = ({ IDL }) => {
         [],
         [],
       ),
+    'addPost' : IDL.Func(
+        [IDL.Text, IDL.Opt(IDL.Int), IDL.Opt(ExternalBlob)],
+        [IDL.Int],
+        [],
+      ),
+    'addReaction' : IDL.Func([IDL.Int, ReactionType], [], []),
     'anyUserHasAvailability' : IDL.Func([IDL.Int], [IDL.Bool], ['query']),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'daysWithAnyAvailability' : IDL.Func(
@@ -278,11 +325,13 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
         ['query'],
       ),
-    'getRecentMessages' : IDL.Func(
-        [IDL.Nat],
-        [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Text, IDL.Int))],
+    'getPostWithReplies' : IDL.Func(
+        [IDL.Int],
+        [IDL.Opt(PostWithReplies)],
         ['query'],
       ),
+    'getPosts' : IDL.Func([IDL.Nat, IDL.Nat], [IDL.Vec(Post)], ['query']),
+    'getReplies' : IDL.Func([IDL.Int], [IDL.Vec(Post)], ['query']),
     'getScoreLeaderboardWithStats' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Principal, T, IDL.Int))],
@@ -304,8 +353,8 @@ export const idlFactory = ({ IDL }) => {
     'recordDailyLoss' : IDL.Func([IDL.Int], [], []),
     'recordDailyWin' : IDL.Func([IDL.Int], [], []),
     'recordLoginTime' : IDL.Func([], [], []),
+    'removeReaction' : IDL.Func([IDL.Int], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-    'sendMessage' : IDL.Func([IDL.Text], [], []),
     'updateCallerStats' : IDL.Func([T], [], []),
   });
 };

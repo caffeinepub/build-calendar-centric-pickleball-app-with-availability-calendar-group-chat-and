@@ -9,7 +9,7 @@ export default function ChatPage() {
         icon={<MessageSquare className="h-8 w-8 text-primary" />}
         title="Group Chat"
       />
-      <div style={{ height: 'clamp(533px, calc(100vh - 250px), 1067px)' }}>
+      <div className="flex-1 min-h-0" style={{ height: 'calc(100dvh - 250px)', minHeight: '400px', maxHeight: '1067px' }}>
         <ChatPanel />
       </div>
     </Page>

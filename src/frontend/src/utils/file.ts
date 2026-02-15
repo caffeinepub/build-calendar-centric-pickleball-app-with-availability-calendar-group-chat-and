@@ -34,3 +34,21 @@ export function getInitials(name: string): string {
     .toUpperCase()
     .slice(0, 2);
 }
+
+/**
+ * Validates if a file is an image and within size limits.
+ */
+export function validateImageFile(file: File, maxSizeMB: number = 5): { valid: boolean; error?: string } {
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+  
+  if (!validTypes.includes(file.type)) {
+    return { valid: false, error: 'Please select a valid image file (JPEG, PNG, GIF, or WebP)' };
+  }
+  
+  const maxSizeBytes = maxSizeMB * 1024 * 1024;
+  if (file.size > maxSizeBytes) {
+    return { valid: false, error: `Image must be smaller than ${maxSizeMB}MB` };
+  }
+  
+  return { valid: true };
+}

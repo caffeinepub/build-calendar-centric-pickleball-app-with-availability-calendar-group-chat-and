@@ -1,17 +1,21 @@
-import Text "mo:core/Text";
 import Map "mo:core/Map";
+import Text "mo:core/Text";
 import Array "mo:core/Array";
-import Order "mo:core/Order";
+import List "mo:core/List";
 import Time "mo:core/Time";
 import Int "mo:core/Int";
+import Order "mo:core/Order";
 import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
+import Iter "mo:core/Iter";
 
 import AccessControl "authorization/access-control";
-import MixinAuthorization "authorization/MixinAuthorization";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
+import MixinAuthorization "authorization/MixinAuthorization";
+
+
 
 actor {
   let accessControlState = AccessControl.initState();
@@ -71,48 +75,70 @@ actor {
     };
   };
 
-  module DayWithLog {
-    public type T = {
-      day : Int;
-      wins : Nat;
-      losses : Nat;
-    };
+  type DayWithLog = {
+    day : Int;
+    wins : Nat;
+    losses : Nat;
+  };
 
-    public func compareByDay(a : T, b : T) : Order.Order {
+  module DayWithLog {
+    public func compareByDay(a : DayWithLog, b : DayWithLog) : Order.Order {
       Int.compare(b.day, a.day);
     };
   };
 
-  type DayWithLog = DayWithLog.T;
+  type ReactionType = { #like; #dislike };
+
+  type Post = {
+    id : Int;
+    author : Principal;
+    content : Text;
+    timestamp : Int;
+    parentId : ?Int;
+    image : ?Storage.ExternalBlob;
+    likesCount : Nat;
+    dislikesCount : Nat;
+  };
+
+  module Post {
+    public func compareByTimestamp(a : Post, b : Post) : Order.Order {
+      Int.compare(b.timestamp, a.timestamp);
+    };
+  };
+
+  public type PostWithReplies = {
+    post : Post;
+    replies : [PostWithReplies];
+  };
 
   var loginRecords : Map.Map<Principal, Int> = Map.empty<Principal, Int>();
   let userProfiles = Map.empty<Principal, UserEntry>();
   let userStats = Map.empty<Principal, UserStats.T>();
   let availabilities = Map.empty<(Principal, Int), Availability>();
-  let chatMessages = Map.empty<Int, (Principal, Text, Int)>();
+  let posts = Map.empty<Int, Post>();
+  let reactions = Map.empty<(Principal, Int), ReactionType>();
   let dailyLogs = Map.empty<(Principal, Int), DailyLog>();
   var messageCounter : Int = 0;
 
-  // New function to check any user's availability for a day
   public query ({ caller }) func anyUserHasAvailability(day : Int) : async Bool {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view availability");
     };
+
     for (((_user, dayKey), _availability) in availabilities.entries()) {
       if (dayKey == day) { return true };
     };
     false;
   };
 
-  // New function to check which days (from given range of days) have availability from any user
   public query ({ caller }) func daysWithAnyAvailability(days : [Int]) : async [Bool] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view availability");
     };
+
     days.map(func(day) { anyUserHasAvailabilitySync(day) });
   };
 
-  // Helper function for synchronous context
   func anyUserHasAvailabilitySync(day : Int) : Bool {
     for (((_user, dayKey), _availability) in availabilities.entries()) {
       if (dayKey == day) { return true };
@@ -125,18 +151,46 @@ actor {
       Runtime.trap("Unauthorized: Only users can view their available days");
     };
 
-    let callerAvailabilities = availabilities.filter(
-      func((key, _)) { key.0 == caller }
-    ).toArray();
+    let filteredAvailabilities = availabilities.toArray().filter(
+      func(entry) { entry.0.0 == caller }
+    );
 
     let currentDay = getCurrentDay();
-    let recentDaysWithLogsArray = Array.tabulate(
-      if (callerAvailabilities.size() > 5) { 5 } else {
-        callerAvailabilities.size();
+
+    let filteredAndSortedAvailabilities = filteredAvailabilities.sort(
+      func(a, b) {
+        let dayA = a.0.1;
+        let dayB = a.0.1;
+
+        if (dayA == currentDay) {
+          switch (dayB == currentDay) {
+            case (true) { #equal };
+            case (false) { #less };
+          };
+        } else if (dayB == currentDay) {
+          #greater;
+        } else if (dayA > currentDay) {
+          if (dayB > currentDay) {
+            Int.compare(dayA, dayB);
+          } else { #less };
+        } else if (dayB > currentDay) {
+          #greater;
+        } else {
+          Int.compare(dayB, dayA);
+        };
+      }
+    );
+
+    let recentDays = filteredAndSortedAvailabilities.sliceToArray(
+      0,
+      if (filteredAndSortedAvailabilities.size() > 5) { 5 } else {
+        filteredAndSortedAvailabilities.size();
       },
-      func(i) {
-        let availability = callerAvailabilities[i];
-        let day = availability.0.1;
+    );
+
+    let recentDaysWithLogs = recentDays.map(
+      func((key, _)) {
+        let day = key.1;
         let dailyLog = switch (dailyLogs.get((caller, day))) {
           case (null) { { wins = 0; losses = 0 } };
           case (?log) { log };
@@ -147,10 +201,10 @@ actor {
           wins = dailyLog.wins;
           losses = dailyLog.losses;
         };
-      },
+      }
     );
 
-    let sortedRecentDaysWithLogs = recentDaysWithLogsArray.sort(
+    let sortedRecentDaysWithLogs = recentDaysWithLogs.sort(
       DayWithLog.compareByDay
     );
 
@@ -161,6 +215,7 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can record login time");
     };
+
     loginRecords.add(caller, Time.now());
   };
 
@@ -187,9 +242,10 @@ actor {
       Runtime.trap("Unauthorized: Only admins can delete days");
     };
 
-    let keysToRemove = availabilities.filter(
+    let keysToRemove = availabilities.entries().filter(
       func((key, _)) { key.1 == day }
     ).toArray();
+
     for ((key, _) in keysToRemove.values()) {
       availabilities.remove(key);
     };
@@ -261,6 +317,7 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view profiles");
     };
+
     switch (userProfiles.get(caller)) {
       case (null) { null };
       case (?entry) { ?entry.profile };
@@ -271,6 +328,7 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view profiles");
     };
+
     switch (userProfiles.get(user)) {
       case (null) { null };
       case (?entry) { ?entry.profile };
@@ -281,9 +339,10 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
+
     ensureUserStatsInitialized(caller);
 
-    let userEntry = {
+    let userEntry : UserEntry = {
       principal = caller;
       profile;
       createdAt = Time.now();
@@ -334,6 +393,7 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view stats");
     };
+
     userStats.get(caller);
   };
 
@@ -341,6 +401,7 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view stats");
     };
+
     userStats.get(user);
   };
 
@@ -348,6 +409,7 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can update stats");
     };
+
     userStats.add(caller, stats);
   };
 
@@ -383,7 +445,6 @@ actor {
     updateDailyLog(caller, day, false);
   };
 
-  // New function to decrement daily logs
   public shared ({ caller }) func decrementDailyLog(day : Int, isWin : Bool) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can modify daily logs");
@@ -409,7 +470,7 @@ actor {
 
     dailyLogs.add((caller, day), updatedLog);
 
-    updateOverallStats(caller); // Recalculate stats after modification
+    updateOverallStats(caller);
   };
 
   func updateDailyLog(user : Principal, day : Int, isWin : Bool) {
@@ -494,9 +555,9 @@ actor {
       Runtime.trap("Unauthorized: Only users can view availability");
     };
 
-    let filtered = availabilities.entries().filter(
+    let filtered = availabilities.entries().toArray().filter(
       func(((principal, d), _)) { d == day }
-    ).toArray();
+    );
 
     filtered.map(
       func(((principal, _), availability)) {
@@ -529,32 +590,174 @@ actor {
     availabilities.get((caller, day));
   };
 
-  public shared ({ caller }) func sendMessage(message : Text) : async () {
+  public shared ({ caller }) func addPost(
+    content : Text,
+    parentId : ?Int,
+    image : ?Storage.ExternalBlob,
+  ) : async Int {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can send messages");
+      Runtime.trap("Unauthorized: Only users can post messages");
     };
 
-    ensureUserStatsInitialized(caller);
+    let post : Post = {
+      id = messageCounter;
+      author = caller;
+      content;
+      timestamp = Time.now();
+      parentId;
+      image;
+      likesCount = 0;
+      dislikesCount = 0;
+    };
 
-    let timestamp = Time.now();
-    chatMessages.add(messageCounter, (caller, message, timestamp));
+    posts.add(messageCounter, post);
     messageCounter += 1;
+    post.id;
   };
 
-  public query ({ caller }) func getRecentMessages(limit : Nat) : async [(Principal, Text, Int)] {
+  public shared ({ caller }) func addReaction(postId : Int, reactionType : ReactionType) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view messages");
+      Runtime.trap("Unauthorized: Only users can add reactions");
     };
 
-    let allMessages = chatMessages.values().toArray();
-    let sorted = allMessages.sort(
-      func(a, b) { Int.compare(b.2, a.2) }
+    if (not posts.containsKey(postId)) {
+      Runtime.trap("Post not found");
+    };
+
+    switch (reactions.get((caller, postId))) {
+      case (null) {
+        reactions.add((caller, postId), reactionType);
+        updatePostReactionCount(postId, reactionType, true);
+      };
+      case (?existingReaction) {
+        if (existingReaction != reactionType) {
+          reactions.add((caller, postId), reactionType);
+
+          let (increaseType, decreaseType) = switch (reactionType) {
+            case (#like) { (#like, #dislike) };
+            case (#dislike) { (#dislike, #like) };
+          };
+
+          updatePostReactionCount(postId, increaseType, true);
+          updatePostReactionCount(postId, decreaseType, false);
+        };
+      };
+    };
+  };
+
+  public shared ({ caller }) func removeReaction(postId : Int) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can remove reactions");
+    };
+
+    if (not posts.containsKey(postId)) {
+      Runtime.trap("Post not found");
+    };
+
+    switch (reactions.get((caller, postId))) {
+      case (null) {
+        Runtime.trap("No reaction to remove");
+      };
+      case (?reactionType) {
+        reactions.remove((caller, postId));
+        updatePostReactionCount(postId, reactionType, false);
+      };
+    };
+  };
+
+  func updatePostReactionCount(postId : Int, reactionType : ReactionType, increase : Bool) {
+    if (not posts.containsKey(postId)) { return };
+
+    let post = switch (posts.get(postId)) {
+      case (null) {
+        Runtime.trap("Post not found");
+      };
+      case (?post) { post };
+    };
+
+    let (newLikes, newDislikes) = switch (reactionType) {
+      case (#like) {
+        let likes = if (increase) { post.likesCount + 1 } else {
+          if (post.likesCount > 0) {
+            post.likesCount - 1 : Nat;
+          } else {
+            0;
+          };
+        };
+        (likes, post.dislikesCount);
+      };
+      case (#dislike) {
+        let dislikes = if (increase) {
+          post.dislikesCount + 1;
+        } else {
+          if (post.dislikesCount > 0) {
+            post.dislikesCount - 1 : Nat;
+          } else {
+            0;
+          };
+        };
+        (post.likesCount, dislikes);
+      };
+    };
+
+    let updatedPost : Post = {
+      post with
+      likesCount = newLikes;
+      dislikesCount = newDislikes;
+    };
+    posts.add(postId, updatedPost);
+  };
+
+  public query ({ caller }) func getPosts(limit : Nat, offset : Nat) : async [Post] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view posts");
+    };
+
+    posts.values().toArray().sort(Post.compareByTimestamp).sliceToArray(
+      offset,
+      Nat.min(offset + limit, posts.size()),
+    );
+  };
+
+  public query ({ caller }) func getReplies(postId : Int) : async [Post] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view replies");
+    };
+
+    posts.values().toArray().filter(
+      func(post) {
+        switch (post.parentId) {
+          case (?parent) { parent == postId };
+          case (null) { false };
+        };
+      }
+    );
+  };
+
+  public query ({ caller }) func getPostWithReplies(postId : Int) : async ?PostWithReplies {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view full post threads");
+    };
+
+    switch (posts.get(postId)) {
+      case (null) { null };
+      case (?post) {
+        ?{ post; replies = buildReplies(postId) };
+      };
+    };
+  };
+
+  func buildReplies(parentId : Int) : [PostWithReplies] {
+    let replies = posts.values().toArray().filter(
+      func(post) {
+        switch (post.parentId) {
+          case (?parent) { parent == parentId };
+          case (null) { false };
+        };
+      }
     );
 
-    Array.tabulate(
-      if (sorted.size() < limit) { sorted.size() } else { limit },
-      func(i) { sorted[i] },
-    );
+    replies.map(func(reply) { { post = reply; replies = buildReplies(reply.id) } });
   };
 
   func calculateScore(wins : Nat, losses : Nat) : Int {
@@ -563,7 +766,9 @@ actor {
     let numerator = winsWeighted + 5 * 100;
     let denominator = (games + 10).toInt() : Int;
 
-    if (denominator == 0) { return 0 };
+    if (denominator == 0) {
+      return 0;
+    };
 
     numerator / denominator;
   };
@@ -572,3 +777,4 @@ actor {
     Time.now() / (24 * 60 * 60 * 1_000_000_000 : Int);
   };
 };
+

@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-restore-an-add-availability-button-that-is-always-visible-when-viewing-a-specific-day-s-availability-details-the-day-detail-view-reached-by-clicking-a-date-on-the-calendar-positioned-above-the-availability-list-inside-the-day-detail-content-area",
-      "featureTitle": "Restore an “Add Availability” button that is always visible when viewing a specific day’s availability details (the day detail view reached by clicking a date on the calendar), positioned above the availability list inside the day detail content area.",
+      "featureId": "feature-prevent-chat-messages-from-overflowing-outside-the-chat-panel-on-mobile-by-ensuring-the-message-list-area-scrolls-vertically-while-keeping-the-composer-message-input-buttons-visible-within-the-chat-card",
+      "featureTitle": "Prevent chat messages from overflowing outside the chat panel on mobile by ensuring the message list area scrolls vertically while keeping the composer (message input + buttons) visible within the chat card.",
       "files": [
-        "frontend/src/pages/DayDetailPage.tsx"
+        "frontend/src/components/chat/ChatPanel.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -22,11 +22,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-ensure-the-day-detail-add-availability-button-routes-to-the-existing-add-edit-availability-screen-for-the-selected-day-passing-the-currently-selected-day-as-the-date-search-parameter-so-the-form-opens-on-that-day",
-      "featureTitle": "Ensure the day detail “Add Availability” button routes to the existing add/edit availability screen for the selected day, passing the currently selected day as the date search parameter so the form opens on that day.",
+      "featureId": "feature-ensure-long-chat-message-text-wraps-onto-the-next-line-within-the-available-chat-width-including-deeply-nested-replies-without-causing-horizontal-overflow",
+      "featureTitle": "Ensure long chat message text wraps onto the next line within the available chat width (including deeply nested replies) without causing horizontal overflow.",
       "files": [
-        "frontend/src/pages/AddAvailabilityPage.tsx",
-        "frontend/src/pages/DayDetailPage.tsx"
+        "frontend/src/components/chat/ReplyComposer.tsx",
+        "frontend/src/components/chat/ThreadedPostTree.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -43,10 +43,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-show-the-day-detail-add-availability-button-even-when-the-selected-day-currently-has-no-availability-entries-the-empty-state-view",
-      "featureTitle": "Show the day detail “Add Availability” button even when the selected day currently has no availability entries (the empty-state view).",
+      "featureId": "feature-make-attached-chat-images-responsive-on-mobile-so-that-image-previews-and-posted-images-never-exceed-the-chat-panel-width-and-do-not-contribute-to-overflow",
+      "featureTitle": "Make attached chat images responsive on mobile so that image previews and posted images never exceed the chat panel width and do not contribute to overflow.",
       "files": [
-        "frontend/src/pages/DayDetailPage.tsx"
+        "frontend/src/components/chat/ImageAttachmentPicker.tsx",
+        "frontend/src/components/chat/ThreadedPostTree.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -59,6 +60,27 @@
       ],
       "testIds": [
         "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-chat-panel-containers-where-they-are-embedded-e-g-standalone-chat-page-and-calendar-month-page-so-the-chat-region-uses-a-stable-mobile-safe-height-calculation-and-does-not-cause-nested-overflow-issues-when-the-message-list-scrolls",
+      "featureTitle": "Update the chat panel containers where they are embedded (e.g., standalone Chat page and Calendar month page) so the chat region uses a stable, mobile-safe height calculation and does not cause nested overflow issues when the message list scrolls.",
+      "files": [
+        "frontend/src/pages/CalendarMonthPage.tsx",
+        "frontend/src/pages/ChatPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
       ],
       "confidence": "high"
     }

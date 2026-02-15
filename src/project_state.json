@@ -4,31 +4,39 @@
   "summary": "New project",
   "architectural_notes": [],
   "known_issues": [
-    "\"Add Availability\" button missing in calendar day popup after selecting a date (should appear above availability list)."
+    "Chat messages overflow outside the chat box on mobile when messages accumulate"
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-restore-an-add-availability-button-that-is-always-visible-when-viewing-a-specific-day-s-availability-details-the-day-detail-view-reached-by-clicking-a-date-on-the-calendar-positioned-above-the-availability-list-inside-the-day-detail-content-area",
-      "title": "Restore an “Add Availability” button that is always visible when viewing a specific day’s availability details (the day detail view reached by clicking a date on the calendar), positioned above the availability list inside the day detail content area.",
+      "id": "feature-prevent-chat-messages-from-overflowing-outside-the-chat-panel-on-mobile-by-ensuring-the-message-list-area-scrolls-vertically-while-keeping-the-composer-message-input-buttons-visible-within-the-chat-card",
+      "title": "Prevent chat messages from overflowing outside the chat panel on mobile by ensuring the message list area scrolls vertically while keeping the composer (message input + buttons) visible within the chat card.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-ensure-the-day-detail-add-availability-button-routes-to-the-existing-add-edit-availability-screen-for-the-selected-day-passing-the-currently-selected-day-as-the-date-search-parameter-so-the-form-opens-on-that-day",
-      "title": "Ensure the day detail “Add Availability” button routes to the existing add/edit availability screen for the selected day, passing the currently selected day as the date search parameter so the form opens on that day.",
+      "id": "feature-ensure-long-chat-message-text-wraps-onto-the-next-line-within-the-available-chat-width-including-deeply-nested-replies-without-causing-horizontal-overflow",
+      "title": "Ensure long chat message text wraps onto the next line within the available chat width (including deeply nested replies) without causing horizontal overflow.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-show-the-day-detail-add-availability-button-even-when-the-selected-day-currently-has-no-availability-entries-the-empty-state-view",
-      "title": "Show the day detail “Add Availability” button even when the selected day currently has no availability entries (the empty-state view).",
+      "id": "feature-make-attached-chat-images-responsive-on-mobile-so-that-image-previews-and-posted-images-never-exceed-the-chat-panel-width-and-do-not-contribute-to-overflow",
+      "title": "Make attached chat images responsive on mobile so that image previews and posted images never exceed the chat panel width and do not contribute to overflow.",
       "reqIds": [
         "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-chat-panel-containers-where-they-are-embedded-e-g-standalone-chat-page-and-calendar-month-page-so-the-chat-region-uses-a-stable-mobile-safe-height-calculation-and-does-not-cause-nested-overflow-issues-when-the-message-list-scrolls",
+      "title": "Update the chat panel containers where they are embedded (e.g., standalone Chat page and Calendar month page) so the chat region uses a stable, mobile-safe height calculation and does not cause nested overflow issues when the message list scrolls.",
+      "reqIds": [
+        "REQ-4"
       ],
       "version": 1
     }
@@ -36,12 +44,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Restore missing \"Add Availability\" button in calendar day popup (always visible above availability list)",
+      "summary": "Fix mobile chat overflow: make chat box scroll vertically and wrap long messages to next line",
       "reqIds": [],
       "status": "in_progress"
     }
   ],
-  "projectName": "Restore missing “Add Availability” button on day detail popup/page",
+  "projectName": "Fix mobile chat overflow with scrollable message list and wrapped content",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

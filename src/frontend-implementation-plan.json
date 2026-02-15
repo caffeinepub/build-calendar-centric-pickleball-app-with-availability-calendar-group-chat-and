@@ -1,57 +1,83 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Restore always-visible Add Availability button in day detail view",
+  "title": "Mobile-safe chat panel scrolling and overflow fixes",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add an always-visible “Add Availability” button above the availability list within the day detail content area.",
+      "summary": "Make the chat message list scroll vertically within the chat card on mobile while keeping the composer visible and preventing overflow.",
       "acceptanceCriteria": [
-        "When navigating to a day detail view from the calendar, an “Add Availability” button is visible without requiring any additional interactions.",
-        "The “Add Availability” button is displayed above the list of users’ availability entries within the day detail UI.",
-        "The button label is exactly “Add Availability” (English user-facing text)."
+        "On mobile-sized viewports, adding enough messages causes the chat message area to scroll vertically instead of growing beyond the chat panel bounds.",
+        "The message composer area (input, send button, attachment UI) remains accessible and does not get pushed off-screen as messages accumulate.",
+        "No horizontal scrolling is introduced in the chat panel during normal use."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/DayDetailPage.tsx",
+          "path": "frontend/src/components/chat/ChatPanel.tsx",
           "operation": "modify",
-          "description": "Restore an always-visible primary action inside the day detail CardContent: render a Link-wrapped Button labeled exactly “Add Availability” positioned above the availability list (and above the empty-state content when applicable), without modifying any files under frontend/src/components/ui."
+          "description": "Adjust the chat card layout to be a strict flex column with a constrained, vertically scrollable message region (e.g., ensure the scroll container has flex-1 + min-h-0 and hides horizontal overflow) while keeping the composer as a non-scrolling, always-visible bottom section. Use the existing shadcn/ui Card and ScrollArea components without modifying files under frontend/src/components/ui (read-only); verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Wire the day detail “Add Availability” button to navigate to the existing add/edit availability screen for the selected day via a date search parameter.",
+      "summary": "Ensure long message text (including nested replies) wraps within the chat width and never causes horizontal overflow.",
       "acceptanceCriteria": [
-        "Clicking the day detail “Add Availability” button navigates to “/add-availability” and includes the selected day as a search parameter (e.g., search.date).",
-        "On the Add/Edit Availability page, the displayed date matches the day the user clicked from the calendar.",
-        "No backend/canister changes are required for this navigation behavior."
+        "Long message content wraps naturally within the chat panel width on mobile (no text rendering outside the card).",
+        "Very long unbroken strings (e.g., long URLs) do not force horizontal overflow; they break/wrap within the message container.",
+        "Reply content exhibits the same wrapping behavior as top-level messages."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/DayDetailPage.tsx",
+          "path": "frontend/src/components/chat/ThreadedPostTree.tsx",
           "operation": "modify",
-          "description": "Ensure the restored “Add Availability” button uses TanStack Router Link to \"/add-availability\" and passes the selected day detail param as the search parameter (search: { date })."
+          "description": "Update message and reply content containers to enforce wrapping and overflow-safe text behavior (e.g., word breaking/overflow wrapping, whitespace handling, and min-width constraints on flex children) so long/unbroken strings cannot create horizontal overflow at any nesting depth."
         },
         {
-          "path": "frontend/src/pages/AddAvailabilityPage.tsx",
+          "path": "frontend/src/components/chat/ReplyComposer.tsx",
           "operation": "modify",
-          "description": "Ensure the Add/Edit Availability page reliably initializes (and, if needed, re-syncs) its selectedDate from the incoming search.date so the header/date display matches the day clicked from the calendar/day detail, without any backend changes."
+          "description": "Ensure reply composer input row layout cannot create horizontal overflow on mobile (e.g., apply min-w-0 to flex children where needed and avoid any fixed-width assumptions) while keeping all user-facing text in English."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Display the day detail “Add Availability” button even when there are zero availability entries (empty state).",
+      "summary": "Make attached images (posted and composer previews) responsive on mobile so they never exceed the chat panel width or contribute to overflow.",
       "acceptanceCriteria": [
-        "If a day has zero availability entries, the day detail screen still displays the “Add Availability” button above the empty-state message.",
-        "The empty-state message remains visible and readable, and the button remains clearly discoverable above it."
+        "Posted images scale down to fit within the chat panel on mobile (no overflow beyond the card).",
+        "Image attachment previews in the composer also scale appropriately on mobile.",
+        "Image aspect ratio is preserved and images remain viewable (no unintended cropping that hides most of the image)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/DayDetailPage.tsx",
+          "path": "frontend/src/components/chat/ThreadedPostTree.tsx",
           "operation": "modify",
-          "description": "Update the empty-state branch to render the same “Add Availability” Link/Button inside the day detail CardContent above the empty-state message, keeping the message readable and not removing existing layout structure."
+          "description": "Update posted image rendering to be responsive within the message column (e.g., max-width 100%, height auto, and overflow-safe container styles) so images always fit inside the chat panel while preserving aspect ratio."
+        },
+        {
+          "path": "frontend/src/components/chat/ImageAttachmentPicker.tsx",
+          "operation": "modify",
+          "description": "Update composer attachment preview sizing to be responsive (e.g., constrain to available width with max-width 100% and preserve aspect ratio) so previews cannot overflow the chat composer area on mobile."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Stabilize chat panel height behavior in embeddings (Chat page and Calendar month page) to avoid nested overflow and ensure message list scrolling works in both contexts on mobile.",
+      "acceptanceCriteria": [
+        "On mobile, the chat panel fits within its parent container on the Chat page and Calendar month page without content spilling outside the intended chat box.",
+        "The chat message list scroll works correctly in both embeddings (standalone chat page and calendar page)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/ChatPage.tsx",
+          "operation": "modify",
+          "description": "Replace/adjust the standalone chat container sizing to use a mobile-safe height calculation (prefer 100dvh-based sizing) and ensure the wrapper provides a proper flex/height constraint (including min-h-0 where appropriate) so ChatPanel can manage internal scrolling without nested overflow."
+        },
+        {
+          "path": "frontend/src/pages/CalendarMonthPage.tsx",
+          "operation": "modify",
+          "description": "Adjust the calendar-embedded chat container sizing to use a mobile-safe height calculation (prefer 100dvh-based sizing) and ensure the wrapper provides a proper height constraint (including min-h-0 where appropriate) so the ChatPanel message list scroll works without causing overflow within the page."
         }
       ]
     }
