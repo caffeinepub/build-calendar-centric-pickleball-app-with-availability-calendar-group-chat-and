@@ -1,28 +1,58 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T22:51:52.271Z",
-  "summary": "Diff implements mobile-safe chat layout: ChatPanel is now a flex column card with an internal ScrollArea for messages (min-h-0/overflow-hidden) and a fixed composer section; message text uses wrapping/break utilities; attached images and image previews are constrained to max width; ChatPage and CalendarMonthPage wrap ChatPanel in 100dvh-based height containers to avoid nested overflow.",
-  "missing_requirements": [],
-  "hallucinated_features": [
+  "generatedAt": "2026-02-16T21:27:54.077Z",
+  "summary": "The diff does not provide clear evidence that the backend now exposes an unlimited “caller availability days” query for the Leaderboard, nor that the frontend Leaderboard dropdown was switched to that corrected data source. The frontend hook shown still appears to rely on `getCallerAvailableDaysWithLogs`, and there’s no visible evidence of the comparator bug fix inside that backend function due to truncation.",
+  "missing_requirements": [
     {
-      "description": "Upload progress UI and progress-tracking state for image uploads (\"Uploading: {uploadProgress}%\") added to the main composer and reply composer.",
-      "reason": "BuildRequest focuses on overflow/scrolling/wrapping/responsive images and container height; it explicitly lists non-goals as not adding new chat features. Upload progress feedback is a new UX feature not requested.",
+      "id": "REQ-1",
+      "requirement": "Fix/introduce a backend query that returns all availability day IDs for the caller (including future dates) with no artificial cap (e.g., 5-day limit), for the Leaderboard date selector.",
+      "reason": "In the provided backend diff excerpt there is no visible new/updated query specifically returning all caller availability days without limits, and the frontend hook still calls `actor.getCallerAvailableDaysWithLogs()` rather than a dedicated unlimited day-id query. Because `backend/main.mo` is truncated, this requirement cannot be confirmed as implemented.",
       "evidence": [
-        "frontend/src/components/chat/ChatPanel.tsx",
-        "frontend/src/components/chat/ReplyComposer.tsx"
+        "backend/main.mo (truncated)",
+        "frontend/src/hooks/useQueries.ts (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Update the Leaderboard page to use the corrected caller-available-days data source so the date dropdown populates whenever the user has saved availability; show the warning only when there are truly zero availability days; selecting a day enables Win/Loss +/- and uses that selected day in existing mutations.",
+      "reason": "`LeaderboardPage.tsx` uses `useGetCallerAvailableDays()`, but the hook implementation shown still fetches from `actor.getCallerAvailableDaysWithLogs()` (not a corrected/unlimited “caller available days” source). The diff excerpt does not show the dropdown rendering logic/warning logic changes that ensure SelectItems appear when availability exists (file is truncated).",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts (truncated)",
+        "frontend/src/pages/LeaderboardPage.tsx (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Fix sorting/logic/comparator issues in `getCallerAvailableDaysWithLogs` so it deterministically orders results and does not self-reference elements when comparing (dayB bug).",
+      "reason": "The diff does not include the implementation of `getCallerAvailableDaysWithLogs` or its comparator logic (backend file is truncated), so there is no evidence that the specific comparator self-reference bug was corrected or that ordering is stable/predictable.",
+      "evidence": [
+        "backend/main.mo (truncated)"
       ]
     }
   ],
-  "confidence": 0.74,
+  "hallucinated_features": [
+    {
+      "description": "Added/modified Leaderboard rank-change toast notifications (e.g., toasting when the user moves up in rank).",
+      "reason": "Not requested by any requirement; the BuildRequest is narrowly scoped to fixing the date selector regression and backend sorting determinism.",
+      "evidence": [
+        "frontend/src/pages/LeaderboardPage.tsx (truncated)"
+      ]
+    },
+    {
+      "description": "New backend query `getAllDayAvailabilityCounts` returning counts per day across all users.",
+      "reason": "Not part of the requested fix for the Leaderboard caller date selector regression (which is about caller-specific available days), and not mentioned in the BuildRequest.",
+      "evidence": [
+        "backend/main.mo (truncated)"
+      ]
+    }
+  ],
+  "confidence": 0.62,
   "changed_files": [
+    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/chat/ChatPanel.tsx",
-    "frontend/src/components/chat/ImageAttachmentPicker.tsx",
-    "frontend/src/components/chat/ReplyComposer.tsx",
-    "frontend/src/components/chat/ThreadedPostTree.tsx",
-    "frontend/src/pages/CalendarMonthPage.tsx",
-    "frontend/src/pages/ChatPage.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/LeaderboardPage.tsx",
     "project_state.json"
   ]
 }

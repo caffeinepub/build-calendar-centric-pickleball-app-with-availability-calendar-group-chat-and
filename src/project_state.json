@@ -4,39 +4,15 @@
   "summary": "New project",
   "architectural_notes": [],
   "known_issues": [
-    "Chat messages overflow outside the chat box on mobile when messages accumulate"
+    "Regression: Leaderboard tab 'Select a date to record results' shows no selectable dates and incorrectly displays 'You must add availability on the Calendar page...' even when availability exists; previously worked prior to latest update. Expected: allow selecting any date with availability."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-prevent-chat-messages-from-overflowing-outside-the-chat-panel-on-mobile-by-ensuring-the-message-list-area-scrolls-vertically-while-keeping-the-composer-message-input-buttons-visible-within-the-chat-card",
-      "title": "Prevent chat messages from overflowing outside the chat panel on mobile by ensuring the message list area scrolls vertically while keeping the composer (message input + buttons) visible within the chat card.",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-ensure-long-chat-message-text-wraps-onto-the-next-line-within-the-available-chat-width-including-deeply-nested-replies-without-causing-horizontal-overflow",
-      "title": "Ensure long chat message text wraps onto the next line within the available chat width (including deeply nested replies) without causing horizontal overflow.",
+      "id": "feature-update-the-frontend-leaderboard-page-to-use-the-corrected-caller-available-days-data-source-so-the-date-dropdown-shows-selectable-dates-whenever-the-user-has-added-availability-on-the-calendar-page",
+      "title": "Update the frontend Leaderboard page to use the corrected “caller available days” data source so the date dropdown shows selectable dates whenever the user has added availability on the Calendar page.",
       "reqIds": [
         "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-make-attached-chat-images-responsive-on-mobile-so-that-image-previews-and-posted-images-never-exceed-the-chat-panel-width-and-do-not-contribute-to-overflow",
-      "title": "Make attached chat images responsive on mobile so that image previews and posted images never exceed the chat panel width and do not contribute to overflow.",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-update-the-chat-panel-containers-where-they-are-embedded-e-g-standalone-chat-page-and-calendar-month-page-so-the-chat-region-uses-a-stable-mobile-safe-height-calculation-and-does-not-cause-nested-overflow-issues-when-the-message-list-scrolls",
-      "title": "Update the chat panel containers where they are embedded (e.g., standalone Chat page and Calendar month page) so the chat region uses a stable, mobile-safe height calculation and does not cause nested overflow issues when the message list scrolls.",
-      "reqIds": [
-        "REQ-4"
       ],
       "version": 1
     }
@@ -44,12 +20,22 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Fix mobile chat overflow: make chat box scroll vertically and wrap long messages to next line",
-      "reqIds": [],
-      "status": "in_progress"
+      "summary": "Fix the backend query used to populate the Leaderboard “Select a date to record results” dropdown so it returns all availability days for the caller (including future dates), not a limited/past-only subset.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Correct any backend sorting/logic issues in the existing getCallerAvailableDaysWithLogs implementation so it behaves deterministically and does not contain comparator bugs (even if it remains used for match history).",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "status": "pending"
     }
   ],
-  "projectName": "Fix mobile chat overflow with scrollable message list and wrapped content",
+  "projectName": "Somers Scheduler",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

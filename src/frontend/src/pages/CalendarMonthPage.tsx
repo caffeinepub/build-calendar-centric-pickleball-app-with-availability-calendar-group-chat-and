@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { ChevronLeft, ChevronRight, Plus, Calendar } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { useDaysWithAnyAvailability } from '../hooks/useQueries';
+import { useGetAllDayAvailabilityCounts } from '../hooks/useQueries';
 import { getDayId, getMonthGridDays, formatMonthYear, isToday } from '../lib/date';
 import ChatPanel from '../components/chat/ChatPanel';
 import { Page, PageHeader } from '../components/layout/PageLayout';
@@ -15,8 +15,7 @@ export default function CalendarMonthPage() {
 
   const gridDays = getMonthGridDays(year, month);
   
-  const dayIds = useMemo(() => gridDays.map(date => getDayId(date)), [gridDays]);
-  const { data: availabilityMap } = useDaysWithAnyAvailability(dayIds);
+  const { data: countsMap } = useGetAllDayAvailabilityCounts();
 
   const goToPreviousMonth = () => {
     setCurrentDate(new Date(year, month - 1, 1));
@@ -63,7 +62,7 @@ export default function CalendarMonthPage() {
             {gridDays.map((date, index) => {
               const isCurrentMonth = date.getMonth() === month;
               const dayId = getDayId(date);
-              const hasAvailability = availabilityMap?.get(dayId.toString()) ?? false;
+              const count = countsMap?.get(dayId.toString()) ?? 0;
               
               return (
                 <DayCell
@@ -71,7 +70,7 @@ export default function CalendarMonthPage() {
                   date={date}
                   dayId={dayId}
                   isCurrentMonth={isCurrentMonth}
-                  hasAvailability={hasAvailability}
+                  count={count}
                 />
               );
             })}
@@ -79,14 +78,14 @@ export default function CalendarMonthPage() {
         </CardContent>
       </Card>
 
-      <div className="flex-1 min-h-0" style={{ height: 'calc(100dvh - 700px)', minHeight: '300px', maxHeight: '667px' }}>
+      <div className="flex-1 min-h-0" style={{ height: 'calc(100dvh - 400px)', minHeight: '600px', maxHeight: '1334px' }}>
         <ChatPanel />
       </div>
     </Page>
   );
 }
 
-function DayCell({ date, dayId, isCurrentMonth, hasAvailability }: { date: Date; dayId: bigint; isCurrentMonth: boolean; hasAvailability: boolean }) {
+function DayCell({ date, dayId, isCurrentMonth, count }: { date: Date; dayId: bigint; isCurrentMonth: boolean; count: number }) {
   const today = isToday(date);
 
   return (
@@ -102,16 +101,20 @@ function DayCell({ date, dayId, isCurrentMonth, hasAvailability }: { date: Date;
           min-h-[60px] sm:min-h-[70px] md:min-h-[80px]
           px-2 py-2
           ${isCurrentMonth ? 'bg-card' : 'bg-muted/30'}
-          ${hasAvailability ? 'bg-primary/5' : ''}
+          ${count > 0 ? 'bg-primary/5' : ''}
           ${today ? 'border-primary border-2' : ''}
         `}
       >
         <div className={`text-sm sm:text-base font-medium ${isCurrentMonth ? 'text-foreground' : 'text-muted-foreground'}`}>
           {date.getDate()}
         </div>
-        <div className="h-2 flex items-center justify-center">
-          {hasAvailability && (
-            <div className="h-2 w-2 rounded-full bg-primary" />
+        <div className="h-5 flex items-center justify-center">
+          {count > 0 && (
+            <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+              <span className="text-[10px] font-semibold text-primary-foreground">
+                {count}
+              </span>
+            </div>
           )}
         </div>
       </div>

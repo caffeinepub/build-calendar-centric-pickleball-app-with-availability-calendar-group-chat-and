@@ -43,6 +43,10 @@ export interface DayWithLog {
     wins: bigint;
     losses: bigint;
 }
+export interface DayAvailabilityCount {
+    day: bigint;
+    count: bigint;
+}
 export interface UserProfile {
     name: string;
     customProfilePicture?: ExternalBlob;
@@ -69,6 +73,7 @@ export interface backendInterface {
     deleteUser(userToDelete: Principal): Promise<void>;
     deleteUserDayAvailability(user: Principal, day: bigint): Promise<void>;
     getAllAvailabilities(): Promise<Array<[Principal, bigint, string]>>;
+    getAllDayAvailabilityCounts(): Promise<Array<DayAvailabilityCount>>;
     getAllLoginTimestamps(): Promise<Array<[Principal, bigint]>>;
     getAllRegisteredUsers(): Promise<Array<[Principal, UserProfile, bigint]>>;
     getCallerAvailability(day: bigint): Promise<Availability | null>;

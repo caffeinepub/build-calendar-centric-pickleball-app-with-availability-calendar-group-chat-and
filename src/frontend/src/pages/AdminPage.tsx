@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../components/ui/alert-dialog';
-import { useGetAllRegisteredUsers, useGetAllAvailabilities, useDeleteUser, useDeleteUserDayAvailability } from '../hooks/useQueries';
+import { useGetAllRegisteredUsers, useGetAllAvailabilities, useGetAllLoginTimestamps, useDeleteUser, useDeleteUserDayAvailability } from '../hooks/useQueries';
 import { useIsCallerAdmin } from '../hooks/useCurrentUserRole';
 import { formatDateTime, formatDayId } from '../lib/date';
 import { toast } from 'sonner';
@@ -23,71 +23,20 @@ import { InlineLoading } from '../components/common/LoadingState';
 import type { Principal } from '@dfinity/principal';
 
 export default function AdminPage() {
-  const { data: isAdmin, isLoading: isLoadingRole } = useIsCallerAdmin();
-  const { data: users = [], isLoading: isLoadingUsers } = useGetAllRegisteredUsers();
-  const { data: availabilities = [], isLoading: isLoadingAvailabilities } = useGetAllAvailabilities();
-  const { mutate: deleteUser, isPending: isDeletingUser } = useDeleteUser();
-  const { mutate: deleteAvailability, isPending: isDeletingAvailability } = useDeleteUserDayAvailability();
+  const { data: isAdmin, isLoading: isAdminLoading } = useIsCallerAdmin();
+  const { data: users = [], isLoading: usersLoading } = useGetAllRegisteredUsers();
+  const { data: availabilities = [], isLoading: availabilitiesLoading } = useGetAllAvailabilities();
+  const { data: loginTimestamps } = useGetAllLoginTimestamps();
+  const deleteUserMutation = useDeleteUser();
+  const deleteAvailabilityMutation = useDeleteUserDayAvailability();
 
-  const [deleteUserDialog, setDeleteUserDialog] = useState<{ open: boolean; principal: Principal | null }>({
-    open: false,
-    principal: null,
-  });
-  const [deleteAvailabilityDialog, setDeleteAvailabilityDialog] = useState<{
-    open: boolean;
-    principal: Principal | null;
-    day: bigint | null;
-  }>({
-    open: false,
-    principal: null,
-    day: null,
-  });
+  const [userToDelete, setUserToDelete] = useState<Principal | null>(null);
+  const [availabilityToDelete, setAvailabilityToDelete] = useState<{ user: Principal; day: bigint } | null>(null);
 
-  const handleDeleteUser = () => {
-    if (!deleteUserDialog.principal) return;
-
-    deleteUser(deleteUserDialog.principal, {
-      onSuccess: () => {
-        toast.success('User deleted successfully');
-        setDeleteUserDialog({ open: false, principal: null });
-      },
-      onError: (error: any) => {
-        toast.error(error?.message || 'Failed to delete user');
-        setDeleteUserDialog({ open: false, principal: null });
-      },
-    });
-  };
-
-  const handleDeleteAvailability = () => {
-    if (!deleteAvailabilityDialog.principal || !deleteAvailabilityDialog.day) return;
-
-    deleteAvailability(
-      { user: deleteAvailabilityDialog.principal, day: deleteAvailabilityDialog.day },
-      {
-        onSuccess: () => {
-          toast.success('Availability deleted successfully');
-          setDeleteAvailabilityDialog({ open: false, principal: null, day: null });
-        },
-        onError: (error: any) => {
-          toast.error(error?.message || 'Failed to delete availability');
-          setDeleteAvailabilityDialog({ open: false, principal: null, day: null });
-        },
-      }
-    );
-  };
-
-  if (isLoadingRole) {
+  if (isAdminLoading) {
     return (
       <Page>
-        <PageHeader
-          icon={<Shield className="h-8 w-8 text-primary" />}
-          title="Admin Panel"
-        />
-        <Card>
-          <CardContent className="py-12">
-            <InlineLoading message="Checking permissions..." />
-          </CardContent>
-        </Card>
+        <InlineLoading message="Checking permissions..." />
       </Page>
     );
   }
@@ -95,6 +44,30 @@ export default function AdminPage() {
   if (!isAdmin) {
     return <AccessDeniedScreen />;
   }
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      await deleteUserMutation.mutateAsync(userToDelete);
+      toast.success('User deleted successfully');
+      setUserToDelete(null);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete user');
+    }
+  };
+
+  const handleDeleteAvailability = async () => {
+    if (!availabilityToDelete) return;
+
+    try {
+      await deleteAvailabilityMutation.mutateAsync(availabilityToDelete);
+      toast.success('Availability deleted successfully');
+      setAvailabilityToDelete(null);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete availability');
+    }
+  };
 
   return (
     <Page>
@@ -106,45 +79,56 @@ export default function AdminPage() {
       <Card>
         <CardHeader>
           <CardTitle>Registered Users</CardTitle>
-          <CardDescription>All users who have created profiles</CardDescription>
+          <CardDescription>Manage all registered users</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoadingUsers ? (
-            <InlineLoading message="Loading users..." size="sm" />
+          {usersLoading ? (
+            <InlineLoading message="Loading users..." />
           ) : users.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No registered users yet</p>
+            <p className="text-muted-foreground text-center py-8">No registered users yet</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Principal</TableHead>
-                  <TableHead>Created At</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map(([principal, profile, createdAt]) => (
-                  <TableRow key={principal.toString()}>
-                    <TableCell className="font-medium">{profile.name}</TableCell>
-                    <TableCell className="font-mono text-xs">{principal.toString().slice(0, 20)}...</TableCell>
-                    <TableCell>{formatDateTime(createdAt)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteUserDialog({ open: true, principal })}
-                        disabled={isDeletingUser}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </Button>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Principal</TableHead>
+                    <TableHead>Registered</TableHead>
+                    <TableHead>Last Login</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {users.map(([principal, profile, createdAt]) => {
+                    const lastLogin = loginTimestamps?.get(principal.toString());
+                    return (
+                      <TableRow key={principal.toString()}>
+                        <TableCell className="font-medium">{profile.name}</TableCell>
+                        <TableCell className="font-mono text-xs max-w-[200px] truncate">
+                          {principal.toString()}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {formatDateTime(createdAt)}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {lastLogin ? formatDateTime(lastLogin) : '—'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setUserToDelete(principal)}
+                            disabled={deleteUserMutation.isPending}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -152,70 +136,69 @@ export default function AdminPage() {
       <Card>
         <CardHeader>
           <CardTitle>All Availabilities</CardTitle>
-          <CardDescription>All availability entries across all users</CardDescription>
+          <CardDescription>Manage all user availabilities</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoadingAvailabilities ? (
-            <InlineLoading message="Loading availabilities..." size="sm" />
+          {availabilitiesLoading ? (
+            <InlineLoading message="Loading availabilities..." />
           ) : availabilities.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No availabilities yet</p>
+            <p className="text-muted-foreground text-center py-8">No availabilities yet</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Principal</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {availabilities.map(([principal, day, time]) => (
-                  <TableRow key={`${principal.toString()}-${day.toString()}`}>
-                    <TableCell className="font-mono text-xs">{principal.toString().slice(0, 20)}...</TableCell>
-                    <TableCell>{formatDayId(day)}</TableCell>
-                    <TableCell>{time}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteAvailabilityDialog({ open: true, principal, day })}
-                        disabled={isDeletingAvailability}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </Button>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Day</TableHead>
+                    <TableHead>Time</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {availabilities.map(([principal, day, time]) => (
+                    <TableRow key={`${principal.toString()}-${day.toString()}`}>
+                      <TableCell className="font-mono text-xs max-w-[200px] truncate">
+                        {principal.toString()}
+                      </TableCell>
+                      <TableCell className="text-sm">{formatDayId(day)}</TableCell>
+                      <TableCell className="text-sm">{time}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setAvailabilityToDelete({ user: principal, day })}
+                          disabled={deleteAvailabilityMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      <AlertDialog open={deleteUserDialog.open} onOpenChange={(open) => setDeleteUserDialog({ open, principal: null })}>
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this user? This will remove their profile, stats, and all availabilities. This action cannot be undone.
+              Are you sure you want to delete this user? This will remove all their data including availabilities and stats. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteUser} disabled={isDeletingUser}>
-              {isDeletingUser ? 'Deleting...' : 'Delete'}
+            <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog
-        open={deleteAvailabilityDialog.open}
-        onOpenChange={(open) => setDeleteAvailabilityDialog({ open, principal: null, day: null })}
-      >
+      <AlertDialog open={!!availabilityToDelete} onOpenChange={(open) => !open && setAvailabilityToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Availability</AlertDialogTitle>
@@ -225,8 +208,8 @@ export default function AdminPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteAvailability} disabled={isDeletingAvailability}>
-              {isDeletingAvailability ? 'Deleting...' : 'Delete'}
+            <AlertDialogAction onClick={handleDeleteAvailability} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

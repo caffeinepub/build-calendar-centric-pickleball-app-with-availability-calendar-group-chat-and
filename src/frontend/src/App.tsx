@@ -37,7 +37,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
   const isAuthenticated = !!identity;
 
-  // Initialize leaderboard stats after successful login and actor readiness
+  // Initialize leaderboard stats and record login time after successful login and actor readiness
   useEffect(() => {
     if (isAuthenticated && actor && !actorFetching && !hasInitialized.current) {
       hasInitialized.current = true;

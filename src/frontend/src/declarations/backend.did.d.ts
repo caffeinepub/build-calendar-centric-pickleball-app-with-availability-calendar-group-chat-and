@@ -11,6 +11,7 @@ import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export interface Availability { 'time' : string, 'notes' : [] | [string] }
+export interface DayAvailabilityCount { 'day' : bigint, 'count' : bigint }
 export interface DayWithLog {
   'day' : bigint,
   'wins' : bigint,
@@ -86,6 +87,7 @@ export interface _SERVICE {
   'deleteUser' : ActorMethod<[Principal], undefined>,
   'deleteUserDayAvailability' : ActorMethod<[Principal, bigint], undefined>,
   'getAllAvailabilities' : ActorMethod<[], Array<[Principal, bigint, string]>>,
+  'getAllDayAvailabilityCounts' : ActorMethod<[], Array<DayAvailabilityCount>>,
   'getAllLoginTimestamps' : ActorMethod<[], Array<[Principal, bigint]>>,
   'getAllRegisteredUsers' : ActorMethod<
     [],

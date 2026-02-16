@@ -30,6 +30,10 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const DayAvailabilityCount = IDL.Record({
+  'day' : IDL.Int,
+  'count' : IDL.Nat,
+});
 export const UserProfile = IDL.Record({
   'name' : IDL.Text,
   'customProfilePicture' : IDL.Opt(ExternalBlob),
@@ -113,6 +117,11 @@ export const idlService = IDL.Service({
   'getAllAvailabilities' : IDL.Func(
       [],
       [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Int, IDL.Text))],
+      ['query'],
+    ),
+  'getAllDayAvailabilityCounts' : IDL.Func(
+      [],
+      [IDL.Vec(DayAvailabilityCount)],
       ['query'],
     ),
   'getAllLoginTimestamps' : IDL.Func(
@@ -203,6 +212,10 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const DayAvailabilityCount = IDL.Record({
+    'day' : IDL.Int,
+    'count' : IDL.Nat,
+  });
   const UserProfile = IDL.Record({
     'name' : IDL.Text,
     'customProfilePicture' : IDL.Opt(ExternalBlob),
@@ -290,6 +303,11 @@ export const idlFactory = ({ IDL }) => {
     'getAllAvailabilities' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Int, IDL.Text))],
+        ['query'],
+      ),
+    'getAllDayAvailabilityCounts' : IDL.Func(
+        [],
+        [IDL.Vec(DayAvailabilityCount)],
         ['query'],
       ),
     'getAllLoginTimestamps' : IDL.Func(

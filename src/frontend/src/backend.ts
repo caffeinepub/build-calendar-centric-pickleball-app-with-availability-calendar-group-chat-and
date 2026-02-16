@@ -129,6 +129,10 @@ export interface _CaffeineStorageCreateCertificateResult {
     method: string;
     blob_hash: string;
 }
+export interface DayAvailabilityCount {
+    day: bigint;
+    count: bigint;
+}
 export interface UserProfile {
     name: string;
     customProfilePicture?: ExternalBlob;
@@ -162,6 +166,7 @@ export interface backendInterface {
     deleteUser(userToDelete: Principal): Promise<void>;
     deleteUserDayAvailability(user: Principal, day: bigint): Promise<void>;
     getAllAvailabilities(): Promise<Array<[Principal, bigint, string]>>;
+    getAllDayAvailabilityCounts(): Promise<Array<DayAvailabilityCount>>;
     getAllLoginTimestamps(): Promise<Array<[Principal, bigint]>>;
     getAllRegisteredUsers(): Promise<Array<[Principal, UserProfile, bigint]>>;
     getCallerAvailability(day: bigint): Promise<Availability | null>;
@@ -453,6 +458,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getAllAvailabilities();
+            return result;
+        }
+    }
+    async getAllDayAvailabilityCounts(): Promise<Array<DayAvailabilityCount>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllDayAvailabilityCounts();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllDayAvailabilityCounts();
             return result;
         }
     }

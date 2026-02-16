@@ -2,31 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-prevent-chat-messages-from-overflowing-outside-the-chat-panel-on-mobile-by-ensuring-the-message-list-area-scrolls-vertically-while-keeping-the-composer-message-input-buttons-visible-within-the-chat-card",
-      "featureTitle": "Prevent chat messages from overflowing outside the chat panel on mobile by ensuring the message list area scrolls vertically while keeping the composer (message input + buttons) visible within the chat card.",
+      "featureId": "feature-update-the-frontend-leaderboard-page-to-use-the-corrected-caller-available-days-data-source-so-the-date-dropdown-shows-selectable-dates-whenever-the-user-has-added-availability-on-the-calendar-page",
+      "featureTitle": "Update the frontend Leaderboard page to use the corrected “caller available days” data source so the date dropdown shows selectable dates whenever the user has added availability on the Calendar page.",
       "files": [
-        "frontend/src/components/chat/ChatPanel.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "blob-storage@4.0.0"
-      ],
-      "testIds": [
-        "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-ensure-long-chat-message-text-wraps-onto-the-next-line-within-the-available-chat-width-including-deeply-nested-replies-without-causing-horizontal-overflow",
-      "featureTitle": "Ensure long chat message text wraps onto the next line within the available chat width (including deeply nested replies) without causing horizontal overflow.",
-      "files": [
-        "frontend/src/components/chat/ReplyComposer.tsx",
-        "frontend/src/components/chat/ThreadedPostTree.tsx"
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/LeaderboardPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -39,48 +19,6 @@
       ],
       "testIds": [
         "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-make-attached-chat-images-responsive-on-mobile-so-that-image-previews-and-posted-images-never-exceed-the-chat-panel-width-and-do-not-contribute-to-overflow",
-      "featureTitle": "Make attached chat images responsive on mobile so that image previews and posted images never exceed the chat panel width and do not contribute to overflow.",
-      "files": [
-        "frontend/src/components/chat/ImageAttachmentPicker.tsx",
-        "frontend/src/components/chat/ThreadedPostTree.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "blob-storage@4.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-update-the-chat-panel-containers-where-they-are-embedded-e-g-standalone-chat-page-and-calendar-month-page-so-the-chat-region-uses-a-stable-mobile-safe-height-calculation-and-does-not-cause-nested-overflow-issues-when-the-message-list-scrolls",
-      "featureTitle": "Update the chat panel containers where they are embedded (e.g., standalone Chat page and Calendar month page) so the chat region uses a stable, mobile-safe height calculation and does not cause nested overflow issues when the message list scrolls.",
-      "files": [
-        "frontend/src/pages/CalendarMonthPage.tsx",
-        "frontend/src/pages/ChatPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "blob-storage@4.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
       ],
       "confidence": "high"
     }

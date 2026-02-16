@@ -1,110 +1,80 @@
 {
   "kind": "build_request",
-  "title": "Fix mobile chat overflow with scrollable message list and wrapped content",
-  "priority": "normal",
+  "title": "Fix Leaderboard date selector regression (availability days not showing)",
+  "projectName": "Somers Scheduler",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Prevent chat messages from overflowing outside the chat panel on mobile by ensuring the message list area scrolls vertically while keeping the composer (message input + buttons) visible within the chat card.",
-      "target": "frontend",
+      "text": "Fix the backend query used to populate the Leaderboard “Select a date to record results” dropdown so it returns all availability days for the caller (including future dates), not a limited/past-only subset.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-3",
-          "msg-7",
-          "msg-9"
+          "msg-6",
+          "msg-8"
         ],
         "quotes": [
-          "when the messages and reply start to accumulate in chat the messages go outside the chat box",
-          "1)scroll vertically",
-          "Build"
+          "there were no dates to even select on the leaderboard tab in the section that says \"select a date to record results\"",
+          "allow selecting of any date"
         ]
       },
       "acceptanceCriteria": [
-        "On mobile-sized viewports, adding enough messages causes the chat message area to scroll vertically instead of growing beyond the chat panel bounds.",
-        "The message composer area (input, send button, attachment UI) remains accessible and does not get pushed off-screen as messages accumulate.",
-        "No horizontal scrolling is introduced in the chat panel during normal use."
+        "A new or updated backend query returns every day (day ID) for which the caller has an availability entry.",
+        "Returned days include future dates if the caller has availability for them.",
+        "The query does not cap results to 5 days (no artificial limit for the Leaderboard use-case).",
+        "No state migration is required."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Ensure long chat message text wraps onto the next line within the available chat width (including deeply nested replies) without causing horizontal overflow.",
+      "text": "Update the frontend Leaderboard page to use the corrected “caller available days” data source so the date dropdown shows selectable dates whenever the user has added availability on the Calendar page.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-8",
-          "msg-9"
+          "msg-5",
+          "msg-6"
         ],
         "quotes": [
-          "2)continue to next line",
-          "Build"
+          "im unable to select a date in the leaderboard tab to record results. Im getting the following message even though i already added an availability on the calendar page. \"You must add availability on the Calendar page before you can record wins or losses.\"",
+          "there were no dates to even select on the leaderboard tab in the section that says \"select a date to record results\""
         ]
       },
       "acceptanceCriteria": [
-        "Long message content wraps naturally within the chat panel width on mobile (no text rendering outside the card).",
-        "Very long unbroken strings (e.g., long URLs) do not force horizontal overflow; they break/wrap within the message container.",
-        "Reply content exhibits the same wrapping behavior as top-level messages."
+        "When the caller has at least one availability saved, the Leaderboard dropdown renders at least one SelectItem (no empty list).",
+        "The warning text “You must add availability on the Calendar page before you can record wins or losses.” is shown only when the caller truly has zero availability days.",
+        "Selecting any available day enables the Win/Loss +/- buttons and calls the existing record/remove mutations with that selected day."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Make attached chat images responsive on mobile so that image previews and posted images never exceed the chat panel width and do not contribute to overflow.",
-      "target": "frontend",
+      "text": "Correct any backend sorting/logic issues in the existing getCallerAvailableDaysWithLogs implementation so it behaves deterministically and does not contain comparator bugs (even if it remains used for match history).",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-3",
-          "msg-9"
+          "msg-5"
         ],
         "quotes": [
-          "when the messages and reply start to accumulate in chat the messages go outside the chat box",
-          "Build"
+          "This was working correctly prior to the latest update"
         ]
       },
       "acceptanceCriteria": [
-        "Posted images scale down to fit within the chat panel on mobile (no overflow beyond the card).",
-        "Image attachment previews in the composer also scale appropriately on mobile.",
-        "Image aspect ratio is preserved and images remain viewable (no unintended cropping that hides most of the image)."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Update the chat panel containers where they are embedded (e.g., standalone Chat page and Calendar month page) so the chat region uses a stable, mobile-safe height calculation and does not cause nested overflow issues when the message list scrolls.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-8",
-          "msg-9"
-        ],
-        "quotes": [
-          "3)I only tested on mobile",
-          "Build"
-        ]
-      },
-      "acceptanceCriteria": [
-        "On mobile, the chat panel fits within its parent container on the Chat page and Calendar month page without content spilling outside the intended chat box.",
-        "The chat message list scroll works correctly in both embeddings (standalone chat page and calendar page)."
+        "The availability sorting comparator in getCallerAvailableDaysWithLogs correctly references both compared elements (no self-references when reading dayB).",
+        "The function produces stable, predictable ordering for its returned results."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/components/ui (read-only components must be composed, not modified).",
-    "Keep all user-facing text in English."
+    "Backend must remain a single Motoko actor in backend/main.mo.",
+    "Do not edit files under frontend/src/components/ui or any other frontend immutable paths listed in SYSTEM_CONTEXT.",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Do not add new chat features (e.g., typing indicators, real-time updates, new reaction types).",
-    "Do not change backend data models or Motoko canister logic for this fix."
+    "Do not add new authentication providers (Internet Identity remains the only auth).",
+    "Do not change leaderboard scoring, rank calculation, or win/loss recording rules beyond fixing the availability-day selection regression.",
+    "Do not implement real-time updates (no websockets)."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

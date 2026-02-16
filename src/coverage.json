@@ -1,78 +1,53 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T22:51:52.274Z",
+  "generatedAt": "2026-02-16T21:27:54.080Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 4,
+    "total": 3,
+    "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Prevent chat messages from overflowing outside the chat panel on mobile by ensuring the message list area scrolls vertically while keeping the composer (message input + buttons) visible within the chat card.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/chat/ChatPanel.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/chat/ChatPanel.tsx"
-        ]
+        "summary": "Fix the backend query used to populate the Leaderboard “Select a date to record results” dropdown so it returns all availability days for the caller (including future dates), not a limited/past-only subset.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Ensure long chat message text wraps onto the next line within the available chat width (including deeply nested replies) without causing horizontal overflow.",
+        "summary": "Update the frontend Leaderboard page to use the corrected “caller available days” data source so the date dropdown shows selectable dates whenever the user has added availability on the Calendar page.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/chat/ThreadedPostTree.tsx",
-          "frontend/src/components/chat/ReplyComposer.tsx"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/LeaderboardPage.tsx",
+          "frontend/src/backend.d.ts"
         ],
         "matchedFiles": [
-          "frontend/src/components/chat/ThreadedPostTree.tsx",
-          "frontend/src/components/chat/ReplyComposer.tsx"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/LeaderboardPage.tsx"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Make attached chat images responsive on mobile so that image previews and posted images never exceed the chat panel width and do not contribute to overflow.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/chat/ThreadedPostTree.tsx",
-          "frontend/src/components/chat/ImageAttachmentPicker.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/chat/ThreadedPostTree.tsx",
-          "frontend/src/components/chat/ImageAttachmentPicker.tsx"
-        ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Update the chat panel containers where they are embedded (e.g., standalone Chat page and Calendar month page) so the chat region uses a stable, mobile-safe height calculation and does not cause nested overflow issues when the message list scrolls.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/ChatPage.tsx",
-          "frontend/src/pages/CalendarMonthPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/ChatPage.tsx",
-          "frontend/src/pages/CalendarMonthPage.tsx"
-        ]
+        "summary": "Correct any backend sorting/logic issues in the existing getCallerAvailableDaysWithLogs implementation so it behaves deterministically and does not contain comparator bugs (even if it remains used for match history).",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/chat/ChatPanel.tsx",
-    "frontend/src/components/chat/ImageAttachmentPicker.tsx",
-    "frontend/src/components/chat/ReplyComposer.tsx",
-    "frontend/src/components/chat/ThreadedPostTree.tsx",
-    "frontend/src/pages/CalendarMonthPage.tsx",
-    "frontend/src/pages/ChatPage.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/LeaderboardPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

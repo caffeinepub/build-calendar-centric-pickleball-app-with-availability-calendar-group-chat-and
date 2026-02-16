@@ -28,7 +28,7 @@ export default function LeaderboardPage() {
   const principals = leaderboard.map(([principal]) => principal);
   const { data: userDirectory, isLoading: isLoadingDirectory } = useUserDirectoryWithAvatars(principals);
   const { identity } = useInternetIdentity();
-  const { data: availableDays = [], isLoading: isLoadingDays } = useGetCallerAvailableDays();
+  const { data: availableDays = [], isLoading: isLoadingDays, isFetched: isDaysFetched } = useGetCallerAvailableDays();
   const { data: matchHistory = [] } = useGetCallerMatchHistory();
   const { mutate: recordWin, isPending: isRecordingWin } = useRecordDailyWin();
   const { mutate: recordLoss, isPending: isRecordingLoss } = useRecordDailyLoss();
@@ -175,7 +175,9 @@ export default function LeaderboardPage() {
     );
   }
 
+  // Only show "no availability" warning when we've actually fetched the data and it's empty
   const hasAvailableDays = availableDays.length > 0;
+  const showNoAvailabilityWarning = isDaysFetched && !hasAvailableDays && !isLoadingDays;
 
   return (
     <Page>
@@ -196,13 +198,13 @@ export default function LeaderboardPage() {
               
               {isLoadingDays ? (
                 <div className="text-sm text-muted-foreground">Loading your available dates...</div>
-              ) : !hasAvailableDays ? (
+              ) : showNoAvailabilityWarning ? (
                 <Alert>
                   <AlertDescription>
                     You must add availability on the Calendar page before you can record wins or losses.
                   </AlertDescription>
                 </Alert>
-              ) : (
+              ) : hasAvailableDays ? (
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
                   <Select value={selectedDay || ''} onValueChange={setSelectedDay}>
                     <SelectTrigger className="w-full sm:w-[240px]">
@@ -265,7 +267,7 @@ export default function LeaderboardPage() {
                     </div>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
           )}
         </CardHeader>

@@ -59,6 +59,18 @@ actor {
     losses : Nat;
   };
 
+  type DayWithLog = {
+    day : Int;
+    wins : Nat;
+    losses : Nat;
+  };
+
+  module DayWithLog {
+    public func compareByDay(a : DayWithLog, b : DayWithLog) : Order.Order {
+      Int.compare(a.day, b.day);
+    };
+  };
+
   type Availability = {
     time : Text;
     notes : ?Text;
@@ -72,18 +84,6 @@ actor {
         case (#equal) { Int.compare(a.1, b.1) };
         case (order) { order };
       };
-    };
-  };
-
-  type DayWithLog = {
-    day : Int;
-    wins : Nat;
-    losses : Nat;
-  };
-
-  module DayWithLog {
-    public func compareByDay(a : DayWithLog, b : DayWithLog) : Order.Order {
-      Int.compare(b.day, a.day);
     };
   };
 
@@ -111,6 +111,11 @@ actor {
     replies : [PostWithReplies];
   };
 
+  public type DayAvailabilityCount = {
+    day : Int;
+    count : Nat;
+  };
+
   var loginRecords : Map.Map<Principal, Int> = Map.empty<Principal, Int>();
   let userProfiles = Map.empty<Principal, UserEntry>();
   let userStats = Map.empty<Principal, UserStats.T>();
@@ -119,6 +124,35 @@ actor {
   let reactions = Map.empty<(Principal, Int), ReactionType>();
   let dailyLogs = Map.empty<(Principal, Int), DailyLog>();
   var messageCounter : Int = 0;
+
+  public query ({ caller }) func getAllDayAvailabilityCounts() : async [DayAvailabilityCount] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view availability counts");
+    };
+
+    let dayCountsMap = Map.empty<Int, Nat>();
+
+    for (((_, day), _) in availabilities.entries()) {
+      switch (dayCountsMap.get(day)) {
+        case (null) {
+          dayCountsMap.add(day, 1);
+        };
+        case (?count) {
+          dayCountsMap.add(day, count + 1);
+        };
+      };
+    };
+
+    let results = List.empty<DayAvailabilityCount>();
+
+    for ((day, count) in dayCountsMap.entries()) {
+      if (count > 0) {
+        results.add({ day; count });
+      };
+    };
+
+    results.toArray();
+  };
 
   public query ({ caller }) func anyUserHasAvailability(day : Int) : async Bool {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
@@ -147,48 +181,17 @@ actor {
   };
 
   public query ({ caller }) func getCallerAvailableDaysWithLogs() : async [DayWithLog] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view their available days");
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can get available days");
     };
 
-    let filteredAvailabilities = availabilities.toArray().filter(
+    let entries = availabilities.entries().toArray();
+
+    let filteredAvailabilities = entries.filter(
       func(entry) { entry.0.0 == caller }
     );
 
-    let currentDay = getCurrentDay();
-
-    let filteredAndSortedAvailabilities = filteredAvailabilities.sort(
-      func(a, b) {
-        let dayA = a.0.1;
-        let dayB = a.0.1;
-
-        if (dayA == currentDay) {
-          switch (dayB == currentDay) {
-            case (true) { #equal };
-            case (false) { #less };
-          };
-        } else if (dayB == currentDay) {
-          #greater;
-        } else if (dayA > currentDay) {
-          if (dayB > currentDay) {
-            Int.compare(dayA, dayB);
-          } else { #less };
-        } else if (dayB > currentDay) {
-          #greater;
-        } else {
-          Int.compare(dayB, dayA);
-        };
-      }
-    );
-
-    let recentDays = filteredAndSortedAvailabilities.sliceToArray(
-      0,
-      if (filteredAndSortedAvailabilities.size() > 5) { 5 } else {
-        filteredAndSortedAvailabilities.size();
-      },
-    );
-
-    let recentDaysWithLogs = recentDays.map(
+    let daysWithLogs = filteredAvailabilities.map(
       func((key, _)) {
         let day = key.1;
         let dailyLog = switch (dailyLogs.get((caller, day))) {
@@ -204,11 +207,7 @@ actor {
       }
     );
 
-    let sortedRecentDaysWithLogs = recentDaysWithLogs.sort(
-      DayWithLog.compareByDay
-    );
-
-    sortedRecentDaysWithLogs.sliceToArray(0, sortedRecentDaysWithLogs.size());
+    daysWithLogs.sort(DayWithLog.compareByDay);
   };
 
   public shared ({ caller }) func recordLoginTime() : async () {
@@ -777,4 +776,3 @@ actor {
     Time.now() / (24 * 60 * 60 * 1_000_000_000 : Int);
   };
 };
-
