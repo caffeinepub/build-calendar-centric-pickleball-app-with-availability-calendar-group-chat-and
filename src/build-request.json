@@ -1,77 +1,36 @@
 {
   "kind": "build_request",
-  "title": "Fix Leaderboard date selector regression (availability days not showing)",
-  "projectName": "Somers Scheduler",
-  "priority": "high",
+  "title": "Update PWA splash screen to full-screen background image without logo",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the backend query used to populate the Leaderboard “Select a date to record results” dropdown so it returns all availability days for the caller (including future dates), not a limited/past-only subset.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-6",
-          "msg-8"
-        ],
-        "quotes": [
-          "there were no dates to even select on the leaderboard tab in the section that says \"select a date to record results\"",
-          "allow selecting of any date"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A new or updated backend query returns every day (day ID) for which the caller has an availability entry.",
-        "Returned days include future dates if the caller has availability for them.",
-        "The query does not cap results to 5 days (no artificial limit for the Leaderboard use-case).",
-        "No state migration is required."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Update the frontend Leaderboard page to use the corrected “caller available days” data source so the date dropdown shows selectable dates whenever the user has added availability on the Calendar page.",
+      "text": "Update the PWA splash screen to display the user-provided background image URL as a full-screen static background, removing any logo overlay entirely",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5",
-          "msg-6"
+          "msg-recent"
         ],
         "quotes": [
-          "im unable to select a date in the leaderboard tab to record results. Im getting the following message even though i already added an availability on the calendar page. \"You must add availability on the Calendar page before you can record wins or losses.\"",
-          "there were no dates to even select on the leaderboard tab in the section that says \"select a date to record results\""
+          "PWA splash screen – Using your provided background image as a full-screen static splash with no logo overlay"
         ]
       },
       "acceptanceCriteria": [
-        "When the caller has at least one availability saved, the Leaderboard dropdown renders at least one SelectItem (no empty list).",
-        "The warning text “You must add availability on the Calendar page before you can record wins or losses.” is shown only when the caller truly has zero availability days.",
-        "Selecting any available day enables the Win/Loss +/- buttons and calls the existing record/remove mutations with that selected day."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Correct any backend sorting/logic issues in the existing getCallerAvailableDaysWithLogs implementation so it behaves deterministically and does not contain comparator bugs (even if it remains used for match history).",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-5"
-        ],
-        "quotes": [
-          "This was working correctly prior to the latest update"
-        ]
-      },
-      "acceptanceCriteria": [
-        "The availability sorting comparator in getCallerAvailableDaysWithLogs correctly references both compared elements (no self-references when reading dayB).",
-        "The function produces stable, predictable ordering for its returned results."
+        "The splash screen displays only the background image with no logo visible",
+        "The background image fills the entire screen",
+        "The splash screen uses the static background image URL provided by the user in earlier conversation"
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo.",
-    "Do not edit files under frontend/src/components/ui or any other frontend immutable paths listed in SYSTEM_CONTEXT.",
-    "Use English for any user-facing text."
+    "Use the exact background image URL provided by the user in previous conversation context",
+    "Do not modify any backend files for this frontend-only change",
+    "Keep the scope limited to splash screen only - do not implement chat editing features in this build"
   ],
   "nonGoals": [
-    "Do not add new authentication providers (Internet Identity remains the only auth).",
-    "Do not change leaderboard scoring, rank calculation, or win/loss recording rules beyond fixing the availability-day selection regression.",
-    "Do not implement real-time updates (no websockets)."
+    "Chat message editing and deletion functionality",
+    "Changes to the main app logo or branding",
+    "Modifications to other PWA configuration beyond the splash screen"
   ],
   "imageRequirements": {
     "required": [],

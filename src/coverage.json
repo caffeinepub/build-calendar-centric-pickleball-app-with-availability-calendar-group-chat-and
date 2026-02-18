@@ -1,53 +1,38 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-16T21:27:54.080Z",
+  "generatedAt": "2026-02-18T22:45:40.505Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
+    "total": 1,
     "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix the backend query used to populate the Leaderboard “Select a date to record results” dropdown so it returns all availability days for the caller (including future dates), not a limited/past-only subset.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Update the frontend Leaderboard page to use the corrected “caller available days” data source so the date dropdown shows selectable dates whenever the user has added availability on the Calendar page.",
+        "summary": "Update the PWA splash screen to display the user-provided background image URL as a full-screen static background, removing any logo overlay entirely",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/pages/LeaderboardPage.tsx",
-          "frontend/src/backend.d.ts"
+          "frontend/index.html",
+          "frontend/public/manifest.webmanifest"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/pages/LeaderboardPage.tsx"
+          "frontend/index.html",
+          "frontend/public/manifest.webmanifest"
         ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Correct any backend sorting/logic issues in the existing getCallerAvailableDaysWithLogs implementation so it behaves deterministically and does not contain comparator bugs (even if it remains used for match history).",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
     "build-request.json",
+    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/LeaderboardPage.tsx",
+    "frontend/index.html",
+    "frontend/public/manifest.webmanifest",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

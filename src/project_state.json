@@ -1,18 +1,23 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
-  "architectural_notes": [],
-  "known_issues": [
-    "Regression: Leaderboard tab 'Select a date to record results' shows no selectable dates and incorrectly displays 'You must add availability on the Calendar page...' even when availability exists; previously worked prior to latest update. Expected: allow selecting any date with availability."
+  "summary": "App with PWA splash screen customization and chat message editing/deletion features",
+  "architectural_notes": [
+    "PWA splash screen uses static full-screen background image from provided URL",
+    "Chat edit/delete functionality restricted to message owners only",
+    "Chat edits are silent (no 'edited' label displayed)"
   ],
-  "isFixRequest": true,
+  "known_issues": [
+    "Build hitting tool execution limit when implementing multiple features simultaneously",
+    "Previous builds attempted full feature set but incomplete due to platform limits"
+  ],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-update-the-frontend-leaderboard-page-to-use-the-corrected-caller-available-days-data-source-so-the-date-dropdown-shows-selectable-dates-whenever-the-user-has-added-availability-on-the-calendar-page",
-      "title": "Update the frontend Leaderboard page to use the corrected “caller available days” data source so the date dropdown shows selectable dates whenever the user has added availability on the Calendar page.",
+      "id": "feature-update-the-pwa-splash-screen-to-display-the-user-provided-background-image-url-as-a-full-screen-static-background-removing-any-logo-overlay-entirely",
+      "title": "Update the PWA splash screen to display the user-provided background image URL as a full-screen static background, removing any logo overlay entirely",
       "reqIds": [
-        "REQ-2"
+        "REQ-1"
       ],
       "version": 1
     }
@@ -20,22 +25,18 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Fix the backend query used to populate the Leaderboard “Select a date to record results” dropdown so it returns all availability days for the caller (including future dates), not a limited/past-only subset.",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "status": "pending"
+      "summary": "PWA splash screen with full-screen background image (no logo)",
+      "reqIds": [],
+      "status": "in_progress"
     },
     {
-      "id": "AR-3",
-      "summary": "Correct any backend sorting/logic issues in the existing getCallerAvailableDaysWithLogs implementation so it behaves deterministically and does not contain comparator bugs (even if it remains used for match history).",
-      "reqIds": [
-        "REQ-3"
-      ],
+      "id": "AR-2",
+      "summary": "Chat message edit/delete controls for message owners (silent updates)",
+      "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Somers Scheduler",
+  "projectName": "Update PWA splash screen to full-screen background image without logo",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

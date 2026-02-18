@@ -2,11 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-frontend-leaderboard-page-to-use-the-corrected-caller-available-days-data-source-so-the-date-dropdown-shows-selectable-dates-whenever-the-user-has-added-availability-on-the-calendar-page",
-      "featureTitle": "Update the frontend Leaderboard page to use the corrected “caller available days” data source so the date dropdown shows selectable dates whenever the user has added availability on the Calendar page.",
+      "featureId": "feature-update-the-pwa-splash-screen-to-display-the-user-provided-background-image-url-as-a-full-screen-static-background-removing-any-logo-overlay-entirely",
+      "featureTitle": "Update the PWA splash screen to display the user-provided background image URL as a full-screen static background, removing any logo overlay entirely",
       "files": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/LeaderboardPage.tsx"
+        "frontend/index.html",
+        "frontend/public/manifest.webmanifest"
       ],
       "components": [
         "authorization@4.0.0",
@@ -18,7 +18,7 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-2"
+        "REQ-1"
       ],
       "confidence": "high"
     }

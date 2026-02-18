@@ -1,31 +1,26 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Somers Scheduler — Fix Leaderboard availability date dropdown data source",
+  "title": "Update PWA splash screen to full-screen background image without logo",
   "requirements": [
     {
-      "id": "REQ-2",
-      "summary": "Update the Leaderboard date dropdown to read from the corrected caller-available-days backend capability so availability dates (including future ones) appear when the user has saved availability.",
+      "id": "REQ-1",
+      "summary": "Update the PWA splash screen to display the user-provided background image URL as a full-screen static background, removing any logo overlay entirely",
       "acceptanceCriteria": [
-        "When the caller has at least one availability saved, the Leaderboard dropdown renders at least one SelectItem (no empty list).",
-        "The warning text “You must add availability on the Calendar page before you can record wins or losses.” is shown only when the caller truly has zero availability days.",
-        "Selecting any available day enables the Win/Loss +/- buttons and calls the existing record/remove mutations with that selected day."
+        "The splash screen displays only the background image with no logo visible",
+        "The background image fills the entire screen",
+        "The splash screen uses the static background image URL provided by the user in earlier conversation"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/index.html",
           "operation": "modify",
-          "description": "Update the caller-available-days query used by the Leaderboard to use the corrected backend capability (instead of deriving days from getCallerAvailableDaysWithLogs). Keep match history on getCallerAvailableDaysWithLogs. Ensure returned days are handled deterministically on the client (e.g., stable numeric sort) so the dropdown reliably shows all available days when present."
+          "description": "Update the splash screen meta tags to reference the full-screen background image (frontend/public/assets/generated/court-bg.dim_1920x1080.png) for all PWA splash screen configurations. Remove any logo overlay references from splash screen meta tags. Ensure the background image fills the entire viewport without additional branding elements."
         },
         {
-          "path": "frontend/src/pages/LeaderboardPage.tsx",
+          "path": "frontend/public/manifest.webmanifest",
           "operation": "modify",
-          "description": "Ensure the Leaderboard date selector section correctly interprets the updated available-days query results: show the warning only when the resolved list is truly empty (not while loading), render SelectItems for all returned days, and keep the Win/Loss +/- button enablement tied to an actual selected day."
-        },
-        {
-          "path": "frontend/src/backend.d.ts",
-          "operation": "modify",
-          "description": "Update frontend backend type definitions to include the corrected backend function used to fetch the caller’s available day IDs for the Leaderboard dropdown, so the frontend can call it without TypeScript type errors."
+          "description": "Update the PWA manifest to use the full-screen background image (frontend/public/assets/generated/court-bg.dim_1920x1080.png) as the splash screen background. Remove any logo or icon overlays from the splash screen configuration. Ensure theme_color and background_color complement the background image if needed."
         }
       ]
     }
