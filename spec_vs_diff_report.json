@@ -1,14 +1,15 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-03-01T00:06:14.408Z",
-  "summary": "The diff modifies ProfileWinLossChart.tsx to anchor the x-axis to today's date using computed cutoff dayIds, filter out future dates, sort results, and display an empty state when no data exists. All core REQ-1 acceptance criteria appear to be addressed.",
+  "generatedAt": "2026-03-01T00:31:34.709Z",
+  "summary": "Both REQ-1 and REQ-2 appear to be fully implemented in the diff. ProfileWinLossChart.tsx has been converted from a line chart to a bar chart using Recharts BarChart/Bar components, and ProfilePage.tsx now includes a computeBestStreak function that correctly iterates chronologically and tracks the longest consecutive winning streak.",
   "missing_requirements": [],
   "hallucinated_features": [],
-  "confidence": 0.9,
+  "confidence": 0.95,
   "changed_files": [
     "frontend-file-summaries.txt",
     "frontend/src/components/profile/ProfileWinLossChart.tsx",
+    "frontend/src/pages/ProfilePage.tsx",
     "project_state.json"
   ]
 }

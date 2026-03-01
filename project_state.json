@@ -1,24 +1,45 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "App with data visualization and user profile features. Converting line graph to bar chart and fixing best streak calculation in profile section.",
   "architectural_notes": [],
   "known_issues": [
-    "Line graph x-axis shows incorrect dates (August dates in February) - likely generated programmatically rather than derived from actual user data"
+    "Best streak in profile section incorrectly uses cumulative total instead of consecutive streak"
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-fix-the-profilewinlosschart-component-so-that-the-x-axis-dates-are-derived-from-actual-match-history-data-rather-than-being-generated-programmatically-the-chart-should-only-display-dates-for-which-real-win-loss-records-exist-and-the-date-range-should-be-anchored-to-the-current-date-not-a-hardcoded-or-stale-range-that-can-show-months-like-august-when-the-current-month-is-february",
-      "title": "Fix the ProfileWinLossChart component so that the x-axis dates are derived from actual match history data rather than being generated programmatically. The chart should only display dates for which real win/loss records exist, and the date range should be anchored to the current date — not a hardcoded or stale range that can show months like August when the current month is February.",
+      "id": "feature-convert-the-profilewinlosschart-component-from-a-line-chart-to-a-bar-chart-using-recharts-replace-the-linechart-and-line-components-with-barchart-and-bar-components-keeping-all-existing-filters-week-month-year-all-time-axis-labels-tooltips-and-color-conventions-wins-vs-losses-intact",
+      "title": "Convert the ProfileWinLossChart component from a line chart to a bar chart using Recharts. Replace the LineChart and Line components with BarChart and Bar components, keeping all existing filters (week, month, year, all-time), axis labels, tooltips, and color conventions (wins vs losses) intact.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-fix-the-best-streak-calculation-displayed-in-the-profile-page-s-win-loss-streaks-section-the-current-implementation-incorrectly-uses-a-cumulative-total-instead-of-finding-the-longest-consecutive-streak-of-wins-rewrite-the-logic-to-iterate-through-match-history-in-chronological-order-and-track-the-maximum-number-of-consecutive-days-or-consecutive-entries-with-a-win-storing-the-highest-streak-count-reached",
+      "title": "Fix the best streak calculation displayed in the profile page's win/loss streaks section. The current implementation incorrectly uses a cumulative total instead of finding the longest consecutive streak of wins. Rewrite the logic to iterate through match history in chronological order and track the maximum number of consecutive days (or consecutive entries) with a win, storing the highest streak count reached.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Fix line graph x-axis showing incorrect dates",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Convert line graph to bar chart",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Fix best streak in profile to use consecutive streak instead of cumulative total",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Somers Scheduler",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

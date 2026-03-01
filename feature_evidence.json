@@ -2,8 +2,8 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-profilewinlosschart-component-so-that-the-x-axis-dates-are-derived-from-actual-match-history-data-rather-than-being-generated-programmatically-the-chart-should-only-display-dates-for-which-real-win-loss-records-exist-and-the-date-range-should-be-anchored-to-the-current-date-not-a-hardcoded-or-stale-range-that-can-show-months-like-august-when-the-current-month-is-february",
-      "featureTitle": "Fix the ProfileWinLossChart component so that the x-axis dates are derived from actual match history data rather than being generated programmatically. The chart should only display dates for which real win/loss records exist, and the date range should be anchored to the current date — not a hardcoded or stale range that can show months like August when the current month is February.",
+      "featureId": "feature-convert-the-profilewinlosschart-component-from-a-line-chart-to-a-bar-chart-using-recharts-replace-the-linechart-and-line-components-with-barchart-and-bar-components-keeping-all-existing-filters-week-month-year-all-time-axis-labels-tooltips-and-color-conventions-wins-vs-losses-intact",
+      "featureTitle": "Convert the ProfileWinLossChart component from a line chart to a bar chart using Recharts. Replace the LineChart and Line components with BarChart and Bar components, keeping all existing filters (week, month, year, all-time), axis labels, tooltips, and color conventions (wins vs losses) intact.",
       "files": [
         "frontend/src/components/profile/ProfileWinLossChart.tsx"
       ],
@@ -18,6 +18,26 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-fix-the-best-streak-calculation-displayed-in-the-profile-page-s-win-loss-streaks-section-the-current-implementation-incorrectly-uses-a-cumulative-total-instead-of-finding-the-longest-consecutive-streak-of-wins-rewrite-the-logic-to-iterate-through-match-history-in-chronological-order-and-track-the-maximum-number-of-consecutive-days-or-consecutive-entries-with-a-win-storing-the-highest-streak-count-reached",
+      "featureTitle": "Fix the best streak calculation displayed in the profile page's win/loss streaks section. The current implementation incorrectly uses a cumulative total instead of finding the longest consecutive streak of wins. Rewrite the logic to iterate through match history in chronological order and track the maximum number of consecutive days (or consecutive entries) with a win, storing the highest streak count reached.",
+      "files": [
+        "frontend/src/pages/ProfilePage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
       ],
       "confidence": "high"
     }

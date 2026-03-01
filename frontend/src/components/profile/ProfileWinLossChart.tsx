@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { DayWithLog } from '../../backend';
 import { dateFromDayId, getDayId } from '../../lib/date';
 
@@ -100,7 +100,7 @@ export default function ProfileWinLossChart({ data }: ProfileWinLossChartProps) 
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={filteredData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+          <BarChart data={filteredData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
             <XAxis
               dataKey="date"
@@ -124,25 +124,21 @@ export default function ProfileWinLossChart({ data }: ProfileWinLossChartProps) 
               }}
             />
             <Legend wrapperStyle={{ fontSize: '12px' }} />
-            <Line
-              type="monotone"
+            <Bar
               dataKey="wins"
-              stroke="#22c55e"
-              strokeWidth={2}
-              dot={{ r: 3, fill: '#22c55e' }}
-              activeDot={{ r: 5 }}
+              fill="#22c55e"
+              radius={[3, 3, 0, 0]}
               name="Wins"
+              maxBarSize={40}
             />
-            <Line
-              type="monotone"
+            <Bar
               dataKey="losses"
-              stroke="#ef4444"
-              strokeWidth={2}
-              dot={{ r: 3, fill: '#ef4444' }}
-              activeDot={{ r: 5 }}
+              fill="#ef4444"
+              radius={[3, 3, 0, 0]}
               name="Losses"
+              maxBarSize={40}
             />
-          </LineChart>
+          </BarChart>
         </ResponsiveContainer>
       )}
     </div>

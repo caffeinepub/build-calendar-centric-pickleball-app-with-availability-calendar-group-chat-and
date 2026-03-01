@@ -9,9 +9,48 @@ import { Page, PageHeader } from '../components/layout/PageLayout';
 import { useGetCallerStats, useGetCallerMatchHistory } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { Skeleton } from '../components/ui/skeleton';
+import type { DayWithLog } from '../backend';
+
+/**
+ * Computes the longest consecutive winning streak from match history.
+ * A "day" counts toward the streak if it has at least one win and zero losses.
+ * Days with losses break the streak. Days with both wins and losses are treated
+ * as mixed (streak-breaking) to be conservative.
+ */
+function computeBestStreak(history: DayWithLog[]): number {
+  if (history.length === 0) return 0;
+
+  // Sort chronologically (ascending by day id)
+  const sorted = [...history].sort((a, b) =>
+    a.day < b.day ? -1 : a.day > b.day ? 1 : 0
+  );
+
+  let best = 0;
+  let current = 0;
+
+  for (const entry of sorted) {
+    const wins = Number(entry.wins);
+    const losses = Number(entry.losses);
+
+    if (wins > 0 && losses === 0) {
+      // Pure win day — extend streak
+      current += 1;
+      if (current > best) best = current;
+    } else if (losses > 0) {
+      // Any loss resets the streak
+      current = 0;
+    }
+    // Days with 0 wins and 0 losses (no games) are ignored — don't break or extend
+  }
+
+  return best;
+}
 
 function StreakStats() {
-  const { data: stats, isLoading } = useGetCallerStats();
+  const { data: stats, isLoading: statsLoading } = useGetCallerStats();
+  const { data: matchHistory = [], isLoading: historyLoading } = useGetCallerMatchHistory();
+
+  const isLoading = statsLoading || historyLoading;
 
   if (isLoading) {
     return (
@@ -29,7 +68,7 @@ function StreakStats() {
   }
 
   const currentStreak = stats ? Number(stats.streak) : 0;
-  const bestStreak = stats ? Number(stats.bestStreak) : 0;
+  const bestStreak = computeBestStreak(matchHistory);
 
   return (
     <div className="grid grid-cols-2 gap-4">

@@ -1,12 +1,10 @@
 # Specification
 
 ## Summary
-**Goal:** Fix the `ProfileWinLossChart` component so the x-axis displays dates derived from actual match history data, anchored to today's date based on the selected time range filter.
+**Goal:** Convert the win/loss chart from a line chart to a bar chart and fix the best streak calculation on the profile page.
 
 **Planned changes:**
-- Update `ProfileWinLossChart` to derive x-axis dates from real match history records instead of generating or hardcoding them.
-- Anchor the x-axis range to the current date for each filter: last 7 days (week), last 30 days (month), last 12 months (year).
-- For the "all-time" filter, bound the x-axis by the earliest and latest actual match records.
-- Show an appropriate empty state when no match records exist for the selected range instead of displaying fabricated dates.
+- Replace the `LineChart`/`Line` components in `ProfileWinLossChart.tsx` with `BarChart`/`Bar` components, preserving all time range filters, axis labels, tooltips, and win/loss color conventions
+- Fix the best streak calculation in the profile section to track the longest consecutive winning streak instead of a cumulative total
 
-**User-visible outcome:** The win/loss line chart x-axis will only show dates relevant to actual match data within the selected time range, and will never display stale or incorrect months (e.g., August when the current month is February).
+**User-visible outcome:** The win/loss chart displays as a bar chart, and the best streak value on the profile page correctly shows the longest unbroken winning streak.
