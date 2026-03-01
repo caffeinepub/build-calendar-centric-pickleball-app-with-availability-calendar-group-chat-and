@@ -1,26 +1,36 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "App with data visualization and user profile features. Converting line graph to bar chart and fixing best streak calculation in profile section.",
-  "architectural_notes": [],
+  "summary": "App with a profile tab, leaderboard, and match history tracking. Focus is on fixing win streak calculation to use consecutive win/loss match data instead of days played.",
+  "architectural_notes": [
+    "Win streak logic: Current streak = consecutive wins from most recent match backwards (reset on loss). Best streak = longest unbroken win sequence across full match history."
+  ],
   "known_issues": [
-    "Best streak in profile section incorrectly uses cumulative total instead of consecutive streak"
+    "Streak calculation was incorrectly counting consecutive days with availability/days played instead of consecutive wins from match data."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-convert-the-profilewinlosschart-component-from-a-line-chart-to-a-bar-chart-using-recharts-replace-the-linechart-and-line-components-with-barchart-and-bar-components-keeping-all-existing-filters-week-month-year-all-time-axis-labels-tooltips-and-color-conventions-wins-vs-losses-intact",
-      "title": "Convert the ProfileWinLossChart component from a line chart to a bar chart using Recharts. Replace the LineChart and Line components with BarChart and Bar components, keeping all existing filters (week, month, year, all-time), axis labels, tooltips, and color conventions (wins vs losses) intact.",
+      "id": "feature-fix-the-current-win-streak-calculation-in-the-profilepage-so-it-counts-consecutive-wins-from-the-most-recent-match-backwards-through-match-history-stopping-resetting-to-0-as-soon-as-a-loss-is-encountered-the-streak-must-be-derived-from-win-loss-match-records-not-from-days-played-or-availability-data",
+      "title": "Fix the current win streak calculation in the ProfilePage so it counts consecutive wins from the most recent match backwards through match history, stopping (resetting to 0) as soon as a loss is encountered. The streak must be derived from win/loss match records, not from days played or availability data.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-fix-the-best-streak-calculation-displayed-in-the-profile-page-s-win-loss-streaks-section-the-current-implementation-incorrectly-uses-a-cumulative-total-instead-of-finding-the-longest-consecutive-streak-of-wins-rewrite-the-logic-to-iterate-through-match-history-in-chronological-order-and-track-the-maximum-number-of-consecutive-days-or-consecutive-entries-with-a-win-storing-the-highest-streak-count-reached",
-      "title": "Fix the best streak calculation displayed in the profile page's win/loss streaks section. The current implementation incorrectly uses a cumulative total instead of finding the longest consecutive streak of wins. Rewrite the logic to iterate through match history in chronological order and track the maximum number of consecutive days (or consecutive entries) with a win, storing the highest streak count reached.",
+      "id": "feature-fix-the-best-all-time-streak-calculation-in-the-profilepage-computebeststreak-helper-so-it-scans-the-full-match-history-in-chronological-order-increments-a-running-counter-on-each-win-resets-it-to-0-on-each-loss-and-returns-the-highest-value-the-counter-ever-reached-this-must-use-win-loss-match-records-exclusively",
+      "title": "Fix the best (all-time) streak calculation in the ProfilePage `computeBestStreak` helper so it scans the full match history in chronological order, increments a running counter on each win, resets it to 0 on each loss, and returns the highest value the counter ever reached. This must use win/loss match records exclusively.",
       "reqIds": [
         "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-win-streak-calculation-displayed-on-the-leaderboardpage-so-it-also-uses-consecutive-wins-from-match-history-same-logic-as-req-1-and-req-2-not-days-played-or-availability-counts",
+      "title": "Fix the win streak calculation displayed on the LeaderboardPage so it also uses consecutive wins from match history (same logic as REQ-1 and REQ-2), not days played or availability counts.",
+      "reqIds": [
+        "REQ-3"
       ],
       "version": 1
     }
@@ -28,13 +38,7 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Convert line graph to bar chart",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Fix best streak in profile to use consecutive streak instead of cumulative total",
+      "summary": "Fix win streak calculation in profile tab and leaderboard to use consecutive wins from match history instead of days played",
       "reqIds": [],
       "status": "pending"
     }

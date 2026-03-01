@@ -1,10 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Convert the win/loss chart from a line chart to a bar chart and fix the best streak calculation on the profile page.
+**Goal:** Fix win streak calculations on the Profile and Leaderboard pages so they use consecutive win/loss match records instead of days played or availability data.
 
 **Planned changes:**
-- Replace the `LineChart`/`Line` components in `ProfileWinLossChart.tsx` with `BarChart`/`Bar` components, preserving all time range filters, axis labels, tooltips, and win/loss color conventions
-- Fix the best streak calculation in the profile section to track the longest consecutive winning streak instead of a cumulative total
+- Fix the current streak calculation on the ProfilePage to count consecutive wins by iterating backwards through match history and stopping at the first loss
+- Fix the best (all-time) streak calculation (`computeBestStreak`) on the ProfilePage to scan full match history chronologically, increment on wins, reset on losses, and return the highest value reached
+- Fix the win streak calculation on the LeaderboardPage to use the same corrected consecutive-win logic
 
-**User-visible outcome:** The win/loss chart displays as a bar chart, and the best streak value on the profile page correctly shows the longest unbroken winning streak.
+**User-visible outcome:** The Profile tab and Leaderboard now display accurate win streaks based on actual match results — current streak reflects unbroken wins from the most recent match backwards, and best streak reflects the longest winning run across all history.

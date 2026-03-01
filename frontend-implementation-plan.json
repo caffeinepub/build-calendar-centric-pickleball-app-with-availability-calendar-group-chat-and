@@ -1,39 +1,53 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Convert win/loss chart to bar graph and fix best streak calculation",
+  "title": "Fix win streak calculation to use consecutive wins from match history",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Convert ProfileWinLossChart from line chart to bar chart using Recharts BarChart and Bar components while preserving all filters, tooltips, and styling",
+      "summary": "Fix the current win streak calculation in ProfilePage to count consecutive wins from the most recent match backwards, resetting to 0 on any loss, using match history data only",
       "acceptanceCriteria": [
-        "The win/loss chart in ProfileWinLossChart.tsx renders as a bar chart instead of a line chart",
-        "Both wins and losses are represented as grouped or stacked bars",
-        "All existing time range filters (week, month, year, all-time) continue to work correctly",
-        "Axis labels, tooltips, and legend remain functional and visually consistent"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/profile/ProfileWinLossChart.tsx",
-          "operation": "modify",
-          "description": "Replace LineChart and Line components with BarChart and Bar components from Recharts. Import BarChart and Bar instead of LineChart and Line. Update the chart rendering to use <BarChart> as the wrapper and <Bar dataKey=\"wins\" ...> and <Bar dataKey=\"losses\" ...> for the data series. Keep all existing ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, Legend, and time range filter logic unchanged. Preserve the existing color scheme (wins vs losses) and ensure bars are displayed side-by-side or stacked appropriately."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Fix best streak calculation to track longest consecutive winning streak instead of cumulative total",
-      "acceptanceCriteria": [
-        "The best streak value shown in the profile section reflects the longest consecutive winning streak, not a cumulative total",
-        "If a player has non-consecutive wins, only the longest unbroken run is counted",
-        "A player with zero wins shows a best streak of 0",
-        "The value updates correctly when new match history data is loaded"
+        "Current streak on the Profile tab increments only on consecutive wins from the latest match backwards",
+        "Current streak resets to 0 immediately when a loss is encountered in the match history",
+        "Current streak does NOT count days with availability or days played"
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/ProfilePage.tsx",
           "operation": "modify",
-          "description": "Rewrite the best streak calculation logic in the ProfilePage component. Replace the current cumulative total approach with a new algorithm that: 1) sorts match history entries by date in chronological order, 2) iterates through the entries tracking consecutive wins, 3) resets the current streak counter whenever a loss is encountered, 4) maintains a variable for the maximum streak seen so far, and 5) returns the maximum consecutive streak count. Ensure the calculation handles edge cases: empty match history returns 0, and a single win returns 1. Update the display logic to show this corrected best streak value in the win/loss streaks section."
+          "description": "Fix the `StreakStats` component's current streak calculation logic. Replace the existing logic that incorrectly uses days played or availability data with a loop that iterates through `daysWithLogs` from the most recent day backwards (reverse chronological order), incrementing a counter for each win and immediately stopping (resetting to 0) when a loss is encountered. The current streak value must be derived solely from the wins and losses fields in each `DayWithLog` entry."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Fix the best (all-time) streak calculation in ProfilePage `computeBestStreak` helper to scan full match history in chronological order, tracking the maximum consecutive win sequence",
+      "acceptanceCriteria": [
+        "Best streak on the Profile tab reflects the longest unbroken sequence of consecutive wins across all match history",
+        "Best streak resets its running counter to 0 on any loss and tracks the maximum",
+        "Best streak does NOT count days with availability or days played",
+        "Example: matches W,W,L,W,W,W,L,W yields best streak of 3"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/ProfilePage.tsx",
+          "operation": "modify",
+          "description": "Fix the `computeBestStreak` helper function to correctly calculate the all-time best win streak. Sort `daysWithLogs` by day in chronological order (oldest first), then iterate through each day's match records. For each day, process wins and losses individually: increment a running counter for each win, reset the counter to 0 for each loss, and track the highest value the counter ever reaches. Return the maximum streak value found. Ensure the logic processes each win and loss separately, not just the net result per day."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Fix the win streak calculation displayed on the LeaderboardPage to use consecutive wins from match history consistent with the corrected ProfilePage logic",
+      "acceptanceCriteria": [
+        "Win streak values shown on the Leaderboard are consistent with the corrected streak logic used in the Profile tab",
+        "Leaderboard streak resets on any loss in match history"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/LeaderboardPage.tsx",
+          "operation": "modify",
+          "description": "Update the leaderboard display to show win streaks that are calculated from match history data only. If the leaderboard currently displays streak values from the backend stats object (e.g., `stats.streak`), verify that these values align with the corrected streak logic. If the backend `streak` field is being used and is incorrect, add a frontend-side calculation that mirrors the REQ-1 logic: iterate through each user's match history (if available) in reverse chronological order, counting consecutive wins and stopping at the first loss. Display this calculated streak value in the leaderboard table instead of the backend-provided streak."
         }
       ]
     }

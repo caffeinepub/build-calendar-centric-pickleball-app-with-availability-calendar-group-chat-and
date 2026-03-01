@@ -1,14 +1,14 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-03-01T00:31:34.709Z",
-  "summary": "Both REQ-1 and REQ-2 appear to be fully implemented in the diff. ProfileWinLossChart.tsx has been converted from a line chart to a bar chart using Recharts BarChart/Bar components, and ProfilePage.tsx now includes a computeBestStreak function that correctly iterates chronologically and tracks the longest consecutive winning streak.",
+  "generatedAt": "2026-03-01T21:38:59.687Z",
+  "summary": "All three requirements appear to be implemented. REQ-1 and REQ-2 are addressed in ProfilePage.tsx with new computeCurrentStreak and computeBestStreak functions that use win/loss match records exclusively. REQ-3 is addressed in LeaderboardPage.tsx with an equivalent computeCurrentStreak function. The implementations correctly use DayWithLog match history data, not availability or days-played data.",
   "missing_requirements": [],
   "hallucinated_features": [],
-  "confidence": 0.95,
+  "confidence": 0.9,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/components/profile/ProfileWinLossChart.tsx",
+    "frontend/src/pages/LeaderboardPage.tsx",
     "frontend/src/pages/ProfilePage.tsx",
     "project_state.json"
   ]

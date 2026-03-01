@@ -6,16 +6,16 @@ import ProfileMatchHistory from '../components/profile/ProfileMatchHistory';
 import ProfileWinLossChart from '../components/profile/ProfileWinLossChart';
 import ProfileBadges from '../components/profile/ProfileBadges';
 import { Page, PageHeader } from '../components/layout/PageLayout';
-import { useGetCallerStats, useGetCallerMatchHistory } from '../hooks/useQueries';
+import { useGetCallerMatchHistory } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { Skeleton } from '../components/ui/skeleton';
 import type { DayWithLog } from '../backend';
 
 /**
  * Computes the longest consecutive winning streak from match history.
- * A "day" counts toward the streak if it has at least one win and zero losses.
- * Days with losses break the streak. Days with both wins and losses are treated
- * as mixed (streak-breaking) to be conservative.
+ * Each individual win/loss within a day is counted separately.
+ * Example: a day with 3 wins counts as 3 consecutive wins toward the streak.
+ * Any loss resets the running counter to 0.
  */
 function computeBestStreak(history: DayWithLog[]): number {
   if (history.length === 0) return 0;
@@ -32,27 +32,68 @@ function computeBestStreak(history: DayWithLog[]): number {
     const wins = Number(entry.wins);
     const losses = Number(entry.losses);
 
-    if (wins > 0 && losses === 0) {
-      // Pure win day — extend streak
+    // Process each win individually — each win extends the streak by 1
+    for (let i = 0; i < wins; i++) {
       current += 1;
       if (current > best) best = current;
-    } else if (losses > 0) {
-      // Any loss resets the streak
+    }
+
+    // Process each loss individually — each loss resets the streak
+    for (let i = 0; i < losses; i++) {
       current = 0;
     }
-    // Days with 0 wins and 0 losses (no games) are ignored — don't break or extend
   }
 
   return best;
 }
 
+/**
+ * Computes the current win streak from match history.
+ * Walks through all match records in chronological order (oldest first),
+ * counting consecutive wins from the end. Resets to 0 on any loss.
+ * Returns the count of consecutive wins at the tail of the history.
+ */
+function computeCurrentStreak(history: DayWithLog[]): number {
+  if (history.length === 0) return 0;
+
+  // Sort chronologically (ascending by day id — oldest first)
+  const sorted = [...history].sort((a, b) =>
+    a.day < b.day ? -1 : a.day > b.day ? 1 : 0
+  );
+
+  // Build a flat sequence of results (true = win, false = loss) in chronological order
+  const results: boolean[] = [];
+  for (const entry of sorted) {
+    const wins = Number(entry.wins);
+    const losses = Number(entry.losses);
+
+    // Within a day, wins and losses are interleaved. We don't know the exact order,
+    // but to be conservative: if a day has both wins and losses, treat losses as
+    // occurring after wins (so losses break the streak at the end of that day).
+    for (let i = 0; i < wins; i++) results.push(true);
+    for (let i = 0; i < losses; i++) results.push(false);
+  }
+
+  if (results.length === 0) return 0;
+
+  // Count consecutive wins from the end (most recent)
+  let streak = 0;
+  for (let i = results.length - 1; i >= 0; i--) {
+    if (results[i] === true) {
+      streak += 1;
+    } else {
+      // Hit a loss — stop counting
+      break;
+    }
+  }
+
+  return streak;
+}
+
 function StreakStats() {
-  const { data: stats, isLoading: statsLoading } = useGetCallerStats();
   const { data: matchHistory = [], isLoading: historyLoading } = useGetCallerMatchHistory();
 
-  const isLoading = statsLoading || historyLoading;
-
-  if (isLoading) {
+  if (historyLoading) {
     return (
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
@@ -67,7 +108,7 @@ function StreakStats() {
     );
   }
 
-  const currentStreak = stats ? Number(stats.streak) : 0;
+  const currentStreak = computeCurrentStreak(matchHistory);
   const bestStreak = computeBestStreak(matchHistory);
 
   return (
@@ -79,10 +120,10 @@ function StreakStats() {
         <div>
           <p className="text-xs text-muted-foreground font-medium">Current Streak</p>
           <p className="text-2xl font-bold leading-tight">
-            {currentStreak > 0 ? `+${currentStreak}` : currentStreak < 0 ? currentStreak : '—'}
+            {currentStreak > 0 ? `+${currentStreak}` : '—'}
           </p>
           <p className="text-xs text-muted-foreground">
-            {currentStreak > 0 ? 'win streak' : currentStreak < 0 ? 'loss streak' : 'no streak'}
+            {currentStreak > 0 ? 'win streak' : 'no active streak'}
           </p>
         </div>
       </div>

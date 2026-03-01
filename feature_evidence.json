@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-convert-the-profilewinlosschart-component-from-a-line-chart-to-a-bar-chart-using-recharts-replace-the-linechart-and-line-components-with-barchart-and-bar-components-keeping-all-existing-filters-week-month-year-all-time-axis-labels-tooltips-and-color-conventions-wins-vs-losses-intact",
-      "featureTitle": "Convert the ProfileWinLossChart component from a line chart to a bar chart using Recharts. Replace the LineChart and Line components with BarChart and Bar components, keeping all existing filters (week, month, year, all-time), axis labels, tooltips, and color conventions (wins vs losses) intact.",
+      "featureId": "feature-fix-the-current-win-streak-calculation-in-the-profilepage-so-it-counts-consecutive-wins-from-the-most-recent-match-backwards-through-match-history-stopping-resetting-to-0-as-soon-as-a-loss-is-encountered-the-streak-must-be-derived-from-win-loss-match-records-not-from-days-played-or-availability-data",
+      "featureTitle": "Fix the current win streak calculation in the ProfilePage so it counts consecutive wins from the most recent match backwards through match history, stopping (resetting to 0) as soon as a loss is encountered. The streak must be derived from win/loss match records, not from days played or availability data.",
       "files": [
-        "frontend/src/components/profile/ProfileWinLossChart.tsx"
+        "frontend/src/pages/ProfilePage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -22,8 +22,8 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-fix-the-best-streak-calculation-displayed-in-the-profile-page-s-win-loss-streaks-section-the-current-implementation-incorrectly-uses-a-cumulative-total-instead-of-finding-the-longest-consecutive-streak-of-wins-rewrite-the-logic-to-iterate-through-match-history-in-chronological-order-and-track-the-maximum-number-of-consecutive-days-or-consecutive-entries-with-a-win-storing-the-highest-streak-count-reached",
-      "featureTitle": "Fix the best streak calculation displayed in the profile page's win/loss streaks section. The current implementation incorrectly uses a cumulative total instead of finding the longest consecutive streak of wins. Rewrite the logic to iterate through match history in chronological order and track the maximum number of consecutive days (or consecutive entries) with a win, storing the highest streak count reached.",
+      "featureId": "feature-fix-the-best-all-time-streak-calculation-in-the-profilepage-computebeststreak-helper-so-it-scans-the-full-match-history-in-chronological-order-increments-a-running-counter-on-each-win-resets-it-to-0-on-each-loss-and-returns-the-highest-value-the-counter-ever-reached-this-must-use-win-loss-match-records-exclusively",
+      "featureTitle": "Fix the best (all-time) streak calculation in the ProfilePage `computeBestStreak` helper so it scans the full match history in chronological order, increments a running counter on each win, resets it to 0 on each loss, and returns the highest value the counter ever reached. This must use win/loss match records exclusively.",
       "files": [
         "frontend/src/pages/ProfilePage.tsx"
       ],
@@ -38,6 +38,26 @@
       ],
       "testIds": [
         "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-fix-the-win-streak-calculation-displayed-on-the-leaderboardpage-so-it-also-uses-consecutive-wins-from-match-history-same-logic-as-req-1-and-req-2-not-days-played-or-availability-counts",
+      "featureTitle": "Fix the win streak calculation displayed on the LeaderboardPage so it also uses consecutive wins from match history (same logic as REQ-1 and REQ-2), not days played or availability counts.",
+      "files": [
+        "frontend/src/pages/LeaderboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
       ],
       "confidence": "high"
     }

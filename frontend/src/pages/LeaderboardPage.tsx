@@ -22,6 +22,47 @@ import { formatDayId } from '../lib/date';
 import { toast } from 'sonner';
 import { Page, PageHeader } from '../components/layout/PageLayout';
 import { InlineLoading } from '../components/common/LoadingState';
+import type { DayWithLog } from '../backend';
+import type { Principal } from '@dfinity/principal';
+
+/**
+ * Computes the current win streak from a user's match history.
+ * Walks through all match records chronologically, counting consecutive wins
+ * from the most recent match backwards. Resets to 0 on any loss.
+ */
+function computeCurrentStreak(history: DayWithLog[]): number {
+  if (history.length === 0) return 0;
+
+  // Sort chronologically (ascending by day id — oldest first)
+  const sorted = [...history].sort((a, b) =>
+    a.day < b.day ? -1 : a.day > b.day ? 1 : 0
+  );
+
+  // Build a flat sequence of results (true = win, false = loss) in chronological order
+  const results: boolean[] = [];
+  for (const entry of sorted) {
+    const wins = Number(entry.wins);
+    const losses = Number(entry.losses);
+
+    // Within a day, wins come first, then losses (conservative: losses break streak)
+    for (let i = 0; i < wins; i++) results.push(true);
+    for (let i = 0; i < losses; i++) results.push(false);
+  }
+
+  if (results.length === 0) return 0;
+
+  // Count consecutive wins from the end (most recent)
+  let streak = 0;
+  for (let i = results.length - 1; i >= 0; i--) {
+    if (results[i] === true) {
+      streak += 1;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
 
 export default function LeaderboardPage() {
   const { data: leaderboard = [], isLoading } = useGetLeaderboard();
@@ -179,6 +220,9 @@ export default function LeaderboardPage() {
   const hasAvailableDays = availableDays.length > 0;
   const showNoAvailabilityWarning = isDaysFetched && !hasAvailableDays && !isLoadingDays;
 
+  // Compute the caller's current streak from their own match history (frontend-side)
+  const callerCurrentStreak = computeCurrentStreak(matchHistory);
+
   return (
     <Page>
       <PageHeader
@@ -293,8 +337,15 @@ export default function LeaderboardPage() {
                 const winPercentage = totalGames > 0 
                   ? ((Number(stats.wins) / totalGames) * 100).toFixed(1)
                   : '0.0';
-                const streak = Number(stats.streak);
+
+                // For the current user, use the frontend-computed streak from match history.
+                // For other users, fall back to the backend-provided streak value.
+                const streak = isCurrentUser
+                  ? callerCurrentStreak
+                  : Number(stats.streak);
                 const streakDisplay = streak > 0 ? `+${streak}` : streak < 0 ? `${streak}` : '0';
+
+                const displayName = user?.displayName ?? principalStr.slice(0, 8) + '...';
 
                 return (
                   <TableRow key={principalStr} className={isCurrentUser ? 'bg-muted/50' : ''}>
@@ -305,19 +356,33 @@ export default function LeaderboardPage() {
                     </TableCell>
                     <TableCell>
                       <AvatarName
-                        principal={principal}
-                        displayName={user?.displayName || 'Loading...'}
+                        principal={principal as Principal}
+                        displayName={displayName}
                         avatarUrl={user?.avatarUrl}
                         isLoading={isLoadingDirectory}
                         size="sm"
                       />
                     </TableCell>
-                    <TableCell className="text-right">{stats.wins.toString()}</TableCell>
-                    <TableCell className="text-right">{stats.losses.toString()}</TableCell>
-                    <TableCell className="text-right">{stats.totalGames.toString()}</TableCell>
-                    <TableCell className="text-right font-medium">{winPercentage}%</TableCell>
+                    <TableCell className="text-right font-medium text-green-600 dark:text-green-400">
+                      {Number(stats.wins)}
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-red-600 dark:text-red-400">
+                      {Number(stats.losses)}
+                    </TableCell>
                     <TableCell className="text-right">
-                      <span className={streak > 0 ? 'text-green-600 dark:text-green-400' : streak < 0 ? 'text-red-600 dark:text-red-400' : ''}>
+                      {totalGames}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {winPercentage}%
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className={
+                        streak > 0 
+                          ? 'text-green-600 dark:text-green-400 font-medium' 
+                          : streak < 0 
+                            ? 'text-red-600 dark:text-red-400 font-medium'
+                            : 'text-muted-foreground'
+                      }>
                         {streakDisplay}
                       </span>
                     </TableCell>
