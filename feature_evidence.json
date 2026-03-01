@@ -1,0 +1,25 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-fix-the-profilewinlosschart-component-so-that-the-x-axis-dates-are-derived-from-actual-match-history-data-rather-than-being-generated-programmatically-the-chart-should-only-display-dates-for-which-real-win-loss-records-exist-and-the-date-range-should-be-anchored-to-the-current-date-not-a-hardcoded-or-stale-range-that-can-show-months-like-august-when-the-current-month-is-february",
+      "featureTitle": "Fix the ProfileWinLossChart component so that the x-axis dates are derived from actual match history data rather than being generated programmatically. The chart should only display dates for which real win/loss records exist, and the date range should be anchored to the current date — not a hardcoded or stale range that can show months like August when the current month is February.",
+      "files": [
+        "frontend/src/components/profile/ProfileWinLossChart.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

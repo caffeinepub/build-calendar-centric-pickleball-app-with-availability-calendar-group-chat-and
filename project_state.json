@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "New project",
+  "architectural_notes": [],
+  "known_issues": [
+    "Line graph x-axis shows incorrect dates (August dates in February) - likely generated programmatically rather than derived from actual user data"
+  ],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "feature-fix-the-profilewinlosschart-component-so-that-the-x-axis-dates-are-derived-from-actual-match-history-data-rather-than-being-generated-programmatically-the-chart-should-only-display-dates-for-which-real-win-loss-records-exist-and-the-date-range-should-be-anchored-to-the-current-date-not-a-hardcoded-or-stale-range-that-can-show-months-like-august-when-the-current-month-is-february",
+      "title": "Fix the ProfileWinLossChart component so that the x-axis dates are derived from actual match history data rather than being generated programmatically. The chart should only display dates for which real win/loss records exist, and the date range should be anchored to the current date — not a hardcoded or stale range that can show months like August when the current month is February.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [],
+  "projectName": "Fix line graph x-axis showing incorrect dates",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

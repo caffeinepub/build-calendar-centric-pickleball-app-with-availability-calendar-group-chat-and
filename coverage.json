@@ -1,0 +1,37 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-03-01T00:06:14.412Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 1,
+    "implemented": 1,
+    "items": [
+      {
+        "id": "REQ-1",
+        "summary": "Fix the ProfileWinLossChart component so that the x-axis dates are derived from actual match history data rather than being generated programmatically. The chart should only display dates for which real win/loss records exist, and the date range should be anchored to the current date — not a hardcoded or stale range that can show months like August when the current month is February.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/profile/ProfileWinLossChart.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/profile/ProfileWinLossChart.tsx"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/components/profile/ProfileWinLossChart.tsx",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "kind": "build_request",
+  "title": "Fix line graph x-axis showing incorrect dates",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Fix the ProfileWinLossChart component so that the x-axis dates are derived from actual match history data rather than being generated programmatically. The chart should only display dates for which real win/loss records exist, and the date range should be anchored to the current date — not a hardcoded or stale range that can show months like August when the current month is February.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-2",
+          "msg-3"
+        ],
+        "quotes": [
+          "its showing dates for August and its February",
+          "I have tested around and have no availability set for that month",
+          "the chart's x-axis dates are being generated or hardcoded rather than pulled from your actual availability entries"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The x-axis of the win/loss line chart never displays months or dates that fall outside the selected time range filter (week/month/year/all-time) relative to today's actual date.",
+        "When the 'week' filter is selected, the x-axis shows the last 7 days anchored to today.",
+        "When the 'month' filter is selected, the x-axis shows the last 30 days anchored to today.",
+        "When the 'year' filter is selected, the x-axis shows the last 12 months anchored to today.",
+        "When the 'all-time' filter is selected, the x-axis range is bounded by the earliest and latest actual match history records.",
+        "If no match history records exist for the selected range, the chart displays an appropriate empty state rather than a range of fabricated dates.",
+        "No dates from past months (e.g., August) appear on the chart when the current month is February and no data exists for August."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not modify any files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
+    "Do not change the backend data model or existing query interfaces."
+  ],
+  "nonGoals": [
+    "Adding new chart types or visualizations.",
+    "Changing the time range filter options (week, month, year, all-time).",
+    "Modifying match history data storage or backend logic."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

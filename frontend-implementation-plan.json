@@ -1,0 +1,27 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Fix line graph x-axis showing incorrect dates",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "summary": "Fix ProfileWinLossChart to derive x-axis dates from actual match history data anchored to the current date, eliminating programmatically generated or hardcoded date ranges",
+      "acceptanceCriteria": [
+        "The x-axis of the win/loss line chart never displays months or dates that fall outside the selected time range filter (week/month/year/all-time) relative to today's actual date.",
+        "When the 'week' filter is selected, the x-axis shows the last 7 days anchored to today.",
+        "When the 'month' filter is selected, the x-axis shows the last 30 days anchored to today.",
+        "When the 'year' filter is selected, the x-axis shows the last 12 months anchored to today.",
+        "When the 'all-time' filter is selected, the x-axis range is bounded by the earliest and latest actual match history records.",
+        "If no match history records exist for the selected range, the chart displays an appropriate empty state rather than a range of fabricated dates.",
+        "No dates from past months (e.g., August) appear on the chart when the current month is February and no data exists for August."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/profile/ProfileWinLossChart.tsx",
+          "operation": "modify",
+          "description": "Rewrite the chart data preparation logic to derive x-axis dates exclusively from the actual match history records returned by getCallerAvailableDaysWithLogs. Replace any programmatic date range generation with filtering logic that anchors to today's date for week/month/year filters. For 'all-time', use only the date range spanned by actual records. Ensure that when no data exists for a filter period, an empty state is shown instead of fabricated date points. Use the dayId-to-Date conversion utilities from frontend/src/lib/date.ts to map numeric day IDs to human-readable dates for the x-axis labels."
+        }
+      ]
+    }
+  ]
+}

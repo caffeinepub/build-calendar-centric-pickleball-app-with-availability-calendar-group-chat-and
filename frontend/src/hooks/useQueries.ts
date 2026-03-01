@@ -1,0 +1,550 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useActor } from './useActor';
+import type { UserProfile, T as UserStats, Availability, DayWithLog, Post, ReactionType, DayAvailabilityCount, BadgeDefinition } from '../backend';
+import type { Principal } from '@dfinity/principal';
+import { ExternalBlob } from '../backend';
+
+export function useGetAllUserProfiles() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Map<string, UserProfile>>({
+    queryKey: ['allUserProfiles'],
+    queryFn: async () => {
+      if (!actor) return new Map();
+      return new Map();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetUserProfile(principal: Principal | null) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<UserProfile | null>({
+    queryKey: ['userProfile', principal?.toString()],
+    queryFn: async () => {
+      if (!actor || !principal) return null;
+      return actor.getUserProfile(principal);
+    },
+    enabled: !!actor && !isFetching && !!principal,
+  });
+}
+
+export function useGetLeaderboard() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Array<[Principal, UserStats]>>({
+    queryKey: ['leaderboard'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getLeaderboard();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetDayAvailability(day: bigint | null) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Array<[Principal, Availability]>>({
+    queryKey: ['dayAvailability', day?.toString()],
+    queryFn: async () => {
+      if (!actor || day === null) return [];
+      return actor.getDayAvailability(day);
+    },
+    enabled: !!actor && !isFetching && day !== null,
+  });
+}
+
+export function useHasAvailability(day: bigint | null) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<boolean>({
+    queryKey: ['hasAvailability', day?.toString()],
+    queryFn: async () => {
+      if (!actor || day === null) return false;
+      return actor.hasAvailability(day);
+    },
+    enabled: !!actor && !isFetching && day !== null,
+  });
+}
+
+export function useDaysWithAnyAvailability(days: bigint[]) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Map<string, boolean>>({
+    queryKey: ['daysWithAnyAvailability', days.map(d => d.toString()).join(',')],
+    queryFn: async () => {
+      if (!actor || days.length === 0) return new Map();
+      const results = await actor.daysWithAnyAvailability(days);
+      const map = new Map<string, boolean>();
+      days.forEach((day, index) => {
+        map.set(day.toString(), results[index]);
+      });
+      return map;
+    },
+    enabled: !!actor && !isFetching && days.length > 0,
+  });
+}
+
+export function useGetAllDayAvailabilityCounts() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Map<string, number>>({
+    queryKey: ['allDayAvailabilityCounts'],
+    queryFn: async () => {
+      if (!actor) return new Map();
+      const counts = await actor.getAllDayAvailabilityCounts();
+      const map = new Map<string, number>();
+      counts.forEach((entry: DayAvailabilityCount) => {
+        map.set(entry.day.toString(), Number(entry.count));
+      });
+      return map;
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetCallerAvailability(day: bigint | null) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Availability | null>({
+    queryKey: ['callerAvailability', day?.toString()],
+    queryFn: async () => {
+      if (!actor || day === null) return null;
+      return actor.getCallerAvailability(day);
+    },
+    enabled: !!actor && !isFetching && day !== null,
+  });
+}
+
+export function useGetCallerAvailableDays() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<bigint[]>({
+    queryKey: ['callerAvailableDays'],
+    queryFn: async () => {
+      if (!actor) return [];
+      const daysWithLogs = await actor.getCallerAvailableDaysWithLogs();
+      const days = daysWithLogs.map(entry => entry.day);
+      return days.sort((a, b) => {
+        if (a < b) return -1;
+        if (a > b) return 1;
+        return 0;
+      });
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetCallerMatchHistory() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<DayWithLog[]>({
+    queryKey: ['callerMatchHistory'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getCallerAvailableDaysWithLogs();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetCallerStats() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<UserStats | null>({
+    queryKey: ['callerStats'],
+    queryFn: async () => {
+      if (!actor) return null;
+      return actor.getCallerStats();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useAddAvailability() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ day, time, notes }: { day: bigint; time: string; notes: string | null }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.addAvailability(day, time, notes);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['hasAvailability'] });
+      queryClient.invalidateQueries({ queryKey: ['daysWithAnyAvailability'] });
+      queryClient.invalidateQueries({ queryKey: ['allDayAvailabilityCounts'] });
+      queryClient.invalidateQueries({ queryKey: ['dayAvailability', variables.day.toString()] });
+      queryClient.invalidateQueries({ queryKey: ['callerAvailability', variables.day.toString()] });
+      queryClient.invalidateQueries({ queryKey: ['callerAvailableDays'] });
+      queryClient.invalidateQueries({ queryKey: ['callerMatchHistory'] });
+    },
+  });
+}
+
+export function useDeleteCallerDayAvailability() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (day: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.deleteCallerDayAvailability(day);
+    },
+    onSuccess: (_, day) => {
+      queryClient.invalidateQueries({ queryKey: ['hasAvailability'] });
+      queryClient.invalidateQueries({ queryKey: ['daysWithAnyAvailability'] });
+      queryClient.invalidateQueries({ queryKey: ['allDayAvailabilityCounts'] });
+      queryClient.invalidateQueries({ queryKey: ['dayAvailability', day.toString()] });
+      queryClient.invalidateQueries({ queryKey: ['callerAvailability', day.toString()] });
+      queryClient.invalidateQueries({ queryKey: ['callerAvailableDays'] });
+      queryClient.invalidateQueries({ queryKey: ['callerMatchHistory'] });
+    },
+  });
+}
+
+// Admin queries
+export function useGetAllRegisteredUsers() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Array<[Principal, UserProfile, bigint]>>({
+    queryKey: ['allRegisteredUsers'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllRegisteredUsers();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetAllAvailabilities() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Array<[Principal, bigint, string]>>({
+    queryKey: ['allAvailabilities'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllAvailabilities();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetAllLoginTimestamps() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Map<string, bigint>>({
+    queryKey: ['allLoginTimestamps'],
+    queryFn: async () => {
+      if (!actor) return new Map();
+      const timestamps = await actor.getAllLoginTimestamps();
+      const map = new Map<string, bigint>();
+      timestamps.forEach(([principal, timestamp]) => {
+        map.set(principal.toString(), timestamp);
+      });
+      return map;
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useDeleteUser() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (userToDelete: Principal) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.deleteUser(userToDelete);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allRegisteredUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['allAvailabilities'] });
+      queryClient.invalidateQueries({ queryKey: ['allLoginTimestamps'] });
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+    },
+  });
+}
+
+export function useDeleteUserDayAvailability() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ user, day }: { user: Principal; day: bigint }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.deleteUserDayAvailability(user, day);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allAvailabilities'] });
+      queryClient.invalidateQueries({ queryKey: ['allDayAvailabilityCounts'] });
+      queryClient.invalidateQueries({ queryKey: ['dayAvailability'] });
+      queryClient.invalidateQueries({ queryKey: ['daysWithAnyAvailability'] });
+    },
+  });
+}
+
+// Chat/Posts queries
+export function useGetPosts(limit: bigint = 100n, offset: bigint = 0n) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Post[]>({
+    queryKey: ['posts', limit.toString(), offset.toString()],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getPosts(limit, offset);
+    },
+    enabled: !!actor && !isFetching,
+    refetchInterval: 5000,
+  });
+}
+
+export function useCreatePost() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ content, parentId, image }: { content: string; parentId: bigint | null; image: ExternalBlob | null }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.addPost(content, parentId, image);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}
+
+export function useEditPost() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ postId, newContent }: { postId: bigint; newContent: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.editPost(postId, newContent);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}
+
+export function useDeletePost() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (postId: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.deletePost(postId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}
+
+export function useAddReaction() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ postId, reactionType }: { postId: bigint; reactionType: ReactionType }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.addReaction(postId, reactionType);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}
+
+export function useRemoveReaction() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (postId: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.removeReaction(postId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}
+
+export function useRecordDailyWin() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (day: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.recordDailyWin(day);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['callerMatchHistory'] });
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['callerStats'] });
+      queryClient.invalidateQueries({ queryKey: ['userBadges'] });
+    },
+  });
+}
+
+export function useRecordDailyLoss() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (day: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.recordDailyLoss(day);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['callerMatchHistory'] });
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['callerStats'] });
+      queryClient.invalidateQueries({ queryKey: ['userBadges'] });
+    },
+  });
+}
+
+export function useDecrementDailyLog() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ day, isWin }: { day: bigint; isWin: boolean }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.decrementDailyLog(day, isWin);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['callerMatchHistory'] });
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['callerStats'] });
+    },
+  });
+}
+
+export function useRemoveDailyWin() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (day: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.decrementDailyLog(day, true);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['callerMatchHistory'] });
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['callerStats'] });
+    },
+  });
+}
+
+export function useRemoveDailyLoss() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (day: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.decrementDailyLog(day, false);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['callerMatchHistory'] });
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['callerStats'] });
+    },
+  });
+}
+
+export function useInitializeCallerLeaderboard() {
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.recordLoginTime();
+    },
+  });
+}
+
+// Badge queries
+export function useGetAllBadgeDefinitions() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<BadgeDefinition[]>({
+    queryKey: ['badgeDefinitions'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllBadgeDefinitions();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetUserBadges(user: Principal | null) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<string[]>({
+    queryKey: ['userBadges', user?.toString()],
+    queryFn: async () => {
+      if (!actor || !user) return [];
+      return actor.getUserBadges(user);
+    },
+    enabled: !!actor && !isFetching && !!user,
+  });
+}
+
+export function useCreateBadgeDefinition() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (definition: BadgeDefinition) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.createBadgeDefinition(definition);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['badgeDefinitions'] });
+      queryClient.invalidateQueries({ queryKey: ['userBadges'] });
+    },
+  });
+}
+
+export function useUpdateBadgeDefinition() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (definition: BadgeDefinition) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.updateBadgeDefinition(definition);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['badgeDefinitions'] });
+      queryClient.invalidateQueries({ queryKey: ['userBadges'] });
+    },
+  });
+}
+
+export function useDeleteBadgeDefinition() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (definitionId: string) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.deleteBadgeDefinition(definitionId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['badgeDefinitions'] });
+      queryClient.invalidateQueries({ queryKey: ['userBadges'] });
+    },
+  });
+}
