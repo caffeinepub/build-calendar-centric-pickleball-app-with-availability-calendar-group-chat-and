@@ -23,7 +23,6 @@ import { toast } from 'sonner';
 import { Page, PageHeader } from '../components/layout/PageLayout';
 import { InlineLoading } from '../components/common/LoadingState';
 import type { DayWithLog } from '../backend';
-import type { Principal } from '@dfinity/principal';
 
 /**
  * Computes the current win streak from a user's match history.
@@ -69,7 +68,7 @@ export default function LeaderboardPage() {
   const principals = leaderboard.map(([principal]) => principal);
   const { data: userDirectory, isLoading: isLoadingDirectory } = useUserDirectoryWithAvatars(principals);
   const { identity } = useInternetIdentity();
-  const { data: availableDays = [], isLoading: isLoadingDays, isFetched: isDaysFetched } = useGetCallerAvailableDays();
+  const { isLoading: isLoadingDays, isFetched: isDaysFetched } = useGetCallerAvailableDays();
   const { data: matchHistory = [] } = useGetCallerMatchHistory();
   const { mutate: recordWin, isPending: isRecordingWin } = useRecordDailyWin();
   const { mutate: recordLoss, isPending: isRecordingLoss } = useRecordDailyLoss();
@@ -83,6 +82,11 @@ export default function LeaderboardPage() {
   // Track rank changes for toast notifications
   const previousRankRef = useRef<number | null>(null);
   const isInitialLoadRef = useRef(true);
+
+  // Sort match history in descending order (newest first) for the dropdown
+  const sortedMatchHistory = [...matchHistory].sort((a, b) =>
+    a.day > b.day ? -1 : a.day < b.day ? 1 : 0
+  );
 
   // Detect rank improvements
   useEffect(() => {
@@ -107,6 +111,13 @@ export default function LeaderboardPage() {
       previousRankRef.current = currentRankNumber;
     }
   }, [leaderboard, callerPrincipal]);
+
+  // Auto-select the most recent day when match history loads
+  useEffect(() => {
+    if (isDaysFetched && sortedMatchHistory.length > 0 && !selectedDay) {
+      setSelectedDay(sortedMatchHistory[0].day.toString());
+    }
+  }, [isDaysFetched, sortedMatchHistory.length]);
 
   const isPending = isRecordingWin || isRecordingLoss || isRemovingWin || isRemovingLoss;
 
@@ -154,10 +165,10 @@ export default function LeaderboardPage() {
 
     removeWin(BigInt(selectedDay), {
       onSuccess: () => {
-        toast.success('Win removed successfully!');
+        toast.success('Win removed successfully');
       },
       onError: (error: any) => {
-        toast.error(error?.message || 'Failed to remove win.');
+        toast.error(error?.message || 'Failed to remove win');
       },
     });
   };
@@ -176,221 +187,240 @@ export default function LeaderboardPage() {
 
     removeLoss(BigInt(selectedDay), {
       onSuccess: () => {
-        toast.success('Loss removed successfully!');
+        toast.success('Loss removed successfully');
       },
       onError: (error: any) => {
-        toast.error(error?.message || 'Failed to remove loss.');
+        toast.error(error?.message || 'Failed to remove loss');
       },
     });
   };
 
-  if (isLoading) {
-    return (
-      <Page>
-        <PageHeader
-          icon={<Trophy className="h-8 w-8 text-primary" />}
-          title="Leaderboard"
-        />
-        <Card>
-          <CardContent className="py-12">
-            <InlineLoading message="Loading leaderboard..." />
-          </CardContent>
-        </Card>
-      </Page>
-    );
-  }
+  const selectedDayLog = selectedDay
+    ? matchHistory.find(entry => entry.day.toString() === selectedDay)
+    : null;
 
-  if (leaderboard.length === 0) {
-    return (
-      <Page>
-        <PageHeader
-          icon={<Trophy className="h-8 w-8 text-primary" />}
-          title="Leaderboard"
-        />
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            No players enrolled yet. Players appear automatically when they sign in.
-          </CardContent>
-        </Card>
-      </Page>
-    );
-  }
+  const getRankBadge = (rank: number) => {
+    if (rank === 1) return <Badge className="bg-yellow-500 text-white hover:bg-yellow-500">🥇 #1</Badge>;
+    if (rank === 2) return <Badge className="bg-gray-400 text-white hover:bg-gray-400">🥈 #2</Badge>;
+    if (rank === 3) return <Badge className="bg-amber-600 text-white hover:bg-amber-600">🥉 #3</Badge>;
+    return <Badge variant="outline">#{rank}</Badge>;
+  };
 
-  // Only show "no availability" warning when we've actually fetched the data and it's empty
-  const hasAvailableDays = availableDays.length > 0;
-  const showNoAvailabilityWarning = isDaysFetched && !hasAvailableDays && !isLoadingDays;
+  const getWinRate = (wins: bigint, losses: bigint): string => {
+    const total = Number(wins) + Number(losses);
+    if (total === 0) return '—';
+    return `${Math.round((Number(wins) / total) * 100)}%`;
+  };
 
-  // Compute the caller's current streak from their own match history (frontend-side)
-  const callerCurrentStreak = computeCurrentStreak(matchHistory);
+  const currentStreak = computeCurrentStreak(matchHistory);
 
   return (
     <Page>
       <PageHeader
-        icon={<Trophy className="h-8 w-8 text-primary" />}
+        icon={<Trophy className="h-5 w-5" />}
         title="Leaderboard"
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All-Time Rankings</CardTitle>
-          {callerPrincipal && (
-            <div className="pt-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm font-medium">Select a date to record results:</span>
-              </div>
-              
-              {isLoadingDays ? (
-                <div className="text-sm text-muted-foreground">Loading your available dates...</div>
-              ) : showNoAvailabilityWarning ? (
-                <Alert>
-                  <AlertDescription>
-                    You must add availability on the Calendar page before you can record wins or losses.
-                  </AlertDescription>
-                </Alert>
-              ) : hasAvailableDays ? (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
-                  <Select value={selectedDay || ''} onValueChange={setSelectedDay}>
-                    <SelectTrigger className="w-full sm:w-[240px]">
-                      <SelectValue placeholder="Select a date" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableDays.map((day) => (
-                        <SelectItem key={day.toString()} value={day.toString()}>
-                          {formatDayId(day)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <div className="flex gap-4 w-full sm:w-auto">
-                    <div className="flex flex-col gap-2">
-                      <span className="text-xs font-medium text-muted-foreground text-center">Win</span>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={handleRecordWin}
-                          disabled={!selectedDay || isPending}
-                          size="sm"
-                          className="w-16"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          onClick={handleRemoveWin}
-                          disabled={!selectedDay || isPending}
-                          size="sm"
-                          variant="outline"
-                          className="w-16"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <span className="text-xs font-medium text-muted-foreground text-center">Loss</span>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={handleRecordLoss}
-                          disabled={!selectedDay || isPending}
-                          size="sm"
-                          className="w-16"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          onClick={handleRemoveLoss}
-                          disabled={!selectedDay || isPending}
-                          size="sm"
-                          variant="outline"
-                          className="w-16"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          )}
+      {/* Record wins/losses section */}
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Record Match Result
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-16">Rank</TableHead>
-                <TableHead>Player</TableHead>
-                <TableHead className="text-right">Wins</TableHead>
-                <TableHead className="text-right">Losses</TableHead>
-                <TableHead className="text-right">Games</TableHead>
-                <TableHead className="text-right">Win %</TableHead>
-                <TableHead className="text-right">Streak</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {leaderboard.map(([principal, stats], index) => {
-                const principalStr = principal.toString();
-                const user = userDirectory?.get(principalStr);
-                const isCurrentUser = principalStr === callerPrincipal;
-                const totalGames = Number(stats.totalGames);
-                const winPercentage = totalGames > 0 
-                  ? ((Number(stats.wins) / totalGames) * 100).toFixed(1)
-                  : '0.0';
+        <CardContent className="space-y-4">
+          {isLoadingDays ? (
+            <InlineLoading message="Loading your available dates..." />
+          ) : sortedMatchHistory.length === 0 ? (
+            <Alert>
+              <AlertDescription>
+                You need to add availability dates before recording match results. Go to the Calendar tab to add your availability.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Select Date</label>
+                <Select value={selectedDay ?? ''} onValueChange={setSelectedDay}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a date..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sortedMatchHistory.map(entry => (
+                      <SelectItem key={entry.day.toString()} value={entry.day.toString()}>
+                        <span className="flex items-center gap-2">
+                          {formatDayId(entry.day)}
+                          {(entry.wins > 0n || entry.losses > 0n) && (
+                            <span className="text-xs text-muted-foreground">
+                              ({Number(entry.wins)}W / {Number(entry.losses)}L)
+                            </span>
+                          )}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                // For the current user, use the frontend-computed streak from match history.
-                // For other users, fall back to the backend-provided streak value.
-                const streak = isCurrentUser
-                  ? callerCurrentStreak
-                  : Number(stats.streak);
-                const streakDisplay = streak > 0 ? `+${streak}` : streak < 0 ? `${streak}` : '0';
+              {selectedDayLog && (selectedDayLog.wins > 0n || selectedDayLog.losses > 0n) && (
+                <div className="text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
+                  Current for this date: <span className="text-green-600 font-medium">{Number(selectedDayLog.wins)} wins</span> / <span className="text-red-500 font-medium">{Number(selectedDayLog.losses)} losses</span>
+                </div>
+              )}
 
-                const displayName = user?.displayName ?? principalStr.slice(0, 8) + '...';
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={handleRecordWin}
+                  disabled={isPending || !selectedDay}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {isRecordingWin ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      Recording...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      <Plus className="h-4 w-4" />
+                      Add Win
+                    </span>
+                  )}
+                </Button>
+                <Button
+                  onClick={handleRecordLoss}
+                  disabled={isPending || !selectedDay}
+                  variant="destructive"
+                >
+                  {isRecordingLoss ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      Recording...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      <Plus className="h-4 w-4" />
+                      Add Loss
+                    </span>
+                  )}
+                </Button>
+              </div>
 
-                return (
-                  <TableRow key={principalStr} className={isCurrentUser ? 'bg-muted/50' : ''}>
-                    <TableCell className="font-medium">
-                      <Badge variant={index < 3 ? 'default' : 'outline'}>
-                        #{index + 1}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <AvatarName
-                        principal={principal as Principal}
-                        displayName={displayName}
-                        avatarUrl={user?.avatarUrl}
-                        isLoading={isLoadingDirectory}
-                        size="sm"
-                      />
-                    </TableCell>
-                    <TableCell className="text-right font-medium text-green-600 dark:text-green-400">
-                      {Number(stats.wins)}
-                    </TableCell>
-                    <TableCell className="text-right font-medium text-red-600 dark:text-red-400">
-                      {Number(stats.losses)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {totalGames}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {winPercentage}%
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className={
-                        streak > 0 
-                          ? 'text-green-600 dark:text-green-400 font-medium' 
-                          : streak < 0 
-                            ? 'text-red-600 dark:text-red-400 font-medium'
-                            : 'text-muted-foreground'
-                      }>
-                        {streakDisplay}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={handleRemoveWin}
+                  disabled={isPending || !selectedDay}
+                  variant="outline"
+                  size="sm"
+                >
+                  {isRemovingWin ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      Removing...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      <Minus className="h-4 w-4" />
+                      Remove Win
+                    </span>
+                  )}
+                </Button>
+                <Button
+                  onClick={handleRemoveLoss}
+                  disabled={isPending || !selectedDay}
+                  variant="outline"
+                  size="sm"
+                >
+                  {isRemovingLoss ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      Removing...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      <Minus className="h-4 w-4" />
+                      Remove Loss
+                    </span>
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Leaderboard table */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Rankings</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {isLoading || isLoadingDirectory ? (
+            <div className="p-4">
+              <InlineLoading message="Loading leaderboard..." />
+            </div>
+          ) : leaderboard.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8 text-sm">
+              No players on the leaderboard yet.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">Rank</TableHead>
+                  <TableHead>Player</TableHead>
+                  <TableHead className="text-right">W</TableHead>
+                  <TableHead className="text-right">L</TableHead>
+                  <TableHead className="text-right">Win%</TableHead>
+                  <TableHead className="text-right">Streak</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {leaderboard.map(([principal, stats], index) => {
+                  const rank = index + 1;
+                  const isCurrentUser = principal.toString() === callerPrincipal;
+                  const entry = userDirectory?.get(principal.toString());
+                  const displayStreak = isCurrentUser ? currentStreak : Number(stats.streak);
+
+                  return (
+                    <TableRow
+                      key={principal.toString()}
+                      className={isCurrentUser ? 'bg-primary/5 font-medium' : ''}
+                    >
+                      <TableCell>{getRankBadge(rank)}</TableCell>
+                      <TableCell>
+                        <AvatarName
+                          principal={principal}
+                          displayName={entry?.displayName ?? principal.toString().slice(0, 8) + '...'}
+                          avatarUrl={entry?.avatarUrl}
+                          size="sm"
+                        />
+                        {isCurrentUser && (
+                          <span className="ml-2 text-xs text-muted-foreground">(you)</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right text-green-600 font-medium">
+                        {Number(stats.wins)}
+                      </TableCell>
+                      <TableCell className="text-right text-red-500 font-medium">
+                        {Number(stats.losses)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {getWinRate(stats.wins, stats.losses)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {displayStreak > 0 ? (
+                          <span className="text-orange-500 font-medium">🔥 {displayStreak}</span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </Page>

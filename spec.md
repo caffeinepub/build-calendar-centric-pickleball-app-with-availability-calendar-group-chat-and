@@ -1,11 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Fix win streak calculations on the Profile and Leaderboard pages so they use consecutive win/loss match records instead of days played or availability data.
+**Goal:** Extend the admin badge creation form with 12 new criteria types and reverse the date sort order in the leaderboard win/loss dropdown.
 
 **Planned changes:**
-- Fix the current streak calculation on the ProfilePage to count consecutive wins by iterating backwards through match history and stopping at the first loss
-- Fix the best (all-time) streak calculation (`computeBestStreak`) on the ProfilePage to scan full match history chronologically, increment on wins, reset on losses, and return the highest value reached
-- Fix the win streak calculation on the LeaderboardPage to use the same corrected consecutive-win logic
+- Add 12 new criteria types to the badge creation/edit modal dropdown in the Admin tab: `totalDaysAvailable`, `totalGamesPlayed`, `firstMatchLogged`, `winPercentage`, `bestWinStreak`, `totalChatMessages`, `totalLikesReceived`, `firstImageUploaded`, `topLeaderboardPosition`, `daysAtNumber1`, `monthlyParticipation`, `consecutiveWeeksAvailable`
+- Each new criteria type shows an appropriate numeric threshold input when selected
+- Extend the backend `BadgeCriteria` type to include all new criteria variants
+- Keep existing criteria types (`totalWins`, `winsStreak`, `totalGames`) unchanged
+- Reverse the date dropdown sort order in the Leaderboard tab (newest dates at top, oldest at bottom)
 
-**User-visible outcome:** The Profile tab and Leaderboard now display accurate win streaks based on actual match results — current streak reflects unbroken wins from the most recent match backwards, and best streak reflects the longest winning run across all history.
+**User-visible outcome:** Admins can create badges using 12 additional criteria types in the badge management form. Leaderboard users see dates listed newest-first when selecting a date to log wins or losses.

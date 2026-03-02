@@ -1,53 +1,39 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix win streak calculation to use consecutive wins from match history",
+  "title": "Add extended badge criteria to admin tab and reverse leaderboard date sort",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Fix the current win streak calculation in ProfilePage to count consecutive wins from the most recent match backwards, resetting to 0 on any loss, using match history data only",
+      "summary": "Extend the badge creation form in the Admin tab to support 12 additional criteria types (totalDaysAvailable, totalGamesPlayed, firstMatchLogged, winPercentage, bestWinStreak, totalChatMessages, totalLikesReceived, firstImageUploaded, topLeaderboardPosition, daysAtNumber1, monthlyParticipation, consecutiveWeeksAvailable) alongside the existing criteria types (totalWins, winsStreak, totalGames).",
       "acceptanceCriteria": [
-        "Current streak on the Profile tab increments only on consecutive wins from the latest match backwards",
-        "Current streak resets to 0 immediately when a loss is encountered in the match history",
-        "Current streak does NOT count days with availability or days played"
+        "The badge creation/edit modal in the Admin tab displays all 12 new criteria types in the criteria type dropdown alongside the existing ones.",
+        "Selecting any new criteria type shows an appropriate threshold/value input field.",
+        "The backend BadgeCriteria type is extended to include all new criteria variants.",
+        "Existing badge creation with totalWins, winsStreak, and totalGames still works correctly.",
+        "New criteria types are persisted and displayed correctly when viewing existing badges."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/ProfilePage.tsx",
+          "path": "frontend/src/components/admin/BadgeManagement.tsx",
           "operation": "modify",
-          "description": "Fix the `StreakStats` component's current streak calculation logic. Replace the existing logic that incorrectly uses days played or availability data with a loop that iterates through `daysWithLogs` from the most recent day backwards (reverse chronological order), incrementing a counter for each win and immediately stopping (resetting to 0) when a loss is encountered. The current streak value must be derived solely from the wins and losses fields in each `DayWithLog` entry."
+          "description": "Extend the badge criteria type dropdown to include all 12 new criteria variants: totalDaysAvailable, totalGamesPlayed, firstMatchLogged, winPercentage, bestWinStreak, totalChatMessages, totalLikesReceived, firstImageUploaded, topLeaderboardPosition, daysAtNumber1, monthlyParticipation, and consecutiveWeeksAvailable. Update the form state and validation logic to handle the new criteria types with appropriate threshold input fields. For monthlyParticipation, add fields for year, month, and matchesThreshold. Ensure existing criteria types (totalWins, winsStreak, totalGames) remain unchanged and functional. Update the criteria display logic to show human-readable labels for all criteria types. The backend interface already includes the extended BadgeCriteria type variants, so ensure the frontend properly maps to and from these backend types when creating, editing, and displaying badges."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Fix the best (all-time) streak calculation in ProfilePage `computeBestStreak` helper to scan full match history in chronological order, tracking the maximum consecutive win sequence",
+      "summary": "Reverse the sort order of dates in the Leaderboard page date dropdown so that the most recent dates appear at the top and the oldest dates appear at the bottom.",
       "acceptanceCriteria": [
-        "Best streak on the Profile tab reflects the longest unbroken sequence of consecutive wins across all match history",
-        "Best streak resets its running counter to 0 on any loss and tracks the maximum",
-        "Best streak does NOT count days with availability or days played",
-        "Example: matches W,W,L,W,W,W,L,W yields best streak of 3"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/ProfilePage.tsx",
-          "operation": "modify",
-          "description": "Fix the `computeBestStreak` helper function to correctly calculate the all-time best win streak. Sort `daysWithLogs` by day in chronological order (oldest first), then iterate through each day's match records. For each day, process wins and losses individually: increment a running counter for each win, reset the counter to 0 for each loss, and track the highest value the counter ever reaches. Return the maximum streak value found. Ensure the logic processes each win and loss separately, not just the net result per day."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Fix the win streak calculation displayed on the LeaderboardPage to use consecutive wins from match history consistent with the corrected ProfilePage logic",
-      "acceptanceCriteria": [
-        "Win streak values shown on the Leaderboard are consistent with the corrected streak logic used in the Profile tab",
-        "Leaderboard streak resets on any loss in match history"
+        "The date dropdown in the Leaderboard tab lists dates in descending order (newest first, oldest last).",
+        "The previously selected or default date still resolves correctly after the sort is reversed.",
+        "No other leaderboard functionality is affected."
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/LeaderboardPage.tsx",
           "operation": "modify",
-          "description": "Update the leaderboard display to show win streaks that are calculated from match history data only. If the leaderboard currently displays streak values from the backend stats object (e.g., `stats.streak`), verify that these values align with the corrected streak logic. If the backend `streak` field is being used and is incorrect, add a frontend-side calculation that mirrors the REQ-1 logic: iterate through each user's match history (if available) in reverse chronological order, counting consecutive wins and stopping at the first loss. Display this calculated streak value in the leaderboard table instead of the backend-provided streak."
+          "description": "Locate the date dropdown component that allows users to select a date for adding wins or losses. Reverse the sort order of the dates array so that the most recent dates appear first (descending order) and the oldest dates appear last. Ensure the currently selected date or default date logic remains functional after the sort order change. Verify that the win/loss recording functionality and all other leaderboard features continue to work correctly with the new sort order."
         }
       ]
     }

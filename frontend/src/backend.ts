@@ -97,6 +97,11 @@ export interface Availability {
     time: string;
     notes?: string;
 }
+export interface MonthCriteria {
+    month: bigint;
+    matchesThreshold: bigint;
+    year: bigint;
+}
 export interface _CaffeineStorageRefillInformation {
     proposed_top_up_amount?: bigint;
 }
@@ -111,14 +116,50 @@ export interface BadgeDefinition {
     criteria: BadgeCriteria;
 }
 export type BadgeCriteria = {
+    __kind__: "consecutiveWeeksAvailable";
+    consecutiveWeeksAvailable: bigint;
+} | {
+    __kind__: "firstMatchLogged";
+    firstMatchLogged: bigint;
+} | {
+    __kind__: "totalGamesPlayed";
+    totalGamesPlayed: bigint;
+} | {
+    __kind__: "daysAtNumber1";
+    daysAtNumber1: bigint;
+} | {
     __kind__: "totalWins";
     totalWins: bigint;
 } | {
     __kind__: "winsStreak";
     winsStreak: bigint;
 } | {
+    __kind__: "totalChatMessages";
+    totalChatMessages: bigint;
+} | {
     __kind__: "totalGames";
     totalGames: bigint;
+} | {
+    __kind__: "topLeaderboardPosition";
+    topLeaderboardPosition: bigint;
+} | {
+    __kind__: "winPercentage";
+    winPercentage: bigint;
+} | {
+    __kind__: "monthlyParticipation";
+    monthlyParticipation: MonthCriteria;
+} | {
+    __kind__: "firstImageUploaded";
+    firstImageUploaded: bigint;
+} | {
+    __kind__: "totalDaysAvailable";
+    totalDaysAvailable: bigint;
+} | {
+    __kind__: "totalLikesReceived";
+    totalLikesReceived: bigint;
+} | {
+    __kind__: "bestWinStreak";
+    bestWinStreak: bigint;
 };
 export interface T {
     streak: bigint;
@@ -218,7 +259,7 @@ export interface backendInterface {
     updateBadgeDefinition(definition: BadgeDefinition): Promise<void>;
     updateCallerStats(stats: T): Promise<void>;
 }
-import type { Availability as _Availability, BadgeCriteria as _BadgeCriteria, BadgeDefinition as _BadgeDefinition, ExternalBlob as _ExternalBlob, Post as _Post, PostWithReplies as _PostWithReplies, ReactionType as _ReactionType, T as _T, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
+import type { Availability as _Availability, BadgeCriteria as _BadgeCriteria, BadgeDefinition as _BadgeDefinition, ExternalBlob as _ExternalBlob, MonthCriteria as _MonthCriteria, Post as _Post, PostWithReplies as _PostWithReplies, ReactionType as _ReactionType, T as _T, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _caffeineStorageBlobIsLive(arg0: Uint8Array): Promise<boolean> {
@@ -1106,30 +1147,126 @@ function from_candid_tuple_n40(_uploadFile: (file: ExternalBlob) => Promise<Uint
     ];
 }
 function from_candid_variant_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    consecutiveWeeksAvailable: bigint;
+} | {
+    firstMatchLogged: bigint;
+} | {
+    totalGamesPlayed: bigint;
+} | {
+    daysAtNumber1: bigint;
+} | {
     totalWins: bigint;
 } | {
     winsStreak: bigint;
 } | {
+    totalChatMessages: bigint;
+} | {
     totalGames: bigint;
+} | {
+    topLeaderboardPosition: bigint;
+} | {
+    winPercentage: bigint;
+} | {
+    monthlyParticipation: _MonthCriteria;
+} | {
+    firstImageUploaded: bigint;
+} | {
+    totalDaysAvailable: bigint;
+} | {
+    totalLikesReceived: bigint;
+} | {
+    bestWinStreak: bigint;
 }): {
+    __kind__: "consecutiveWeeksAvailable";
+    consecutiveWeeksAvailable: bigint;
+} | {
+    __kind__: "firstMatchLogged";
+    firstMatchLogged: bigint;
+} | {
+    __kind__: "totalGamesPlayed";
+    totalGamesPlayed: bigint;
+} | {
+    __kind__: "daysAtNumber1";
+    daysAtNumber1: bigint;
+} | {
     __kind__: "totalWins";
     totalWins: bigint;
 } | {
     __kind__: "winsStreak";
     winsStreak: bigint;
 } | {
+    __kind__: "totalChatMessages";
+    totalChatMessages: bigint;
+} | {
     __kind__: "totalGames";
     totalGames: bigint;
+} | {
+    __kind__: "topLeaderboardPosition";
+    topLeaderboardPosition: bigint;
+} | {
+    __kind__: "winPercentage";
+    winPercentage: bigint;
+} | {
+    __kind__: "monthlyParticipation";
+    monthlyParticipation: MonthCriteria;
+} | {
+    __kind__: "firstImageUploaded";
+    firstImageUploaded: bigint;
+} | {
+    __kind__: "totalDaysAvailable";
+    totalDaysAvailable: bigint;
+} | {
+    __kind__: "totalLikesReceived";
+    totalLikesReceived: bigint;
+} | {
+    __kind__: "bestWinStreak";
+    bestWinStreak: bigint;
 } {
-    return "totalWins" in value ? {
+    return "consecutiveWeeksAvailable" in value ? {
+        __kind__: "consecutiveWeeksAvailable",
+        consecutiveWeeksAvailable: value.consecutiveWeeksAvailable
+    } : "firstMatchLogged" in value ? {
+        __kind__: "firstMatchLogged",
+        firstMatchLogged: value.firstMatchLogged
+    } : "totalGamesPlayed" in value ? {
+        __kind__: "totalGamesPlayed",
+        totalGamesPlayed: value.totalGamesPlayed
+    } : "daysAtNumber1" in value ? {
+        __kind__: "daysAtNumber1",
+        daysAtNumber1: value.daysAtNumber1
+    } : "totalWins" in value ? {
         __kind__: "totalWins",
         totalWins: value.totalWins
     } : "winsStreak" in value ? {
         __kind__: "winsStreak",
         winsStreak: value.winsStreak
+    } : "totalChatMessages" in value ? {
+        __kind__: "totalChatMessages",
+        totalChatMessages: value.totalChatMessages
     } : "totalGames" in value ? {
         __kind__: "totalGames",
         totalGames: value.totalGames
+    } : "topLeaderboardPosition" in value ? {
+        __kind__: "topLeaderboardPosition",
+        topLeaderboardPosition: value.topLeaderboardPosition
+    } : "winPercentage" in value ? {
+        __kind__: "winPercentage",
+        winPercentage: value.winPercentage
+    } : "monthlyParticipation" in value ? {
+        __kind__: "monthlyParticipation",
+        monthlyParticipation: value.monthlyParticipation
+    } : "firstImageUploaded" in value ? {
+        __kind__: "firstImageUploaded",
+        firstImageUploaded: value.firstImageUploaded
+    } : "totalDaysAvailable" in value ? {
+        __kind__: "totalDaysAvailable",
+        totalDaysAvailable: value.totalDaysAvailable
+    } : "totalLikesReceived" in value ? {
+        __kind__: "totalLikesReceived",
+        totalLikesReceived: value.totalLikesReceived
+    } : "bestWinStreak" in value ? {
+        __kind__: "bestWinStreak",
+        bestWinStreak: value.bestWinStreak
     } : value;
 }
 function from_candid_variant_n38(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
@@ -1255,27 +1392,111 @@ function to_candid_variant_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint
     } : value;
 }
 function to_candid_variant_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    __kind__: "consecutiveWeeksAvailable";
+    consecutiveWeeksAvailable: bigint;
+} | {
+    __kind__: "firstMatchLogged";
+    firstMatchLogged: bigint;
+} | {
+    __kind__: "totalGamesPlayed";
+    totalGamesPlayed: bigint;
+} | {
+    __kind__: "daysAtNumber1";
+    daysAtNumber1: bigint;
+} | {
     __kind__: "totalWins";
     totalWins: bigint;
 } | {
     __kind__: "winsStreak";
     winsStreak: bigint;
 } | {
+    __kind__: "totalChatMessages";
+    totalChatMessages: bigint;
+} | {
     __kind__: "totalGames";
     totalGames: bigint;
+} | {
+    __kind__: "topLeaderboardPosition";
+    topLeaderboardPosition: bigint;
+} | {
+    __kind__: "winPercentage";
+    winPercentage: bigint;
+} | {
+    __kind__: "monthlyParticipation";
+    monthlyParticipation: MonthCriteria;
+} | {
+    __kind__: "firstImageUploaded";
+    firstImageUploaded: bigint;
+} | {
+    __kind__: "totalDaysAvailable";
+    totalDaysAvailable: bigint;
+} | {
+    __kind__: "totalLikesReceived";
+    totalLikesReceived: bigint;
+} | {
+    __kind__: "bestWinStreak";
+    bestWinStreak: bigint;
 }): {
+    consecutiveWeeksAvailable: bigint;
+} | {
+    firstMatchLogged: bigint;
+} | {
+    totalGamesPlayed: bigint;
+} | {
+    daysAtNumber1: bigint;
+} | {
     totalWins: bigint;
 } | {
     winsStreak: bigint;
 } | {
+    totalChatMessages: bigint;
+} | {
     totalGames: bigint;
+} | {
+    topLeaderboardPosition: bigint;
+} | {
+    winPercentage: bigint;
+} | {
+    monthlyParticipation: _MonthCriteria;
+} | {
+    firstImageUploaded: bigint;
+} | {
+    totalDaysAvailable: bigint;
+} | {
+    totalLikesReceived: bigint;
+} | {
+    bestWinStreak: bigint;
 } {
-    return value.__kind__ === "totalWins" ? {
+    return value.__kind__ === "consecutiveWeeksAvailable" ? {
+        consecutiveWeeksAvailable: value.consecutiveWeeksAvailable
+    } : value.__kind__ === "firstMatchLogged" ? {
+        firstMatchLogged: value.firstMatchLogged
+    } : value.__kind__ === "totalGamesPlayed" ? {
+        totalGamesPlayed: value.totalGamesPlayed
+    } : value.__kind__ === "daysAtNumber1" ? {
+        daysAtNumber1: value.daysAtNumber1
+    } : value.__kind__ === "totalWins" ? {
         totalWins: value.totalWins
     } : value.__kind__ === "winsStreak" ? {
         winsStreak: value.winsStreak
+    } : value.__kind__ === "totalChatMessages" ? {
+        totalChatMessages: value.totalChatMessages
     } : value.__kind__ === "totalGames" ? {
         totalGames: value.totalGames
+    } : value.__kind__ === "topLeaderboardPosition" ? {
+        topLeaderboardPosition: value.topLeaderboardPosition
+    } : value.__kind__ === "winPercentage" ? {
+        winPercentage: value.winPercentage
+    } : value.__kind__ === "monthlyParticipation" ? {
+        monthlyParticipation: value.monthlyParticipation
+    } : value.__kind__ === "firstImageUploaded" ? {
+        firstImageUploaded: value.firstImageUploaded
+    } : value.__kind__ === "totalDaysAvailable" ? {
+        totalDaysAvailable: value.totalDaysAvailable
+    } : value.__kind__ === "totalLikesReceived" ? {
+        totalLikesReceived: value.totalLikesReceived
+    } : value.__kind__ === "bestWinStreak" ? {
+        bestWinStreak: value.bestWinStreak
     } : value;
 }
 export interface CreateActorOptions {

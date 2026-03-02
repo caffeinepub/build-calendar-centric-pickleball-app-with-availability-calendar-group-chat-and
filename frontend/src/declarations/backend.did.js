@@ -30,10 +30,27 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const MonthCriteria = IDL.Record({
+  'month' : IDL.Nat,
+  'matchesThreshold' : IDL.Nat,
+  'year' : IDL.Nat,
+});
 export const BadgeCriteria = IDL.Variant({
+  'consecutiveWeeksAvailable' : IDL.Nat,
+  'firstMatchLogged' : IDL.Nat,
+  'totalGamesPlayed' : IDL.Nat,
+  'daysAtNumber1' : IDL.Nat,
   'totalWins' : IDL.Nat,
   'winsStreak' : IDL.Nat,
+  'totalChatMessages' : IDL.Nat,
   'totalGames' : IDL.Nat,
+  'topLeaderboardPosition' : IDL.Nat,
+  'winPercentage' : IDL.Nat,
+  'monthlyParticipation' : MonthCriteria,
+  'firstImageUploaded' : IDL.Nat,
+  'totalDaysAvailable' : IDL.Nat,
+  'totalLikesReceived' : IDL.Nat,
+  'bestWinStreak' : IDL.Nat,
 });
 export const BadgeDefinition = IDL.Record({
   'id' : IDL.Text,
@@ -237,10 +254,27 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const MonthCriteria = IDL.Record({
+    'month' : IDL.Nat,
+    'matchesThreshold' : IDL.Nat,
+    'year' : IDL.Nat,
+  });
   const BadgeCriteria = IDL.Variant({
+    'consecutiveWeeksAvailable' : IDL.Nat,
+    'firstMatchLogged' : IDL.Nat,
+    'totalGamesPlayed' : IDL.Nat,
+    'daysAtNumber1' : IDL.Nat,
     'totalWins' : IDL.Nat,
     'winsStreak' : IDL.Nat,
+    'totalChatMessages' : IDL.Nat,
     'totalGames' : IDL.Nat,
+    'topLeaderboardPosition' : IDL.Nat,
+    'winPercentage' : IDL.Nat,
+    'monthlyParticipation' : MonthCriteria,
+    'firstImageUploaded' : IDL.Nat,
+    'totalDaysAvailable' : IDL.Nat,
+    'totalLikesReceived' : IDL.Nat,
+    'bestWinStreak' : IDL.Nat,
   });
   const BadgeDefinition = IDL.Record({
     'id' : IDL.Text,

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Trophy, Zap, Target, X, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, Trophy, Zap, Target, X, Check, Calendar, MessageSquare, ThumbsUp, Image, BarChart2, Star, Clock, Percent, Flame } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -26,7 +26,22 @@ import type { BadgeDefinition, BadgeCriteria } from '../../backend';
 import { toast } from 'sonner';
 import { InlineLoading } from '../common/LoadingState';
 
-type CriteriaType = 'totalWins' | 'winsStreak' | 'totalGames';
+type CriteriaType =
+  | 'totalWins'
+  | 'winsStreak'
+  | 'totalGames'
+  | 'totalDaysAvailable'
+  | 'totalGamesPlayed'
+  | 'firstMatchLogged'
+  | 'winPercentage'
+  | 'bestWinStreak'
+  | 'totalChatMessages'
+  | 'totalLikesReceived'
+  | 'firstImageUploaded'
+  | 'topLeaderboardPosition'
+  | 'daysAtNumber1'
+  | 'monthlyParticipation'
+  | 'consecutiveWeeksAvailable';
 
 interface BadgeFormState {
   id: string;
@@ -34,21 +49,102 @@ interface BadgeFormState {
   description: string;
   criteriaType: CriteriaType;
   threshold: string;
+  // monthlyParticipation specific fields
+  monthYear: string;
+  monthMonth: string;
+  monthMatchesThreshold: string;
 }
 
 const CRITERIA_LABELS: Record<CriteriaType, string> = {
   totalWins: 'Total Wins',
   winsStreak: 'Win Streak',
   totalGames: 'Total Games Played',
+  totalDaysAvailable: 'Total Days Available',
+  totalGamesPlayed: 'Total Games Played (Activity)',
+  firstMatchLogged: 'First Match Logged',
+  winPercentage: 'Win Percentage (%)',
+  bestWinStreak: 'Best Win Streak',
+  totalChatMessages: 'Total Chat Messages',
+  totalLikesReceived: 'Total Likes Received',
+  firstImageUploaded: 'First Image Uploaded',
+  topLeaderboardPosition: 'Top Leaderboard Position (reach top N)',
+  daysAtNumber1: 'Days Held #1 Spot',
+  monthlyParticipation: 'Monthly Participation',
+  consecutiveWeeksAvailable: 'Consecutive Weeks Available',
 };
 
 const CRITERIA_ICONS: Record<CriteriaType, React.ReactNode> = {
   totalWins: <Trophy className="h-4 w-4" />,
   winsStreak: <Zap className="h-4 w-4" />,
   totalGames: <Target className="h-4 w-4" />,
+  totalDaysAvailable: <Calendar className="h-4 w-4" />,
+  totalGamesPlayed: <Target className="h-4 w-4" />,
+  firstMatchLogged: <Star className="h-4 w-4" />,
+  winPercentage: <Percent className="h-4 w-4" />,
+  bestWinStreak: <Flame className="h-4 w-4" />,
+  totalChatMessages: <MessageSquare className="h-4 w-4" />,
+  totalLikesReceived: <ThumbsUp className="h-4 w-4" />,
+  firstImageUploaded: <Image className="h-4 w-4" />,
+  topLeaderboardPosition: <BarChart2 className="h-4 w-4" />,
+  daysAtNumber1: <Trophy className="h-4 w-4" />,
+  monthlyParticipation: <Calendar className="h-4 w-4" />,
+  consecutiveWeeksAvailable: <Clock className="h-4 w-4" />,
 };
 
-function criteriaFromForm(type: CriteriaType, threshold: bigint): BadgeCriteria {
+// Criteria types that use a simple numeric threshold
+const SIMPLE_THRESHOLD_TYPES: CriteriaType[] = [
+  'totalWins',
+  'winsStreak',
+  'totalGames',
+  'totalDaysAvailable',
+  'totalGamesPlayed',
+  'firstMatchLogged',
+  'winPercentage',
+  'bestWinStreak',
+  'totalChatMessages',
+  'totalLikesReceived',
+  'firstImageUploaded',
+  'topLeaderboardPosition',
+  'daysAtNumber1',
+  'consecutiveWeeksAvailable',
+];
+
+const THRESHOLD_PLACEHOLDERS: Partial<Record<CriteriaType, string>> = {
+  totalWins: 'e.g. 10',
+  winsStreak: 'e.g. 5',
+  totalGames: 'e.g. 50',
+  totalDaysAvailable: 'e.g. 25',
+  totalGamesPlayed: 'e.g. 100',
+  firstMatchLogged: '1',
+  winPercentage: 'e.g. 75 (percent)',
+  bestWinStreak: 'e.g. 10',
+  totalChatMessages: 'e.g. 20',
+  totalLikesReceived: 'e.g. 50',
+  firstImageUploaded: '1',
+  topLeaderboardPosition: 'e.g. 3 (top 3)',
+  daysAtNumber1: 'e.g. 7',
+  consecutiveWeeksAvailable: 'e.g. 4',
+};
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+function criteriaFromForm(type: CriteriaType, form: BadgeFormState): BadgeCriteria {
+  if (type === 'monthlyParticipation') {
+    return {
+      __kind__: 'monthlyParticipation',
+      monthlyParticipation: {
+        year: BigInt(parseInt(form.monthYear, 10) || new Date().getFullYear()),
+        month: BigInt(parseInt(form.monthMonth, 10) || 1),
+        matchesThreshold: BigInt(parseInt(form.monthMatchesThreshold, 10) || 1),
+      },
+    };
+  }
+
+  const threshold = BigInt(parseInt(form.threshold, 10));
+
   switch (type) {
     case 'totalWins':
       return { __kind__: 'totalWins', totalWins: threshold };
@@ -56,17 +152,68 @@ function criteriaFromForm(type: CriteriaType, threshold: bigint): BadgeCriteria 
       return { __kind__: 'winsStreak', winsStreak: threshold };
     case 'totalGames':
       return { __kind__: 'totalGames', totalGames: threshold };
+    case 'totalDaysAvailable':
+      return { __kind__: 'totalDaysAvailable', totalDaysAvailable: threshold };
+    case 'totalGamesPlayed':
+      return { __kind__: 'totalGamesPlayed', totalGamesPlayed: threshold };
+    case 'firstMatchLogged':
+      return { __kind__: 'firstMatchLogged', firstMatchLogged: threshold };
+    case 'winPercentage':
+      return { __kind__: 'winPercentage', winPercentage: threshold };
+    case 'bestWinStreak':
+      return { __kind__: 'bestWinStreak', bestWinStreak: threshold };
+    case 'totalChatMessages':
+      return { __kind__: 'totalChatMessages', totalChatMessages: threshold };
+    case 'totalLikesReceived':
+      return { __kind__: 'totalLikesReceived', totalLikesReceived: threshold };
+    case 'firstImageUploaded':
+      return { __kind__: 'firstImageUploaded', firstImageUploaded: threshold };
+    case 'topLeaderboardPosition':
+      return { __kind__: 'topLeaderboardPosition', topLeaderboardPosition: threshold };
+    case 'daysAtNumber1':
+      return { __kind__: 'daysAtNumber1', daysAtNumber1: threshold };
+    case 'consecutiveWeeksAvailable':
+      return { __kind__: 'consecutiveWeeksAvailable', consecutiveWeeksAvailable: threshold };
   }
 }
 
-function criteriaToForm(criteria: BadgeCriteria): { type: CriteriaType; threshold: string } {
+function criteriaToForm(criteria: BadgeCriteria): Partial<BadgeFormState> {
   switch (criteria.__kind__) {
     case 'totalWins':
-      return { type: 'totalWins', threshold: criteria.totalWins.toString() };
+      return { criteriaType: 'totalWins', threshold: criteria.totalWins.toString() };
     case 'winsStreak':
-      return { type: 'winsStreak', threshold: criteria.winsStreak.toString() };
+      return { criteriaType: 'winsStreak', threshold: criteria.winsStreak.toString() };
     case 'totalGames':
-      return { type: 'totalGames', threshold: criteria.totalGames.toString() };
+      return { criteriaType: 'totalGames', threshold: criteria.totalGames.toString() };
+    case 'totalDaysAvailable':
+      return { criteriaType: 'totalDaysAvailable', threshold: criteria.totalDaysAvailable.toString() };
+    case 'totalGamesPlayed':
+      return { criteriaType: 'totalGamesPlayed', threshold: criteria.totalGamesPlayed.toString() };
+    case 'firstMatchLogged':
+      return { criteriaType: 'firstMatchLogged', threshold: criteria.firstMatchLogged.toString() };
+    case 'winPercentage':
+      return { criteriaType: 'winPercentage', threshold: criteria.winPercentage.toString() };
+    case 'bestWinStreak':
+      return { criteriaType: 'bestWinStreak', threshold: criteria.bestWinStreak.toString() };
+    case 'totalChatMessages':
+      return { criteriaType: 'totalChatMessages', threshold: criteria.totalChatMessages.toString() };
+    case 'totalLikesReceived':
+      return { criteriaType: 'totalLikesReceived', threshold: criteria.totalLikesReceived.toString() };
+    case 'firstImageUploaded':
+      return { criteriaType: 'firstImageUploaded', threshold: criteria.firstImageUploaded.toString() };
+    case 'topLeaderboardPosition':
+      return { criteriaType: 'topLeaderboardPosition', threshold: criteria.topLeaderboardPosition.toString() };
+    case 'daysAtNumber1':
+      return { criteriaType: 'daysAtNumber1', threshold: criteria.daysAtNumber1.toString() };
+    case 'monthlyParticipation':
+      return {
+        criteriaType: 'monthlyParticipation',
+        monthYear: criteria.monthlyParticipation.year.toString(),
+        monthMonth: criteria.monthlyParticipation.month.toString(),
+        monthMatchesThreshold: criteria.monthlyParticipation.matchesThreshold.toString(),
+      };
+    case 'consecutiveWeeksAvailable':
+      return { criteriaType: 'consecutiveWeeksAvailable', threshold: criteria.consecutiveWeeksAvailable.toString() };
   }
 }
 
@@ -78,6 +225,33 @@ function getCriteriaDescription(criteria: BadgeCriteria): string {
       return `${criteria.winsStreak}-game win streak`;
     case 'totalGames':
       return `${criteria.totalGames} total games`;
+    case 'totalDaysAvailable':
+      return `${criteria.totalDaysAvailable} days with availability set`;
+    case 'totalGamesPlayed':
+      return `${criteria.totalGamesPlayed} total games played`;
+    case 'firstMatchLogged':
+      return `First match logged`;
+    case 'winPercentage':
+      return `${criteria.winPercentage}% win rate`;
+    case 'bestWinStreak':
+      return `Best win streak of ${criteria.bestWinStreak}`;
+    case 'totalChatMessages':
+      return `${criteria.totalChatMessages} chat messages posted`;
+    case 'totalLikesReceived':
+      return `${criteria.totalLikesReceived} likes received`;
+    case 'firstImageUploaded':
+      return `First image uploaded in chat`;
+    case 'topLeaderboardPosition':
+      return `Reach top ${criteria.topLeaderboardPosition} on leaderboard`;
+    case 'daysAtNumber1':
+      return `Hold #1 spot for ${criteria.daysAtNumber1} days`;
+    case 'monthlyParticipation': {
+      const m = criteria.monthlyParticipation;
+      const monthName = MONTH_NAMES[Number(m.month) - 1] ?? `Month ${m.month}`;
+      return `${m.matchesThreshold}+ matches in ${monthName} ${m.year}`;
+    }
+    case 'consecutiveWeeksAvailable':
+      return `${criteria.consecutiveWeeksAvailable} consecutive weeks available`;
   }
 }
 
@@ -87,6 +261,9 @@ const emptyForm: BadgeFormState = {
   description: '',
   criteriaType: 'totalWins',
   threshold: '10',
+  monthYear: new Date().getFullYear().toString(),
+  monthMonth: '1',
+  monthMatchesThreshold: '1',
 };
 
 export default function BadgeManagement() {
@@ -102,6 +279,8 @@ export default function BadgeManagement() {
 
   const isEditing = editingId !== null;
   const isSaving = createMutation.isPending || updateMutation.isPending;
+  const isMonthly = form.criteriaType === 'monthlyParticipation';
+  const isSimpleThreshold = SIMPLE_THRESHOLD_TYPES.includes(form.criteriaType);
 
   const openCreate = () => {
     setForm({ ...emptyForm, id: `badge-${Date.now()}` });
@@ -110,13 +289,13 @@ export default function BadgeManagement() {
   };
 
   const openEdit = (badge: BadgeDefinition) => {
-    const { type, threshold } = criteriaToForm(badge.criteria);
+    const partial = criteriaToForm(badge.criteria);
     setForm({
+      ...emptyForm,
       id: badge.id,
       name: badge.name,
       description: badge.description,
-      criteriaType: type,
-      threshold,
+      ...partial,
     });
     setEditingId(badge.id);
     setShowForm(true);
@@ -137,17 +316,36 @@ export default function BadgeManagement() {
       toast.error('Badge description is required');
       return;
     }
-    const thresholdNum = parseInt(form.threshold, 10);
-    if (isNaN(thresholdNum) || thresholdNum <= 0) {
-      toast.error('Threshold must be a positive number');
-      return;
+
+    if (isMonthly) {
+      const year = parseInt(form.monthYear, 10);
+      const month = parseInt(form.monthMonth, 10);
+      const matches = parseInt(form.monthMatchesThreshold, 10);
+      if (isNaN(year) || year < 2020 || year > 2100) {
+        toast.error('Please enter a valid year (2020–2100)');
+        return;
+      }
+      if (isNaN(month) || month < 1 || month > 12) {
+        toast.error('Please select a valid month');
+        return;
+      }
+      if (isNaN(matches) || matches <= 0) {
+        toast.error('Matches threshold must be a positive number');
+        return;
+      }
+    } else {
+      const thresholdNum = parseInt(form.threshold, 10);
+      if (isNaN(thresholdNum) || thresholdNum <= 0) {
+        toast.error('Threshold must be a positive number');
+        return;
+      }
     }
 
     const definition: BadgeDefinition = {
       id: form.id,
       name: form.name.trim(),
       description: form.description.trim(),
-      criteria: criteriaFromForm(form.criteriaType, BigInt(thresholdNum)),
+      criteria: criteriaFromForm(form.criteriaType, form),
     };
 
     try {
@@ -174,6 +372,10 @@ export default function BadgeManagement() {
       toast.error(error.message || 'Failed to delete badge');
     }
   };
+
+  // Generate year options for monthly participation
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
   return (
     <div className="space-y-4">
@@ -233,19 +435,91 @@ export default function BadgeManagement() {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="badge-threshold">Threshold</Label>
-              <Input
-                id="badge-threshold"
-                type="number"
-                min="1"
-                placeholder="e.g. 10"
-                value={form.threshold}
-                onChange={e => setForm(f => ({ ...f, threshold: e.target.value }))}
-              />
-            </div>
+            {/* Simple threshold input */}
+            {isSimpleThreshold && (
+              <div className="space-y-1.5">
+                <Label htmlFor="badge-threshold">
+                  {form.criteriaType === 'winPercentage' ? 'Win % Threshold' :
+                   form.criteriaType === 'topLeaderboardPosition' ? 'Top N Position' :
+                   'Threshold'}
+                </Label>
+                <Input
+                  id="badge-threshold"
+                  type="number"
+                  min="1"
+                  max={form.criteriaType === 'winPercentage' ? '100' : undefined}
+                  placeholder={THRESHOLD_PLACEHOLDERS[form.criteriaType] ?? 'e.g. 10'}
+                  value={form.threshold}
+                  onChange={e => setForm(f => ({ ...f, threshold: e.target.value }))}
+                />
+                {form.criteriaType === 'winPercentage' && (
+                  <p className="text-xs text-muted-foreground">Enter a value between 1 and 100</p>
+                )}
+                {form.criteriaType === 'topLeaderboardPosition' && (
+                  <p className="text-xs text-muted-foreground">Award when player reaches top N (e.g. 3 = top 3)</p>
+                )}
+                {form.criteriaType === 'firstMatchLogged' && (
+                  <p className="text-xs text-muted-foreground">Set to 1 — awarded on first match logged</p>
+                )}
+                {form.criteriaType === 'firstImageUploaded' && (
+                  <p className="text-xs text-muted-foreground">Set to 1 — awarded on first image uploaded</p>
+                )}
+              </div>
+            )}
 
-            <div className="space-y-1.5 sm:col-span-2">
+            {/* Monthly participation fields */}
+            {isMonthly && (
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="badge-month-year">Year</Label>
+                  <Select
+                    value={form.monthYear}
+                    onValueChange={v => setForm(f => ({ ...f, monthYear: v }))}
+                  >
+                    <SelectTrigger id="badge-month-year">
+                      <SelectValue placeholder="Select year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {yearOptions.map(y => (
+                        <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="badge-month-month">Month</Label>
+                  <Select
+                    value={form.monthMonth}
+                    onValueChange={v => setForm(f => ({ ...f, monthMonth: v }))}
+                  >
+                    <SelectTrigger id="badge-month-month">
+                      <SelectValue placeholder="Select month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MONTH_NAMES.map((name, idx) => (
+                        <SelectItem key={idx + 1} value={(idx + 1).toString()}>{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="badge-month-matches">Matches Required</Label>
+                  <Input
+                    id="badge-month-matches"
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 5"
+                    value={form.monthMatchesThreshold}
+                    onChange={e => setForm(f => ({ ...f, monthMatchesThreshold: e.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground">Minimum matches played in that month</p>
+                </div>
+              </>
+            )}
+
+            <div className={`space-y-1.5 ${isMonthly ? '' : 'sm:col-span-2'}`}>
               <Label htmlFor="badge-description">Description</Label>
               <Textarea
                 id="badge-description"
@@ -287,45 +561,49 @@ export default function BadgeManagement() {
         </p>
       ) : (
         <div className="space-y-2">
-          {badges.map(badge => (
-            <div
-              key={badge.id}
-              className="flex items-start justify-between gap-3 p-3 rounded-lg border bg-card"
-            >
-              <div className="flex items-start gap-3 min-w-0">
-                <div className="flex-shrink-0 p-1.5 rounded-md bg-primary/10 text-primary mt-0.5">
-                  {CRITERIA_ICONS[criteriaToForm(badge.criteria).type]}
+          {badges.map(badge => {
+            const formData = criteriaToForm(badge.criteria);
+            const iconType = (formData.criteriaType ?? 'totalWins') as CriteriaType;
+            return (
+              <div
+                key={badge.id}
+                className="flex items-start justify-between gap-3 p-3 rounded-lg border bg-card"
+              >
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="flex-shrink-0 p-1.5 rounded-md bg-primary/10 text-primary mt-0.5">
+                    {CRITERIA_ICONS[iconType]}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm">{badge.name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{badge.description}</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">
+                      Criteria: {getCriteriaDescription(badge.criteria)}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="font-medium text-sm">{badge.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{badge.description}</p>
-                  <p className="text-xs text-muted-foreground/70 mt-1">
-                    Criteria: {getCriteriaDescription(badge.criteria)}
-                  </p>
+                <div className="flex gap-1 flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => openEdit(badge)}
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    onClick={() => setDeleteId(badge.id)}
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               </div>
-              <div className="flex gap-1 flex-shrink-0">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => openEdit(badge)}
-                  disabled={deleteMutation.isPending}
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-destructive hover:text-destructive"
-                  onClick={() => setDeleteId(badge.id)}
-                  disabled={deleteMutation.isPending}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

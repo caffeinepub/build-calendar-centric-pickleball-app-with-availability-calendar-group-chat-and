@@ -11,9 +11,21 @@ import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export interface Availability { 'time' : string, 'notes' : [] | [string] }
-export type BadgeCriteria = { 'totalWins' : bigint } |
+export type BadgeCriteria = { 'consecutiveWeeksAvailable' : bigint } |
+  { 'firstMatchLogged' : bigint } |
+  { 'totalGamesPlayed' : bigint } |
+  { 'daysAtNumber1' : bigint } |
+  { 'totalWins' : bigint } |
   { 'winsStreak' : bigint } |
-  { 'totalGames' : bigint };
+  { 'totalChatMessages' : bigint } |
+  { 'totalGames' : bigint } |
+  { 'topLeaderboardPosition' : bigint } |
+  { 'winPercentage' : bigint } |
+  { 'monthlyParticipation' : MonthCriteria } |
+  { 'firstImageUploaded' : bigint } |
+  { 'totalDaysAvailable' : bigint } |
+  { 'totalLikesReceived' : bigint } |
+  { 'bestWinStreak' : bigint };
 export interface BadgeDefinition {
   'id' : string,
   'name' : string,
@@ -27,6 +39,11 @@ export interface DayWithLog {
   'losses' : bigint,
 }
 export type ExternalBlob = Uint8Array;
+export interface MonthCriteria {
+  'month' : bigint,
+  'matchesThreshold' : bigint,
+  'year' : bigint,
+}
 export interface Post {
   'id' : bigint,
   'content' : string,

@@ -1,40 +1,29 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-03-01T21:38:59.690Z",
+  "generatedAt": "2026-03-01T22:00:33.667Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 3,
+    "total": 2,
+    "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix the current win streak calculation in the ProfilePage so it counts consecutive wins from the most recent match backwards through match history, stopping (resetting to 0) as soon as a loss is encountered. The streak must be derived from win/loss match records, not from days played or availability data.",
+        "summary": "Extend the badge creation form in the Admin tab (BadgeManagement.tsx) to support all the following additional criteria types, each with an appropriate numeric threshold input: (1) totalDaysAvailable – number of days with availability set, (2) totalGamesPlayed – total games played milestones, (3) firstMatchLogged – first match logged (boolean/threshold of 1), (4) winPercentage – win percentage threshold (e.g. 60, 75), (5) bestWinStreak – best win streak milestones, (6) totalChatMessages – number of chat messages posted, (7) totalLikesReceived – number of likes received on chat messages, (8) firstImageUploaded – first image uploaded in chat (boolean/threshold of 1), (9) topLeaderboardPosition – reaching top N leaderboard position (e.g. 1, 3), (10) daysAtNumber1 – number of days holding the #1 leaderboard spot, (11) monthlyParticipation – matches played in a given month, (12) consecutiveWeeksAvailable – availability logged for X consecutive weeks. The existing criteria types (totalWins, winsStreak, totalGames) must remain unchanged.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/ProfilePage.tsx"
+          "frontend/src/components/admin/BadgeManagement.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/ProfilePage.tsx"
+          "frontend/src/components/admin/BadgeManagement.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Fix the best (all-time) streak calculation in the ProfilePage `computeBestStreak` helper so it scans the full match history in chronological order, increments a running counter on each win, resets it to 0 on each loss, and returns the highest value the counter ever reached. This must use win/loss match records exclusively.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/ProfilePage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/ProfilePage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Fix the win streak calculation displayed on the LeaderboardPage so it also uses consecutive wins from match history (same logic as REQ-1 and REQ-2), not days played or availability counts.",
+        "summary": "In the Leaderboard page (LeaderboardPage.tsx), reverse the sort order of dates in the dropdown used to add wins or losses, so that the most recent dates appear at the top and the oldest dates appear at the bottom.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/pages/LeaderboardPage.tsx"
@@ -46,12 +35,18 @@
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/admin/BadgeManagement.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
     "frontend/src/pages/LeaderboardPage.tsx",
-    "frontend/src/pages/ProfilePage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

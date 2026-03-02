@@ -1,76 +1,55 @@
 {
   "kind": "build_request",
-  "title": "Fix win streak calculation to use consecutive wins from match history",
+  "title": "Add extended badge criteria to admin tab and reverse leaderboard date sort",
   "projectName": "Somers Scheduler",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the current win streak calculation in the ProfilePage so it counts consecutive wins from the most recent match backwards through match history, stopping (resetting to 0) as soon as a loss is encountered. The streak must be derived from win/loss match records, not from days played or availability data.",
-      "target": "frontend",
+      "text": "Extend the badge creation form in the Admin tab (BadgeManagement.tsx) to support all the following additional criteria types, each with an appropriate numeric threshold input: (1) totalDaysAvailable – number of days with availability set, (2) totalGamesPlayed – total games played milestones, (3) firstMatchLogged – first match logged (boolean/threshold of 1), (4) winPercentage – win percentage threshold (e.g. 60, 75), (5) bestWinStreak – best win streak milestones, (6) totalChatMessages – number of chat messages posted, (7) totalLikesReceived – number of likes received on chat messages, (8) firstImageUploaded – first image uploaded in chat (boolean/threshold of 1), (9) topLeaderboardPosition – reaching top N leaderboard position (e.g. 1, 3), (10) daysAtNumber1 – number of days holding the #1 leaderboard spot, (11) monthlyParticipation – matches played in a given month, (12) consecutiveWeeksAvailable – availability logged for X consecutive weeks. The existing criteria types (totalWins, winsStreak, totalGames) must remain unchanged.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-1",
-          "msg-2"
+          "msg-latest"
         ],
         "quotes": [
-          "It seems to be adding streaks as days played instead of using match data for consecutive wins without a loss",
-          "the streak logic must loop through win/loss records per match, not count the number of days a user was available"
+          "Can we add all this criteria to the admin tab for creating badges?"
         ]
       },
       "acceptanceCriteria": [
-        "Current streak on the Profile tab increments only on consecutive wins from the latest match backwards",
-        "Current streak resets to 0 immediately when a loss is encountered in the match history",
-        "Current streak does NOT count days with availability or days played"
+        "The badge creation/edit modal in the Admin tab displays all 12 new criteria types in the criteria type dropdown alongside the existing ones.",
+        "Selecting any new criteria type shows an appropriate threshold/value input field.",
+        "The backend BadgeCriteria type is extended to include all new criteria variants.",
+        "Existing badge creation with totalWins, winsStreak, and totalGames still works correctly.",
+        "New criteria types are persisted and displayed correctly when viewing existing badges."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Fix the best (all-time) streak calculation in the ProfilePage `computeBestStreak` helper so it scans the full match history in chronological order, increments a running counter on each win, resets it to 0 on each loss, and returns the highest value the counter ever reached. This must use win/loss match records exclusively.",
+      "text": "In the Leaderboard page (LeaderboardPage.tsx), reverse the sort order of dates in the dropdown used to add wins or losses, so that the most recent dates appear at the top and the oldest dates appear at the bottom.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1",
-          "msg-2"
+          "msg-latest"
         ],
         "quotes": [
-          "Best (All-Time) Streak: Take all match logs sorted by date (oldest first), Walk through each match one by one, Keep a running counter -- increment on win, reset to 0 on loss, Track the highest value the counter ever reaches"
+          "in leaderboard tab when a user selects a date in the drop down to add wins or losses, the dates are sorted oldest at the top to newest at the bottom but I want this reversed"
         ]
       },
       "acceptanceCriteria": [
-        "Best streak on the Profile tab reflects the longest unbroken sequence of consecutive wins across all match history",
-        "Best streak resets its running counter to 0 on any loss and tracks the maximum",
-        "Best streak does NOT count days with availability or days played",
-        "Example: matches W,W,L,W,W,W,L,W yields best streak of 3"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Fix the win streak calculation displayed on the LeaderboardPage so it also uses consecutive wins from match history (same logic as REQ-1 and REQ-2), not days played or availability counts.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "the streak section in the profile tab wasn't calculating correctly",
-          "fix this"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Win streak values shown on the Leaderboard are consistent with the corrected streak logic used in the Profile tab",
-        "Leaderboard streak resets on any loss in match history"
+        "The date dropdown in the Leaderboard tab lists dates in descending order (newest first, oldest last).",
+        "The previously selected or default date still resolves correctly after the sort is reversed.",
+        "No other leaderboard functionality is affected."
       ]
     }
   ],
   "constraints": [
-    "Streak calculation must be based solely on win/loss match records, never on availability data or days played",
-    "Do not change the backend data model or match history storage schema"
+    "Do not remove or rename existing badge criteria types (totalWins, winsStreak, totalGames).",
+    "Do not modify immutable frontend paths listed in the system context."
   ],
   "nonGoals": [
-    "Adding new match history data entry UI",
-    "Changing how wins/losses are recorded in the backend",
-    "Modifying the leaderboard ranking algorithm beyond the streak display"
+    "Automatically awarding the new badge criteria to users (only the admin creation UI and backend type definitions are in scope).",
+    "Changing the sort order of any other list or dropdown outside the leaderboard date selector."
   ],
   "imageRequirements": {
     "required": [],

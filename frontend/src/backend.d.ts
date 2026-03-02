@@ -22,6 +22,11 @@ export interface Availability {
     time: string;
     notes?: string;
 }
+export interface MonthCriteria {
+    month: bigint;
+    matchesThreshold: bigint;
+    year: bigint;
+}
 export interface BadgeDefinition {
     id: string;
     name: string;
@@ -29,14 +34,50 @@ export interface BadgeDefinition {
     criteria: BadgeCriteria;
 }
 export type BadgeCriteria = {
+    __kind__: "consecutiveWeeksAvailable";
+    consecutiveWeeksAvailable: bigint;
+} | {
+    __kind__: "firstMatchLogged";
+    firstMatchLogged: bigint;
+} | {
+    __kind__: "totalGamesPlayed";
+    totalGamesPlayed: bigint;
+} | {
+    __kind__: "daysAtNumber1";
+    daysAtNumber1: bigint;
+} | {
     __kind__: "totalWins";
     totalWins: bigint;
 } | {
     __kind__: "winsStreak";
     winsStreak: bigint;
 } | {
+    __kind__: "totalChatMessages";
+    totalChatMessages: bigint;
+} | {
     __kind__: "totalGames";
     totalGames: bigint;
+} | {
+    __kind__: "topLeaderboardPosition";
+    topLeaderboardPosition: bigint;
+} | {
+    __kind__: "winPercentage";
+    winPercentage: bigint;
+} | {
+    __kind__: "monthlyParticipation";
+    monthlyParticipation: MonthCriteria;
+} | {
+    __kind__: "firstImageUploaded";
+    firstImageUploaded: bigint;
+} | {
+    __kind__: "totalDaysAvailable";
+    totalDaysAvailable: bigint;
+} | {
+    __kind__: "totalLikesReceived";
+    totalLikesReceived: bigint;
+} | {
+    __kind__: "bestWinStreak";
+    bestWinStreak: bigint;
 };
 export interface T {
     streak: bigint;

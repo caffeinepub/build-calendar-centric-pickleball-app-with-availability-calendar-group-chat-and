@@ -13,10 +13,10 @@ import AccessControl "authorization/access-control";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
-
 import Set "mo:core/Set";
+import Migration "migration";
 
-
+(with migration = Migration.run)
 actor {
   let accessControlState = AccessControl.initState();
   include MixinStorage();
@@ -119,10 +119,28 @@ actor {
     count : Nat;
   };
 
+  public type MonthCriteria = {
+    year : Nat;
+    month : Nat;
+    matchesThreshold : Nat;
+  };
+
   public type BadgeCriteria = {
     #winsStreak : Nat;
     #totalWins : Nat;
     #totalGames : Nat;
+    #totalDaysAvailable : Nat;
+    #totalGamesPlayed : Nat;
+    #firstMatchLogged : Nat;
+    #winPercentage : Nat;
+    #bestWinStreak : Nat;
+    #totalChatMessages : Nat;
+    #totalLikesReceived : Nat;
+    #firstImageUploaded : Nat;
+    #topLeaderboardPosition : Nat;
+    #daysAtNumber1 : Nat;
+    #monthlyParticipation : MonthCriteria;
+    #consecutiveWeeksAvailable : Nat;
   };
 
   public type BadgeDefinition = {
@@ -220,6 +238,19 @@ actor {
       case (#winsStreak(threshold)) { stats.bestStreak >= threshold };
       case (#totalWins(threshold)) { stats.wins >= threshold };
       case (#totalGames(threshold)) { stats.totalGames >= threshold };
+      // Implement additional criteria checks if needed
+      case (#totalDaysAvailable(_)) { false };
+      case (#totalGamesPlayed(_)) { false };
+      case (#firstMatchLogged(_)) { false };
+      case (#winPercentage(_)) { false };
+      case (#bestWinStreak(_)) { false };
+      case (#totalChatMessages(_)) { false };
+      case (#totalLikesReceived(_)) { false };
+      case (#firstImageUploaded(_)) { false };
+      case (#topLeaderboardPosition(_)) { false };
+      case (#daysAtNumber1(_)) { false };
+      case (#monthlyParticipation(_)) { false };
+      case (#consecutiveWeeksAvailable(_)) { false };
     };
   };
 
@@ -629,10 +660,7 @@ actor {
             foundWin := true;
             streak := 1;
           } else {
-            switch (streak) {
-              case (-1) { return 1 };
-              case (_) { streak += 1 };
-            };
+            streak += 1;
           };
         } else if (log.losses > 0) { return -1 };
       };
@@ -925,3 +953,4 @@ actor {
     Time.now() / (24 * 60 * 60 * 1_000_000_000 : Int);
   };
 };
+

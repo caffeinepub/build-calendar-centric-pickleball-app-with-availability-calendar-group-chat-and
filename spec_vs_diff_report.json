@@ -1,15 +1,25 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-03-01T21:38:59.687Z",
-  "summary": "All three requirements appear to be implemented. REQ-1 and REQ-2 are addressed in ProfilePage.tsx with new computeCurrentStreak and computeBestStreak functions that use win/loss match records exclusively. REQ-3 is addressed in LeaderboardPage.tsx with an equivalent computeCurrentStreak function. The implementations correctly use DayWithLog match history data, not availability or days-played data.",
+  "generatedAt": "2026-03-01T22:00:33.664Z",
+  "summary": "Both REQ-1 and REQ-2 appear to be implemented. The backend BadgeCriteria type is extended with all 12 new criteria variants in both main.mo and migration.mo. The frontend BadgeManagement.tsx is updated with all 12 new criteria types in the dropdown and appropriate input fields. LeaderboardPage.tsx sorts match history in descending order for the dropdown.",
   "missing_requirements": [],
-  "hallucinated_features": [],
-  "confidence": 0.9,
+  "hallucinated_features": [
+    {
+      "description": "A migration module (backend/migration.mo) was added to handle data migration from old BadgeCriteria to new BadgeCriteria schema, including OldActor/NewActor type definitions and a run() migration function.",
+      "reason": "The build request only required extending the BadgeCriteria type definition and the admin UI form. A full data migration module was not requested.",
+      "evidence": [
+        "backend/migration.mo"
+      ]
+    }
+  ],
+  "confidence": 0.82,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
+    "frontend/src/components/admin/BadgeManagement.tsx",
     "frontend/src/pages/LeaderboardPage.tsx",
-    "frontend/src/pages/ProfilePage.tsx",
     "project_state.json"
   ]
 }
