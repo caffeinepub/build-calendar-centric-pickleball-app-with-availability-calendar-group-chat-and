@@ -2,10 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-extend-the-badge-creation-form-in-the-admin-tab-badgemanagement-tsx-to-support-all-the-following-additional-criteria-types-each-with-an-appropriate-numeric-threshold-input-1-totaldaysavailable-number-of-days-with-availability-set-2-totalgamesplayed-total-games-played-milestones-3-firstmatchlogged-first-match-logged-boolean-threshold-of-1-4-winpercentage-win-percentage-threshold-e-g-60-75-5-bestwinstreak-best-win-streak-milestones-6-totalchatmessages-number-of-chat-messages-posted-7-totallikesreceived-number-of-likes-received-on-chat-messages-8-firstimageuploaded-first-image-uploaded-in-chat-boolean-threshold-of-1-9-topleaderboardposition-reaching-top-n-leaderboard-position-e-g-1-3-10-daysatnumber1-number-of-days-holding-the-1-leaderboard-spot-11-monthlyparticipation-matches-played-in-a-given-month-12-consecutiveweeksavailable-availability-logged-for-x-consecutive-weeks-the-existing-criteria-types-totalwins-winsstreak-totalgames-must-remain-unchanged",
-      "featureTitle": "Extend the badge creation form in the Admin tab (BadgeManagement.tsx) to support all the following additional criteria types, each with an appropriate numeric threshold input: (1) totalDaysAvailable – number of days with availability set, (2) totalGamesPlayed – total games played milestones, (3) firstMatchLogged – first match logged (boolean/threshold of 1), (4) winPercentage – win percentage threshold (e.g. 60, 75), (5) bestWinStreak – best win streak milestones, (6) totalChatMessages – number of chat messages posted, (7) totalLikesReceived – number of likes received on chat messages, (8) firstImageUploaded – first image uploaded in chat (boolean/threshold of 1), (9) topLeaderboardPosition – reaching top N leaderboard position (e.g. 1, 3), (10) daysAtNumber1 – number of days holding the #1 leaderboard spot, (11) monthlyParticipation – matches played in a given month, (12) consecutiveWeeksAvailable – availability logged for X consecutive weeks. The existing criteria types (totalWins, winsStreak, totalGames) must remain unchanged.",
+      "featureId": "feature-in-the-profile-tab-display-all-available-badge-definitions-not-just-earned-ones-for-each-unearned-badge-show-a-progress-bar-and-a-count-label-e-g-3-10-wins-indicating-the-user-s-current-progress-toward-earning-it-earned-badges-should-remain-visually-distinct-e-g-full-color-while-unearned-badges-appear-dimmed-with-the-progress-indicator-overlaid",
+      "featureTitle": "In the Profile tab, display all available badge definitions (not just earned ones). For each unearned badge, show a progress bar and a count label (e.g., '3/10 wins') indicating the user's current progress toward earning it. Earned badges should remain visually distinct (e.g., full color) while unearned badges appear dimmed with the progress indicator overlaid.",
       "files": [
-        "frontend/src/components/admin/BadgeManagement.tsx"
+        "frontend/src/components/profile/ProfileBadges.tsx",
+        "frontend/src/lib/badgeProgress.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -22,9 +23,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-in-the-leaderboard-page-leaderboardpage-tsx-reverse-the-sort-order-of-dates-in-the-dropdown-used-to-add-wins-or-losses-so-that-the-most-recent-dates-appear-at-the-top-and-the-oldest-dates-appear-at-the-bottom",
-      "featureTitle": "In the Leaderboard page (LeaderboardPage.tsx), reverse the sort order of dates in the dropdown used to add wins or losses, so that the most recent dates appear at the top and the oldest dates appear at the bottom.",
+      "featureId": "feature-make-player-rows-in-the-leaderboard-tab-clickable-clicking-a-player-opens-a-modal-overlay-showing-that-player-s-profile-a-bar-chart-of-wins-losses-over-time-current-and-best-win-streaks-and-their-earned-badges",
+      "featureTitle": "Make player rows in the Leaderboard tab clickable. Clicking a player opens a modal overlay showing that player's profile: a bar chart of wins/losses over time, current and best win streaks, and their earned badges.",
       "files": [
+        "frontend/src/components/leaderboard/PlayerProfileModal.tsx",
+        "frontend/src/hooks/useQueries.ts",
         "frontend/src/pages/LeaderboardPage.tsx"
       ],
       "components": [
@@ -38,6 +41,46 @@
       ],
       "testIds": [
         "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-games-played-column-to-the-leaderboard-tab-table-showing-each-player-s-total-number-of-games-wins-losses",
+      "featureTitle": "Add a 'Games Played' column to the Leaderboard tab table, showing each player's total number of games (wins + losses).",
+      "files": [
+        "frontend/src/pages/LeaderboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-replace-the-current-5-entry-match-history-limit-in-the-profile-tab-with-a-fully-paginated-match-history-list-users-should-be-able-to-page-through-all-of-their-historical-match-records",
+      "featureTitle": "Replace the current 5-entry match history limit in the Profile tab with a fully paginated match history list. Users should be able to page through all of their historical match records.",
+      "files": [
+        "frontend/src/components/profile/ProfileMatchHistory.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
       ],
       "confidence": "high"
     }

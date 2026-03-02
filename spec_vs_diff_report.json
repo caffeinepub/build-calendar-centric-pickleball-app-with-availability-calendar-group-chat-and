@@ -1,25 +1,29 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-03-01T22:00:33.664Z",
-  "summary": "Both REQ-1 and REQ-2 appear to be implemented. The backend BadgeCriteria type is extended with all 12 new criteria variants in both main.mo and migration.mo. The frontend BadgeManagement.tsx is updated with all 12 new criteria types in the dropdown and appropriate input fields. LeaderboardPage.tsx sorts match history in descending order for the dropdown.",
-  "missing_requirements": [],
-  "hallucinated_features": [
+  "generatedAt": "2026-03-02T21:52:51.891Z",
+  "summary": "The diff implements all four requirements. REQ-1 (badge progress in Profile tab) is addressed via ProfileBadges.tsx and badgeProgress.ts. REQ-2 (clickable leaderboard modals) is addressed via PlayerProfileModal.tsx and LeaderboardPage.tsx. REQ-3 (Games Played column) is addressed in LeaderboardPage.tsx. REQ-4 (paginated match history) is addressed in ProfileMatchHistory.tsx. All acceptance criteria appear to be met with minor caveats noted below.",
+  "missing_requirements": [
     {
-      "description": "A migration module (backend/migration.mo) was added to handle data migration from old BadgeCriteria to new BadgeCriteria schema, including OldActor/NewActor type definitions and a run() migration function.",
-      "reason": "The build request only required extending the BadgeCriteria type definition and the admin UI form. A full data migration module was not requested.",
+      "id": "REQ-4",
+      "requirement": "Loading state is shown while fetching additional records",
+      "reason": "ProfileMatchHistory.tsx shows a skeleton loading state only for the initial data load. Pagination is entirely client-side (slicing already-fetched data), so there is no per-page loading state when navigating between pages. The initial fetch does show a loading skeleton, which partially satisfies this AC.",
       "evidence": [
-        "backend/migration.mo"
+        "frontend/src/components/profile/ProfileMatchHistory.tsx"
       ]
     }
   ],
+  "hallucinated_features": [],
   "confidence": 0.82,
   "changed_files": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/admin/BadgeManagement.tsx",
+    "frontend/src/components/leaderboard/PlayerProfileModal.tsx",
+    "frontend/src/components/profile/ProfileBadges.tsx",
+    "frontend/src/components/profile/ProfileMatchHistory.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/lib/badgeProgress.ts",
     "frontend/src/pages/LeaderboardPage.tsx",
+    "frontend/src/pages/ProfilePage.tsx",
     "project_state.json"
   ]
 }

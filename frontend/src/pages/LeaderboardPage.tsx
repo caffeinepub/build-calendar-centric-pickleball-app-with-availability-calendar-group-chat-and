@@ -22,44 +22,31 @@ import { formatDayId } from '../lib/date';
 import { toast } from 'sonner';
 import { Page, PageHeader } from '../components/layout/PageLayout';
 import { InlineLoading } from '../components/common/LoadingState';
+import PlayerProfileModal from '../components/leaderboard/PlayerProfileModal';
 import type { DayWithLog } from '../backend';
+import type { Principal } from '@dfinity/principal';
 
 /**
  * Computes the current win streak from a user's match history.
- * Walks through all match records chronologically, counting consecutive wins
- * from the most recent match backwards. Resets to 0 on any loss.
  */
 function computeCurrentStreak(history: DayWithLog[]): number {
   if (history.length === 0) return 0;
-
-  // Sort chronologically (ascending by day id — oldest first)
   const sorted = [...history].sort((a, b) =>
     a.day < b.day ? -1 : a.day > b.day ? 1 : 0
   );
-
-  // Build a flat sequence of results (true = win, false = loss) in chronological order
   const results: boolean[] = [];
   for (const entry of sorted) {
     const wins = Number(entry.wins);
     const losses = Number(entry.losses);
-
-    // Within a day, wins come first, then losses (conservative: losses break streak)
     for (let i = 0; i < wins; i++) results.push(true);
     for (let i = 0; i < losses; i++) results.push(false);
   }
-
   if (results.length === 0) return 0;
-
-  // Count consecutive wins from the end (most recent)
   let streak = 0;
   for (let i = results.length - 1; i >= 0; i--) {
-    if (results[i] === true) {
-      streak += 1;
-    } else {
-      break;
-    }
+    if (results[i] === true) streak += 1;
+    else break;
   }
-
   return streak;
 }
 
@@ -76,6 +63,8 @@ export default function LeaderboardPage() {
   const { mutate: removeLoss, isPending: isRemovingLoss } = useRemoveDailyLoss();
   
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [selectedPlayerPrincipal, setSelectedPlayerPrincipal] = useState<Principal | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const callerPrincipal = identity?.getPrincipal().toString();
 
@@ -96,18 +85,15 @@ export default function LeaderboardPage() {
     
     if (currentRank === -1) return;
 
-    const currentRankNumber = currentRank + 1; // Convert to 1-based rank
+    const currentRankNumber = currentRank + 1;
 
     if (isInitialLoadRef.current) {
-      // First observation - just store the rank, don't toast
       previousRankRef.current = currentRankNumber;
       isInitialLoadRef.current = false;
     } else if (previousRankRef.current !== null && currentRankNumber < previousRankRef.current) {
-      // Rank improved (smaller number is better)
       toast.success(`You moved up to #${currentRankNumber}!`);
       previousRankRef.current = currentRankNumber;
     } else if (previousRankRef.current !== null && currentRankNumber !== previousRankRef.current) {
-      // Rank changed but didn't improve - just update the ref without toasting
       previousRankRef.current = currentRankNumber;
     }
   }, [leaderboard, callerPrincipal]);
@@ -127,9 +113,7 @@ export default function LeaderboardPage() {
       return;
     }
     recordWin(BigInt(selectedDay), {
-      onSuccess: () => {
-        toast.success('Win recorded successfully!');
-      },
+      onSuccess: () => toast.success('Win recorded successfully!'),
       onError: (error: any) => {
         toast.error(error?.message || 'Failed to record win. Make sure you are marked available for this date.');
       },
@@ -142,9 +126,7 @@ export default function LeaderboardPage() {
       return;
     }
     recordLoss(BigInt(selectedDay), {
-      onSuccess: () => {
-        toast.success('Loss recorded successfully!');
-      },
+      onSuccess: () => toast.success('Loss recorded successfully!'),
       onError: (error: any) => {
         toast.error(error?.message || 'Failed to record loss. Make sure you are marked available for this date.');
       },
@@ -156,20 +138,14 @@ export default function LeaderboardPage() {
       toast.error('Please select a date first');
       return;
     }
-
     const dayLog = matchHistory.find(entry => entry.day.toString() === selectedDay);
     if (!dayLog || dayLog.wins === 0n) {
       toast.error('No wins to remove for this date');
       return;
     }
-
     removeWin(BigInt(selectedDay), {
-      onSuccess: () => {
-        toast.success('Win removed successfully');
-      },
-      onError: (error: any) => {
-        toast.error(error?.message || 'Failed to remove win');
-      },
+      onSuccess: () => toast.success('Win removed successfully'),
+      onError: (error: any) => toast.error(error?.message || 'Failed to remove win'),
     });
   };
 
@@ -178,21 +154,20 @@ export default function LeaderboardPage() {
       toast.error('Please select a date first');
       return;
     }
-
     const dayLog = matchHistory.find(entry => entry.day.toString() === selectedDay);
     if (!dayLog || dayLog.losses === 0n) {
       toast.error('No losses to remove for this date');
       return;
     }
-
     removeLoss(BigInt(selectedDay), {
-      onSuccess: () => {
-        toast.success('Loss removed successfully');
-      },
-      onError: (error: any) => {
-        toast.error(error?.message || 'Failed to remove loss');
-      },
+      onSuccess: () => toast.success('Loss removed successfully'),
+      onError: (error: any) => toast.error(error?.message || 'Failed to remove loss'),
     });
+  };
+
+  const handlePlayerClick = (principal: Principal) => {
+    setSelectedPlayerPrincipal(principal);
+    setModalOpen(true);
   };
 
   const selectedDayLog = selectedDay
@@ -213,6 +188,11 @@ export default function LeaderboardPage() {
   };
 
   const currentStreak = computeCurrentStreak(matchHistory);
+
+  // Find match history for the selected player (only available for current user)
+  const selectedPlayerMatchHistory: DayWithLog[] = selectedPlayerPrincipal?.toString() === callerPrincipal
+    ? matchHistory
+    : [];
 
   return (
     <Page>
@@ -353,6 +333,7 @@ export default function LeaderboardPage() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Rankings</CardTitle>
+          <p className="text-xs text-muted-foreground mt-0.5">Tap a player to view their profile</p>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading || isLoadingDirectory ? (
@@ -367,10 +348,11 @@ export default function LeaderboardPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-16">Rank</TableHead>
+                  <TableHead className="w-14">Rank</TableHead>
                   <TableHead>Player</TableHead>
                   <TableHead className="text-right">W</TableHead>
                   <TableHead className="text-right">L</TableHead>
+                  <TableHead className="text-right">GP</TableHead>
                   <TableHead className="text-right">Win%</TableHead>
                   <TableHead className="text-right">Streak</TableHead>
                 </TableRow>
@@ -381,29 +363,36 @@ export default function LeaderboardPage() {
                   const isCurrentUser = principal.toString() === callerPrincipal;
                   const entry = userDirectory?.get(principal.toString());
                   const displayStreak = isCurrentUser ? currentStreak : Number(stats.streak);
+                  const gamesPlayed = Number(stats.wins) + Number(stats.losses);
 
                   return (
                     <TableRow
                       key={principal.toString()}
-                      className={isCurrentUser ? 'bg-primary/5 font-medium' : ''}
+                      className={`cursor-pointer transition-colors hover:bg-muted/60 ${isCurrentUser ? 'bg-primary/5 font-medium' : ''}`}
+                      onClick={() => handlePlayerClick(principal)}
                     >
                       <TableCell>{getRankBadge(rank)}</TableCell>
                       <TableCell>
-                        <AvatarName
-                          principal={principal}
-                          displayName={entry?.displayName ?? principal.toString().slice(0, 8) + '...'}
-                          avatarUrl={entry?.avatarUrl}
-                          size="sm"
-                        />
-                        {isCurrentUser && (
-                          <span className="ml-2 text-xs text-muted-foreground">(you)</span>
-                        )}
+                        <div className="flex items-center gap-1">
+                          <AvatarName
+                            principal={principal}
+                            displayName={entry?.displayName ?? principal.toString().slice(0, 8) + '...'}
+                            avatarUrl={entry?.avatarUrl}
+                            size="sm"
+                          />
+                          {isCurrentUser && (
+                            <span className="ml-1 text-xs text-muted-foreground">(you)</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right text-green-600 font-medium">
                         {Number(stats.wins)}
                       </TableCell>
                       <TableCell className="text-right text-red-500 font-medium">
                         {Number(stats.losses)}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {gamesPlayed}
                       </TableCell>
                       <TableCell className="text-right">
                         {getWinRate(stats.wins, stats.losses)}
@@ -423,6 +412,14 @@ export default function LeaderboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Player Profile Modal */}
+      <PlayerProfileModal
+        principal={selectedPlayerPrincipal}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        matchHistory={selectedPlayerMatchHistory}
+      />
     </Page>
   );
 }

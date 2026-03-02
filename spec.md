@@ -1,13 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Extend the admin badge creation form with 12 new criteria types and reverse the date sort order in the leaderboard win/loss dropdown.
+**Goal:** Enhance the Profile and Leaderboard tabs with badge progress visibility, clickable player modals, a Games Played column, and paginated match history.
 
 **Planned changes:**
-- Add 12 new criteria types to the badge creation/edit modal dropdown in the Admin tab: `totalDaysAvailable`, `totalGamesPlayed`, `firstMatchLogged`, `winPercentage`, `bestWinStreak`, `totalChatMessages`, `totalLikesReceived`, `firstImageUploaded`, `topLeaderboardPosition`, `daysAtNumber1`, `monthlyParticipation`, `consecutiveWeeksAvailable`
-- Each new criteria type shows an appropriate numeric threshold input when selected
-- Extend the backend `BadgeCriteria` type to include all new criteria variants
-- Keep existing criteria types (`totalWins`, `winsStreak`, `totalGames`) unchanged
-- Reverse the date dropdown sort order in the Leaderboard tab (newest dates at top, oldest at bottom)
+- Profile tab: Display all badge definitions (earned and unearned); unearned badges show dimmed with a progress bar and count label (e.g., "3/10 wins") based on the user's stats
+- Leaderboard tab: Make each player row clickable to open a modal showing that player's wins/losses bar chart over time, current and best win streaks, and their earned badges
+- Leaderboard tab: Add a "Games Played" column (wins + losses) alongside existing columns
+- Profile tab: Replace the 5-entry match history limit with a paginated list (e.g., 10 per page) with next/previous controls and a loading state
 
-**User-visible outcome:** Admins can create badges using 12 additional criteria types in the badge management form. Leaderboard users see dates listed newest-first when selecting a date to log wins or losses.
+**User-visible outcome:** Users can track their progress toward all badges in their profile, page through their full match history, and click any player on the leaderboard to view that player's stats and badges in a modal overlay.

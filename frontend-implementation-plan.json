@@ -1,39 +1,90 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add extended badge criteria to admin tab and reverse leaderboard date sort",
+  "title": "Part 1: Profile badge progress, clickable leaderboard modals, games played column, paginated match history",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Extend the badge creation form in the Admin tab to support 12 additional criteria types (totalDaysAvailable, totalGamesPlayed, firstMatchLogged, winPercentage, bestWinStreak, totalChatMessages, totalLikesReceived, firstImageUploaded, topLeaderboardPosition, daysAtNumber1, monthlyParticipation, consecutiveWeeksAvailable) alongside the existing criteria types (totalWins, winsStreak, totalGames).",
+      "summary": "Display all badge definitions in Profile tab with progress indicators for unearned badges",
       "acceptanceCriteria": [
-        "The badge creation/edit modal in the Admin tab displays all 12 new criteria types in the criteria type dropdown alongside the existing ones.",
-        "Selecting any new criteria type shows an appropriate threshold/value input field.",
-        "The backend BadgeCriteria type is extended to include all new criteria variants.",
-        "Existing badge creation with totalWins, winsStreak, and totalGames still works correctly.",
-        "New criteria types are persisted and displayed correctly when viewing existing badges."
+        "Profile tab shows all badge definitions, both earned and unearned",
+        "Unearned badges display a percentage progress bar",
+        "Unearned badges display a count label such as '3/10 wins'",
+        "Earned badges are visually distinct from unearned ones",
+        "Progress is computed from the user's existing stats/match history data"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/admin/BadgeManagement.tsx",
+          "path": "frontend/src/components/profile/ProfileBadges.tsx",
           "operation": "modify",
-          "description": "Extend the badge criteria type dropdown to include all 12 new criteria variants: totalDaysAvailable, totalGamesPlayed, firstMatchLogged, winPercentage, bestWinStreak, totalChatMessages, totalLikesReceived, firstImageUploaded, topLeaderboardPosition, daysAtNumber1, monthlyParticipation, and consecutiveWeeksAvailable. Update the form state and validation logic to handle the new criteria types with appropriate threshold input fields. For monthlyParticipation, add fields for year, month, and matchesThreshold. Ensure existing criteria types (totalWins, winsStreak, totalGames) remain unchanged and functional. Update the criteria display logic to show human-readable labels for all criteria types. The backend interface already includes the extended BadgeCriteria type variants, so ensure the frontend properly maps to and from these backend types when creating, editing, and displaying badges."
+          "description": "Modify ProfileBadges to display all badge definitions (not just earned ones). For each badge, compute progress from userStats and matchHistory data. Show earned badges in full color and unearned badges dimmed with an overlaid progress bar and count label (e.g., '3/10 wins'). Add helper functions to calculate current progress for each BadgeCriteria type (totalWins, winsStreak, totalGamesPlayed, etc.) from the user's stats and history."
+        },
+        {
+          "path": "frontend/src/lib/badgeProgress.ts",
+          "operation": "create",
+          "description": "Create a utility module for badge progress calculation. Export a function computeBadgeProgress(definition: BadgeDefinition, stats: T | null, matchHistory: DayWithLog[]): { current: number; required: number; percentage: number } that handles all BadgeCriteria variants and returns current progress, required threshold, and percentage. Handle edge cases (null stats, empty history) gracefully."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Reverse the sort order of dates in the Leaderboard page date dropdown so that the most recent dates appear at the top and the oldest dates appear at the bottom.",
+      "summary": "Make leaderboard player rows clickable to open a profile modal with chart, streaks, and badges",
       "acceptanceCriteria": [
-        "The date dropdown in the Leaderboard tab lists dates in descending order (newest first, oldest last).",
-        "The previously selected or default date still resolves correctly after the sort is reversed.",
-        "No other leaderboard functionality is affected."
+        "Each player row in the leaderboard is clickable",
+        "Clicking opens a modal (not a page navigation)",
+        "Modal shows a bar chart of the selected player's wins and losses over time",
+        "Modal shows the selected player's current win streak and best win streak",
+        "Modal shows all badges earned by the selected player",
+        "Modal can be dismissed to return to the leaderboard"
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/LeaderboardPage.tsx",
           "operation": "modify",
-          "description": "Locate the date dropdown component that allows users to select a date for adding wins or losses. Reverse the sort order of the dates array so that the most recent dates appear first (descending order) and the oldest dates appear last. Ensure the currently selected date or default date logic remains functional after the sort order change. Verify that the win/loss recording functionality and all other leaderboard features continue to work correctly with the new sort order."
+          "description": "Make each player row in the leaderboard table clickable. Add an onClick handler that opens a PlayerProfileModal component, passing the selected player's principal. Use cursor-pointer and hover styles to indicate clickability."
+        },
+        {
+          "path": "frontend/src/components/leaderboard/PlayerProfileModal.tsx",
+          "operation": "create",
+          "description": "Create a modal dialog component that displays a selected player's profile. Accept a principal prop and an onClose callback. Fetch the player's stats (via getUserStats), match history (via a new hook), and earned badges (via getUserBadges). Display: (1) a bar chart of wins/losses over time using the ProfileWinLossChart pattern, (2) current and best win streaks computed from match history, (3) earned badges grid using the ProfileBadges pattern. Use shadcn/ui Dialog for the modal overlay. Show loading state while fetching data."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add a new React Query hook useGetUserMatchHistory(userPrincipal: Principal | null) that fetches match history for any user (not just the caller). This hook should call a backend method if one exists; if not, return an empty array for now (we'll handle backend in Part 2 or later). Ensure the hook is disabled when userPrincipal is null."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Add 'Games Played' column to the Leaderboard table",
+      "acceptanceCriteria": [
+        "Leaderboard table includes a 'Games Played' column",
+        "Value is calculated as wins + losses for each player",
+        "Column is visible alongside existing wins, losses, win %, and streak columns"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/LeaderboardPage.tsx",
+          "operation": "modify",
+          "description": "Add a new 'Games Played' column to the leaderboard table. Compute the value as (wins + losses) from each player's stats. Insert the column between the existing columns in a logical position (e.g., after 'Losses' and before 'Win %'). Update table headers and cell rendering accordingly."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Replace the 5-entry match history limit with full pagination in Profile tab",
+      "acceptanceCriteria": [
+        "Match history in the Profile tab shows more than 5 entries",
+        "Pagination controls (next/previous or page numbers) allow browsing all records",
+        "Each page shows a reasonable fixed number of entries (e.g., 10 per page)",
+        "Loading state is shown while fetching additional records"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/profile/ProfileMatchHistory.tsx",
+          "operation": "modify",
+          "description": "Replace the current 5-entry limit with client-side pagination. Display 10 entries per page. Add pagination controls (prev/next buttons or page numbers) below the match history list. Maintain the current loading skeleton and error handling. If the full match history is already fetched via useGetCallerAvailableDaysWithLogs, slice it by page; otherwise, consider a paginated query hook for better performance in the future."
         }
       ]
     }

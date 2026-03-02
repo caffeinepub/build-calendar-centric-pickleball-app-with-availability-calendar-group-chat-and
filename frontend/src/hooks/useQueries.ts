@@ -163,6 +163,19 @@ export function useGetCallerStats() {
   });
 }
 
+export function useGetUserStats(user: Principal | null) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<UserStats | null>({
+    queryKey: ['userStats', user?.toString()],
+    queryFn: async () => {
+      if (!actor || !user) return null;
+      return actor.getUserStats(user);
+    },
+    enabled: !!actor && !isFetching && !!user,
+  });
+}
+
 export function useAddAvailability() {
   const { actor } = useActor();
   const queryClient = useQueryClient();

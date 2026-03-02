@@ -6,87 +6,56 @@ import ProfileMatchHistory from '../components/profile/ProfileMatchHistory';
 import ProfileWinLossChart from '../components/profile/ProfileWinLossChart';
 import ProfileBadges from '../components/profile/ProfileBadges';
 import { Page, PageHeader } from '../components/layout/PageLayout';
-import { useGetCallerMatchHistory } from '../hooks/useQueries';
+import { useGetCallerMatchHistory, useGetCallerStats } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { Skeleton } from '../components/ui/skeleton';
 import type { DayWithLog } from '../backend';
 
 /**
  * Computes the longest consecutive winning streak from match history.
- * Each individual win/loss within a day is counted separately.
- * Example: a day with 3 wins counts as 3 consecutive wins toward the streak.
- * Any loss resets the running counter to 0.
  */
 function computeBestStreak(history: DayWithLog[]): number {
   if (history.length === 0) return 0;
-
-  // Sort chronologically (ascending by day id)
   const sorted = [...history].sort((a, b) =>
     a.day < b.day ? -1 : a.day > b.day ? 1 : 0
   );
-
   let best = 0;
   let current = 0;
-
   for (const entry of sorted) {
     const wins = Number(entry.wins);
     const losses = Number(entry.losses);
-
-    // Process each win individually — each win extends the streak by 1
     for (let i = 0; i < wins; i++) {
       current += 1;
       if (current > best) best = current;
     }
-
-    // Process each loss individually — each loss resets the streak
     for (let i = 0; i < losses; i++) {
       current = 0;
     }
   }
-
   return best;
 }
 
 /**
  * Computes the current win streak from match history.
- * Walks through all match records in chronological order (oldest first),
- * counting consecutive wins from the end. Resets to 0 on any loss.
- * Returns the count of consecutive wins at the tail of the history.
  */
 function computeCurrentStreak(history: DayWithLog[]): number {
   if (history.length === 0) return 0;
-
-  // Sort chronologically (ascending by day id — oldest first)
   const sorted = [...history].sort((a, b) =>
     a.day < b.day ? -1 : a.day > b.day ? 1 : 0
   );
-
-  // Build a flat sequence of results (true = win, false = loss) in chronological order
   const results: boolean[] = [];
   for (const entry of sorted) {
     const wins = Number(entry.wins);
     const losses = Number(entry.losses);
-
-    // Within a day, wins and losses are interleaved. We don't know the exact order,
-    // but to be conservative: if a day has both wins and losses, treat losses as
-    // occurring after wins (so losses break the streak at the end of that day).
     for (let i = 0; i < wins; i++) results.push(true);
     for (let i = 0; i < losses; i++) results.push(false);
   }
-
   if (results.length === 0) return 0;
-
-  // Count consecutive wins from the end (most recent)
   let streak = 0;
   for (let i = results.length - 1; i >= 0; i--) {
-    if (results[i] === true) {
-      streak += 1;
-    } else {
-      // Hit a loss — stop counting
-      break;
-    }
+    if (results[i] === true) streak += 1;
+    else break;
   }
-
   return streak;
 }
 
@@ -147,6 +116,7 @@ function StreakStats() {
 export default function ProfilePage() {
   const { identity } = useInternetIdentity();
   const { data: matchHistory = [] } = useGetCallerMatchHistory();
+  const { data: callerStats = null } = useGetCallerStats();
   const callerPrincipal = identity?.getPrincipal() ?? null;
 
   return (
@@ -200,17 +170,21 @@ export default function ProfilePage() {
             <Award className="h-5 w-5 text-yellow-500" />
             Badges & Achievements
           </CardTitle>
-          <CardDescription>Badges you've earned through your performance</CardDescription>
+          <CardDescription>All available badges — earned and in progress</CardDescription>
         </CardHeader>
         <CardContent>
-          <ProfileBadges userPrincipal={callerPrincipal} />
+          <ProfileBadges
+            userPrincipal={callerPrincipal}
+            matchHistory={matchHistory}
+            userStats={callerStats}
+          />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
           <CardTitle>Match History</CardTitle>
-          <CardDescription>Your wins and losses for the last 5 availabilities</CardDescription>
+          <CardDescription>Your complete win/loss history with pagination</CardDescription>
         </CardHeader>
         <CardContent>
           <ProfileMatchHistory />

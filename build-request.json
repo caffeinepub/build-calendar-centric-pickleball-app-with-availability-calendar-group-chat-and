@@ -1,55 +1,100 @@
 {
   "kind": "build_request",
-  "title": "Add extended badge criteria to admin tab and reverse leaderboard date sort",
+  "title": "Part 1: Profile badge progress, clickable leaderboard modals, games played column, paginated match history",
   "projectName": "Somers Scheduler",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Extend the badge creation form in the Admin tab (BadgeManagement.tsx) to support all the following additional criteria types, each with an appropriate numeric threshold input: (1) totalDaysAvailable – number of days with availability set, (2) totalGamesPlayed – total games played milestones, (3) firstMatchLogged – first match logged (boolean/threshold of 1), (4) winPercentage – win percentage threshold (e.g. 60, 75), (5) bestWinStreak – best win streak milestones, (6) totalChatMessages – number of chat messages posted, (7) totalLikesReceived – number of likes received on chat messages, (8) firstImageUploaded – first image uploaded in chat (boolean/threshold of 1), (9) topLeaderboardPosition – reaching top N leaderboard position (e.g. 1, 3), (10) daysAtNumber1 – number of days holding the #1 leaderboard spot, (11) monthlyParticipation – matches played in a given month, (12) consecutiveWeeksAvailable – availability logged for X consecutive weeks. The existing criteria types (totalWins, winsStreak, totalGames) must remain unchanged.",
-      "target": "both",
+      "text": "In the Profile tab, display all available badge definitions (not just earned ones). For each unearned badge, show a progress bar and a count label (e.g., '3/10 wins') indicating the user's current progress toward earning it. Earned badges should remain visually distinct (e.g., full color) while unearned badges appear dimmed with the progress indicator overlaid.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-4"
         ],
         "quotes": [
-          "Can we add all this criteria to the admin tab for creating badges?"
+          "make available badges visible and show users progress towards unearned badges in profile tab"
         ]
       },
       "acceptanceCriteria": [
-        "The badge creation/edit modal in the Admin tab displays all 12 new criteria types in the criteria type dropdown alongside the existing ones.",
-        "Selecting any new criteria type shows an appropriate threshold/value input field.",
-        "The backend BadgeCriteria type is extended to include all new criteria variants.",
-        "Existing badge creation with totalWins, winsStreak, and totalGames still works correctly.",
-        "New criteria types are persisted and displayed correctly when viewing existing badges."
+        "Profile tab shows all badge definitions, both earned and unearned",
+        "Unearned badges display a percentage progress bar",
+        "Unearned badges display a count label such as '3/10 wins'",
+        "Earned badges are visually distinct from unearned ones",
+        "Progress is computed from the user's existing stats/match history data"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "In the Leaderboard page (LeaderboardPage.tsx), reverse the sort order of dates in the dropdown used to add wins or losses, so that the most recent dates appear at the top and the oldest dates appear at the bottom.",
+      "text": "Make player rows in the Leaderboard tab clickable. Clicking a player opens a modal overlay showing that player's profile: a bar chart of wins/losses over time, current and best win streaks, and their earned badges.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-4",
+          "msg-5"
         ],
         "quotes": [
-          "in leaderboard tab when a user selects a date in the drop down to add wins or losses, the dates are sorted oldest at the top to newest at the bottom but I want this reversed"
+          "have users be clickable in leaderboard tab and bring up their profile showing bar chart, streaks, and earned badges",
+          "Modal for clickable leaderboard profiles"
         ]
       },
       "acceptanceCriteria": [
-        "The date dropdown in the Leaderboard tab lists dates in descending order (newest first, oldest last).",
-        "The previously selected or default date still resolves correctly after the sort is reversed.",
-        "No other leaderboard functionality is affected."
+        "Each player row in the leaderboard is clickable",
+        "Clicking opens a modal (not a page navigation)",
+        "Modal shows a bar chart of the selected player's wins and losses over time",
+        "Modal shows the selected player's current win streak and best win streak",
+        "Modal shows all badges earned by the selected player",
+        "Modal can be dismissed to return to the leaderboard"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Add a 'Games Played' column to the Leaderboard tab table, showing each player's total number of games (wins + losses).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "add games played column in leaderboard tab"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Leaderboard table includes a 'Games Played' column",
+        "Value is calculated as wins + losses for each player",
+        "Column is visible alongside existing wins, losses, win %, and streak columns"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Replace the current 5-entry match history limit in the Profile tab with a fully paginated match history list. Users should be able to page through all of their historical match records.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "full match history with pagination (beyond last 5)"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Match history in the Profile tab shows more than 5 entries",
+        "Pagination controls (next/previous or page numbers) allow browsing all records",
+        "Each page shows a reasonable fixed number of entries (e.g., 10 per page)",
+        "Loading state is shown while fetching additional records"
       ]
     }
   ],
   "constraints": [
-    "Do not remove or rename existing badge criteria types (totalWins, winsStreak, totalGames).",
-    "Do not modify immutable frontend paths listed in the system context."
+    "Do not modify files listed in frontend.immutablePaths",
+    "All Motoko logic must remain in the single backend/main.mo actor",
+    "Do not implement chat emoji reactions or admin analytics in this build — those are Part 2"
   ],
   "nonGoals": [
-    "Automatically awarding the new badge criteria to users (only the admin creation UI and backend type definitions are in scope).",
-    "Changing the sort order of any other list or dropdown outside the leaderboard date selector."
+    "Chat expanded emoji reactions (Part 2)",
+    "Admin analytics dashboard (Part 2)",
+    "Admin manual badge award/revoke (Part 2)",
+    "Navigating to a dedicated player profile page (modal only for now)"
   ],
   "imageRequirements": {
     "required": [],

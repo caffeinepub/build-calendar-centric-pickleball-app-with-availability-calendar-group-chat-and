@@ -1,29 +1,45 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Sports/gaming app with badge/achievement system, leaderboard, chat, and admin tab. Currently adding new badge criteria options and fixing date sorting in leaderboard.",
+  "summary": "A sports/gaming app with leaderboard, profiles, badges, chat, calendar, and admin features. Currently building out a major multi-feature update in two parts: (1) profile badge progress, clickable leaderboard modals, games played column, paginated match history; (2) expanded chat emoji reactions and admin analytics dashboard + manual badge management.",
   "architectural_notes": [
-    "App has an admin tab for creating/managing badges with configurable criteria",
-    "App has a leaderboard tab where users can log wins/losses by selecting dates"
+    "Large multi-feature updates are split into two builds: (1) profile/leaderboard/match history, (2) chat emoji + admin analytics/badges",
+    "Leaderboard player profiles use a modal overlay (not dedicated page) as first implementation; can switch later"
   ],
   "known_issues": [
-    "Leaderboard date dropdown sorts oldest-to-newest; user wants newest-to-oldest"
+    "Large combined builds are failing; workaround is to split into smaller sequential builds"
   ],
-  "isFixRequest": true,
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-extend-the-badge-creation-form-in-the-admin-tab-badgemanagement-tsx-to-support-all-the-following-additional-criteria-types-each-with-an-appropriate-numeric-threshold-input-1-totaldaysavailable-number-of-days-with-availability-set-2-totalgamesplayed-total-games-played-milestones-3-firstmatchlogged-first-match-logged-boolean-threshold-of-1-4-winpercentage-win-percentage-threshold-e-g-60-75-5-bestwinstreak-best-win-streak-milestones-6-totalchatmessages-number-of-chat-messages-posted-7-totallikesreceived-number-of-likes-received-on-chat-messages-8-firstimageuploaded-first-image-uploaded-in-chat-boolean-threshold-of-1-9-topleaderboardposition-reaching-top-n-leaderboard-position-e-g-1-3-10-daysatnumber1-number-of-days-holding-the-1-leaderboard-spot-11-monthlyparticipation-matches-played-in-a-given-month-12-consecutiveweeksavailable-availability-logged-for-x-consecutive-weeks-the-existing-criteria-types-totalwins-winsstreak-totalgames-must-remain-unchanged",
-      "title": "Extend the badge creation form in the Admin tab (BadgeManagement.tsx) to support all the following additional criteria types, each with an appropriate numeric threshold input: (1) totalDaysAvailable – number of days with availability set, (2) totalGamesPlayed – total games played milestones, (3) firstMatchLogged – first match logged (boolean/threshold of 1), (4) winPercentage – win percentage threshold (e.g. 60, 75), (5) bestWinStreak – best win streak milestones, (6) totalChatMessages – number of chat messages posted, (7) totalLikesReceived – number of likes received on chat messages, (8) firstImageUploaded – first image uploaded in chat (boolean/threshold of 1), (9) topLeaderboardPosition – reaching top N leaderboard position (e.g. 1, 3), (10) daysAtNumber1 – number of days holding the #1 leaderboard spot, (11) monthlyParticipation – matches played in a given month, (12) consecutiveWeeksAvailable – availability logged for X consecutive weeks. The existing criteria types (totalWins, winsStreak, totalGames) must remain unchanged.",
+      "id": "feature-in-the-profile-tab-display-all-available-badge-definitions-not-just-earned-ones-for-each-unearned-badge-show-a-progress-bar-and-a-count-label-e-g-3-10-wins-indicating-the-user-s-current-progress-toward-earning-it-earned-badges-should-remain-visually-distinct-e-g-full-color-while-unearned-badges-appear-dimmed-with-the-progress-indicator-overlaid",
+      "title": "In the Profile tab, display all available badge definitions (not just earned ones). For each unearned badge, show a progress bar and a count label (e.g., '3/10 wins') indicating the user's current progress toward earning it. Earned badges should remain visually distinct (e.g., full color) while unearned badges appear dimmed with the progress indicator overlaid.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-in-the-leaderboard-page-leaderboardpage-tsx-reverse-the-sort-order-of-dates-in-the-dropdown-used-to-add-wins-or-losses-so-that-the-most-recent-dates-appear-at-the-top-and-the-oldest-dates-appear-at-the-bottom",
-      "title": "In the Leaderboard page (LeaderboardPage.tsx), reverse the sort order of dates in the dropdown used to add wins or losses, so that the most recent dates appear at the top and the oldest dates appear at the bottom.",
+      "id": "feature-make-player-rows-in-the-leaderboard-tab-clickable-clicking-a-player-opens-a-modal-overlay-showing-that-player-s-profile-a-bar-chart-of-wins-losses-over-time-current-and-best-win-streaks-and-their-earned-badges",
+      "title": "Make player rows in the Leaderboard tab clickable. Clicking a player opens a modal overlay showing that player's profile: a bar chart of wins/losses over time, current and best win streaks, and their earned badges.",
       "reqIds": [
         "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-games-played-column-to-the-leaderboard-tab-table-showing-each-player-s-total-number-of-games-wins-losses",
+      "title": "Add a 'Games Played' column to the Leaderboard tab table, showing each player's total number of games (wins + losses).",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-replace-the-current-5-entry-match-history-limit-in-the-profile-tab-with-a-fully-paginated-match-history-list-users-should-be-able-to-page-through-all-of-their-historical-match-records",
+      "title": "Replace the current 5-entry match history limit in the Profile tab with a fully paginated match history list. Users should be able to page through all of their historical match records.",
+      "reqIds": [
+        "REQ-4"
       ],
       "version": 1
     }
@@ -31,13 +47,43 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Add all suggested badge criteria to admin tab for creating badges (activity-based, performance-based, social/community, leaderboard, seasonal/time-based)",
+      "summary": "Profile tab: show all available badges with progress bars and counts for unearned badges",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Reverse date sort order in leaderboard tab date dropdown (newest at top, oldest at bottom)",
+      "summary": "Leaderboard tab: clickable players open a modal with bar chart, streaks, and earned badges",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Leaderboard tab: add Games Played column",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Full paginated match history beyond last 5 entries",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Chat: expanded fixed emoji reactions set (👍 👎 😂 ❤️ 🔥 😮)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Admin tab: analytics dashboard (total games, most active players, busiest calendar days)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Admin tab: manually award or revoke badges from users",
       "reqIds": [],
       "status": "pending"
     }
