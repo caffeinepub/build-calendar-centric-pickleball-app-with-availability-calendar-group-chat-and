@@ -1,6 +1,6 @@
-import { AlertCircle } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { Button } from "../ui/button";
 
 interface ErrorStateProps {
   title?: string;
@@ -12,9 +12,9 @@ interface ErrorStateProps {
   };
 }
 
-export function ErrorState({ 
-  title = 'Error', 
-  message, 
+export function ErrorState({
+  title = "Error",
+  message,
   onRetry,
   secondaryAction,
 }: ErrorStateProps) {
@@ -26,9 +26,9 @@ export function ErrorState({
         <p>{message}</p>
         <div className="flex gap-2">
           {onRetry && (
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={onRetry}
               className="mt-2"
             >
@@ -36,9 +36,9 @@ export function ErrorState({
             </Button>
           )}
           {secondaryAction && (
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={secondaryAction.onClick}
               className="mt-2"
             >

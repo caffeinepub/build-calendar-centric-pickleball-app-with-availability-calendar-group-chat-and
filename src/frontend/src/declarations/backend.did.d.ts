@@ -11,6 +11,27 @@ import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export interface Availability { 'time' : string, 'notes' : [] | [string] }
+export type BadgeCriteria = { 'consecutiveWeeksAvailable' : bigint } |
+  { 'firstMatchLogged' : bigint } |
+  { 'totalGamesPlayed' : bigint } |
+  { 'daysAtNumber1' : bigint } |
+  { 'totalWins' : bigint } |
+  { 'winsStreak' : bigint } |
+  { 'totalChatMessages' : bigint } |
+  { 'totalGames' : bigint } |
+  { 'topLeaderboardPosition' : bigint } |
+  { 'winPercentage' : bigint } |
+  { 'monthlyParticipation' : MonthCriteria } |
+  { 'firstImageUploaded' : bigint } |
+  { 'totalDaysAvailable' : bigint } |
+  { 'totalLikesReceived' : bigint } |
+  { 'bestWinStreak' : bigint };
+export interface BadgeDefinition {
+  'id' : string,
+  'name' : string,
+  'description' : string,
+  'criteria' : BadgeCriteria,
+}
 export interface DayAvailabilityCount { 'day' : bigint, 'count' : bigint }
 export interface DayWithLog {
   'day' : bigint,
@@ -18,10 +39,17 @@ export interface DayWithLog {
   'losses' : bigint,
 }
 export type ExternalBlob = Uint8Array;
+export interface MonthCriteria {
+  'month' : bigint,
+  'matchesThreshold' : bigint,
+  'year' : bigint,
+}
 export interface Post {
   'id' : bigint,
   'content' : string,
+  'edited' : boolean,
   'author' : Principal,
+  'editTimestamp' : [] | [bigint],
   'timestamp' : bigint,
   'image' : [] | [ExternalBlob],
   'parentId' : [] | [bigint],
@@ -39,6 +67,7 @@ export interface T {
   'wins' : bigint,
   'losses' : bigint,
   'totalGames' : bigint,
+  'bestStreak' : bigint,
 }
 export interface UserProfile {
   'name' : string,
@@ -80,13 +109,19 @@ export interface _SERVICE {
   'addReaction' : ActorMethod<[bigint, ReactionType], undefined>,
   'anyUserHasAvailability' : ActorMethod<[bigint], boolean>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'awardBadgeToUser' : ActorMethod<[Principal, string], undefined>,
+  'createBadgeDefinition' : ActorMethod<[BadgeDefinition], undefined>,
   'daysWithAnyAvailability' : ActorMethod<[Array<bigint>], Array<boolean>>,
   'decrementDailyLog' : ActorMethod<[bigint, boolean], undefined>,
   'deleteAllDayAvailabilities' : ActorMethod<[bigint], undefined>,
+  'deleteBadgeDefinition' : ActorMethod<[string], undefined>,
   'deleteCallerDayAvailability' : ActorMethod<[bigint], undefined>,
+  'deletePost' : ActorMethod<[bigint], undefined>,
   'deleteUser' : ActorMethod<[Principal], undefined>,
   'deleteUserDayAvailability' : ActorMethod<[Principal, bigint], undefined>,
+  'editPost' : ActorMethod<[bigint, string], undefined>,
   'getAllAvailabilities' : ActorMethod<[], Array<[Principal, bigint, string]>>,
+  'getAllBadgeDefinitions' : ActorMethod<[], Array<BadgeDefinition>>,
   'getAllDayAvailabilityCounts' : ActorMethod<[], Array<DayAvailabilityCount>>,
   'getAllLoginTimestamps' : ActorMethod<[], Array<[Principal, bigint]>>,
   'getAllRegisteredUsers' : ActorMethod<
@@ -111,6 +146,7 @@ export interface _SERVICE {
     Array<[Principal, T, bigint]>
   >,
   'getTopPlayersByScore' : ActorMethod<[bigint], Array<[Principal, T]>>,
+  'getUserBadges' : ActorMethod<[Principal], Array<string>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getUserStats' : ActorMethod<[Principal], [] | [T]>,
   'hasAvailability' : ActorMethod<[bigint], boolean>,
@@ -119,7 +155,9 @@ export interface _SERVICE {
   'recordDailyWin' : ActorMethod<[bigint], undefined>,
   'recordLoginTime' : ActorMethod<[], undefined>,
   'removeReaction' : ActorMethod<[bigint], undefined>,
+  'revokeBadgeFromUser' : ActorMethod<[Principal, string], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'updateBadgeDefinition' : ActorMethod<[BadgeDefinition], undefined>,
   'updateCallerStats' : ActorMethod<[T], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

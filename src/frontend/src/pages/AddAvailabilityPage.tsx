@@ -1,45 +1,59 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useSearch } from '@tanstack/react-router';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Label } from '../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Textarea } from '../components/ui/textarea';
-import { useAddAvailability, useGetCallerAvailability } from '../hooks/useQueries';
-import { getDayId, formatDate } from '../lib/date';
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Page, PageHeader } from "../components/layout/PageLayout";
+import { Button } from "../components/ui/button";
 import {
-  parseTimeString,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { Label } from "../components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import { Textarea } from "../components/ui/textarea";
+import {
+  useAddAvailability,
+  useGetCallerAvailability,
+} from "../hooks/useQueries";
+import { formatDate, getDayId } from "../lib/date";
+import {
+  type TimeComponents,
   formatTimeString,
+  getDefaultTimeComponents,
   getHourOptions,
   getMinuteOptions,
   getPeriodOptions,
-  getDefaultTimeComponents,
-  type TimeComponents,
-} from '../utils/time';
-import { toast } from 'sonner';
-import { Page, PageHeader } from '../components/layout/PageLayout';
+  parseTimeString,
+} from "../utils/time";
 
 export default function AddAvailabilityPage() {
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as { date?: string };
-  
+
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
     if (search.date) {
       const dateStr = search.date;
       return new Date(
         Number(dateStr.slice(0, 4)),
         Number(dateStr.slice(4, 6)) - 1,
-        Number(dateStr.slice(6, 8))
+        Number(dateStr.slice(6, 8)),
       );
     }
     return new Date();
   });
-  
-  const [hour, setHour] = useState('');
-  const [minute, setMinute] = useState('');
-  const [period, setPeriod] = useState<'AM' | 'PM' | ''>('');
-  const [notes, setNotes] = useState('');
+
+  const [hour, setHour] = useState("");
+  const [minute, setMinute] = useState("");
+  const [period, setPeriod] = useState<"AM" | "PM" | "">("");
+  const [notes, setNotes] = useState("");
 
   const dayId = getDayId(selectedDate);
   const { data: existingAvailability } = useGetCallerAvailability(dayId);
@@ -52,7 +66,7 @@ export default function AddAvailabilityPage() {
       const newDate = new Date(
         Number(dateStr.slice(0, 4)),
         Number(dateStr.slice(4, 6)) - 1,
-        Number(dateStr.slice(6, 8))
+        Number(dateStr.slice(6, 8)),
       );
       setSelectedDate(newDate);
     }
@@ -72,7 +86,7 @@ export default function AddAvailabilityPage() {
         setMinute(defaults.minute);
         setPeriod(defaults.period);
       }
-      setNotes(existingAvailability.notes || '');
+      setNotes(existingAvailability.notes || "");
     }
   }, [existingAvailability]);
 
@@ -86,18 +100,24 @@ export default function AddAvailabilityPage() {
       { day: dayId, time: timeString, notes: notes.trim() || null },
       {
         onSuccess: () => {
-          toast.success(existingAvailability ? 'Availability updated' : 'Availability added');
-          navigate({ to: '/day/$date', params: { date: dayId.toString() } });
+          toast.success(
+            existingAvailability
+              ? "Availability updated"
+              : "Availability added",
+          );
+          navigate({ to: "/day/$date", params: { date: dayId.toString() } });
         },
         onError: (error: any) => {
-          toast.error(error?.message || 'Failed to save availability. Please try again.');
+          toast.error(
+            error?.message || "Failed to save availability. Please try again.",
+          );
         },
-      }
+      },
     );
   };
 
   const handleBack = () => {
-    navigate({ to: '/' });
+    navigate({ to: "/" });
   };
 
   const isFormValid = hour && minute && period;
@@ -110,7 +130,7 @@ export default function AddAvailabilityPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
         }
-        title={`${existingAvailability ? 'Edit' : 'Add'} Availability`}
+        title={`${existingAvailability ? "Edit" : "Add"} Availability`}
       />
 
       <Card>
@@ -123,7 +143,10 @@ export default function AddAvailabilityPage() {
               <Label>Start Time</Label>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="hour" className="text-xs text-muted-foreground">
+                  <Label
+                    htmlFor="hour"
+                    className="text-xs text-muted-foreground"
+                  >
                     Hour
                   </Label>
                   <Select value={hour} onValueChange={setHour}>
@@ -141,7 +164,10 @@ export default function AddAvailabilityPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="minute" className="text-xs text-muted-foreground">
+                  <Label
+                    htmlFor="minute"
+                    className="text-xs text-muted-foreground"
+                  >
                     Minute
                   </Label>
                   <Select value={minute} onValueChange={setMinute}>
@@ -159,10 +185,16 @@ export default function AddAvailabilityPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="period" className="text-xs text-muted-foreground">
+                  <Label
+                    htmlFor="period"
+                    className="text-xs text-muted-foreground"
+                  >
                     AM/PM
                   </Label>
-                  <Select value={period} onValueChange={(val) => setPeriod(val as 'AM' | 'PM')}>
+                  <Select
+                    value={period}
+                    onValueChange={(val) => setPeriod(val as "AM" | "PM")}
+                  >
                     <SelectTrigger id="period">
                       <SelectValue placeholder="AM/PM" />
                     </SelectTrigger>
@@ -190,8 +222,16 @@ export default function AddAvailabilityPage() {
             </div>
 
             <div className="flex gap-3">
-              <Button type="submit" disabled={!isFormValid || isPending} className="flex-1">
-                {isPending ? 'Saving...' : existingAvailability ? 'Update Availability' : 'Add Availability'}
+              <Button
+                type="submit"
+                disabled={!isFormValid || isPending}
+                className="flex-1"
+              >
+                {isPending
+                  ? "Saving..."
+                  : existingAvailability
+                    ? "Update Availability"
+                    : "Add Availability"}
               </Button>
               <Button type="button" variant="outline" onClick={handleBack}>
                 Cancel

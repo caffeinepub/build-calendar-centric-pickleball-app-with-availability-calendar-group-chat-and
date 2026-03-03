@@ -1,7 +1,7 @@
-import { Outlet } from '@tanstack/react-router';
-import TopBar from './TopBar';
-import Navigation from './Navigation';
-import OfflineBanner from '../pwa/OfflineBanner';
+import { Outlet } from "@tanstack/react-router";
+import OfflineBanner from "../pwa/OfflineBanner";
+import Navigation from "./Navigation";
+import TopBar from "./TopBar";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -14,7 +14,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
       <footer className="border-t py-6 text-center text-sm text-muted-foreground safe-area-bottom safe-area-sides">
         <p>
-          © {new Date().getFullYear()} · Built with ❤️ using{' '}
+          © {new Date().getFullYear()} · Built with ❤️ using{" "}
           <a
             href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
             target="_blank"

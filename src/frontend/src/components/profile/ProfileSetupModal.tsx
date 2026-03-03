@@ -1,12 +1,21 @@
-import { useState } from 'react';
-import { useSaveCallerUserProfile, useGetCallerUserProfile } from '../../hooks/useCurrentUserProfile';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Input } from '../ui/input';
-import { Button } from '../ui/button';
-import { Label } from '../ui/label';
+import { useState } from "react";
+import {
+  useGetCallerUserProfile,
+  useSaveCallerUserProfile,
+} from "../../hooks/useCurrentUserProfile";
+import { Button } from "../ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 
 export default function ProfileSetupModal() {
-  const [name, setName] = useState('');
+  const [name, setName] = useState("");
   const { data: currentProfile } = useGetCallerUserProfile();
   const { mutate: saveProfile, isPending } = useSaveCallerUserProfile();
 
@@ -22,7 +31,10 @@ export default function ProfileSetupModal() {
 
   return (
     <Dialog open={true}>
-      <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+      <DialogContent
+        className="sm:max-w-md"
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Welcome!</DialogTitle>
           <DialogDescription>
@@ -41,8 +53,12 @@ export default function ProfileSetupModal() {
               disabled={isPending}
             />
           </div>
-          <Button type="submit" className="w-full" disabled={!name.trim() || isPending}>
-            {isPending ? 'Saving...' : 'Continue'}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={!name.trim() || isPending}
+          >
+            {isPending ? "Saving..." : "Continue"}
           </Button>
         </form>
       </DialogContent>

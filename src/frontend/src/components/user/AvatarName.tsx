@@ -1,12 +1,12 @@
-import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
-import { getInitials } from '../../utils/file';
-import type { Principal } from '@dfinity/principal';
+import type { Principal } from "@dfinity/principal";
+import { getInitials } from "../../utils/file";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 interface AvatarNameProps {
   principal: Principal;
   displayName: string;
   avatarUrl?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
   isLoading?: boolean;
   avatarClassName?: string;
   nameClassName?: string;
@@ -16,26 +16,27 @@ export default function AvatarName({
   principal,
   displayName,
   avatarUrl,
-  size = 'md',
+  size = "md",
   isLoading = false,
   avatarClassName,
   nameClassName,
 }: AvatarNameProps) {
   const sizeClasses = {
-    sm: 'h-5 w-5 text-[10px]',
-    md: 'h-6 w-6 text-xs',
-    lg: 'h-8 w-8 text-sm',
+    sm: "h-5 w-5 text-[10px]",
+    md: "h-6 w-6 text-xs",
+    lg: "h-8 w-8 text-sm",
   };
 
   const textSizeClasses = {
-    sm: 'text-xs',
-    md: 'text-sm',
-    lg: 'text-base',
+    sm: "text-xs",
+    md: "text-sm",
+    lg: "text-base",
   };
 
-  const initials = displayName && displayName !== 'Loading...' 
-    ? getInitials(displayName)
-    : principal.toString().slice(0, 2).toUpperCase();
+  const initials =
+    displayName && displayName !== "Loading..."
+      ? getInitials(displayName)
+      : principal.toString().slice(0, 2).toUpperCase();
 
   return (
     <div className="flex items-center gap-2">
@@ -47,7 +48,9 @@ export default function AvatarName({
           {initials}
         </AvatarFallback>
       </Avatar>
-      <span className={nameClassName || textSizeClasses[size]}>{isLoading ? 'Loading...' : displayName}</span>
+      <span className={nameClassName || textSizeClasses[size]}>
+        {isLoading ? "Loading..." : displayName}
+      </span>
     </div>
   );
 }

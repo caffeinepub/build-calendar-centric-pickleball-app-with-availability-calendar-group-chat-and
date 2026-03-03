@@ -1,32 +1,35 @@
-import { useState, useRef } from 'react';
-import { Camera, Check, X, Pencil } from 'lucide-react';
-import { Card, CardContent } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { useGetCallerUserProfile, useSaveCallerUserProfile } from '../../hooks/useCurrentUserProfile';
-import { fileToUint8Array, getInitials } from '../../utils/file';
-import { ExternalBlob } from '../../backend';
+import { Camera, Check, Pencil, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { ExternalBlob } from "../../backend";
+import {
+  useGetCallerUserProfile,
+  useSaveCallerUserProfile,
+} from "../../hooks/useCurrentUserProfile";
+import { fileToUint8Array, getInitials } from "../../utils/file";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Button } from "../ui/button";
+import { Card, CardContent } from "../ui/card";
+import { Input } from "../ui/input";
 
 export default function ProfileCard() {
   const { data: userProfile, isLoading } = useGetCallerUserProfile();
   const { mutate: saveProfile, isPending } = useSaveCallerUserProfile();
 
   const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState('');
+  const [editedName, setEditedName] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleEditName = () => {
-    setEditedName(userProfile?.name || '');
+    setEditedName(userProfile?.name || "");
     setIsEditingName(true);
   };
 
   const handleCancelEdit = () => {
     setIsEditingName(false);
-    setEditedName('');
+    setEditedName("");
   };
 
   const handleSaveName = async () => {
@@ -41,7 +44,7 @@ export default function ProfileCard() {
         onSuccess: () => {
           setIsEditingName(false);
         },
-      }
+      },
     );
   };
 
@@ -50,14 +53,14 @@ export default function ProfileCard() {
     if (!file) return;
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file (PNG, JPEG, WebP)');
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file (PNG, JPEG, WebP)");
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Image size must be less than 5MB');
+      alert("Image size must be less than 5MB");
       return;
     }
 
@@ -72,7 +75,9 @@ export default function ProfileCard() {
     try {
       const bytes = await fileToUint8Array(selectedFile);
       // Cast to the expected type for ExternalBlob.fromBytes
-      const blob = ExternalBlob.fromBytes(bytes as Uint8Array<ArrayBuffer>).withUploadProgress((percentage) => {
+      const blob = ExternalBlob.fromBytes(
+        bytes as Uint8Array<ArrayBuffer>,
+      ).withUploadProgress((percentage) => {
         setUploadProgress(percentage);
       });
 
@@ -87,14 +92,14 @@ export default function ProfileCard() {
             setPreviewImage(null);
             setUploadProgress(0);
             if (fileInputRef.current) {
-              fileInputRef.current.value = '';
+              fileInputRef.current.value = "";
             }
           },
-        }
+        },
       );
     } catch (error) {
-      console.error('Failed to upload image:', error);
-      alert('Failed to upload image. Please try again.');
+      console.error("Failed to upload image:", error);
+      alert("Failed to upload image. Please try again.");
     }
   };
 
@@ -103,7 +108,7 @@ export default function ProfileCard() {
     setPreviewImage(null);
     setUploadProgress(0);
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -123,7 +128,7 @@ export default function ProfileCard() {
     );
   }
 
-  const displayName = userProfile?.name || 'User';
+  const displayName = userProfile?.name || "User";
   const avatarUrl = userProfile?.customProfilePicture?.getDirectURL();
 
   return (
@@ -139,6 +144,7 @@ export default function ProfileCard() {
               </AvatarFallback>
             </Avatar>
             <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isPending}
               className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer disabled:cursor-not-allowed"
@@ -170,8 +176,8 @@ export default function ProfileCard() {
                     className="flex-1"
                     autoFocus
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSaveName();
-                      if (e.key === 'Escape') handleCancelEdit();
+                      if (e.key === "Enter") handleSaveName();
+                      if (e.key === "Escape") handleCancelEdit();
                     }}
                   />
                   <Button
@@ -212,9 +218,13 @@ export default function ProfileCard() {
             {selectedFile && (
               <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                 <div className="flex-1">
-                  <p className="text-sm font-medium">New profile picture selected</p>
+                  <p className="text-sm font-medium">
+                    New profile picture selected
+                  </p>
                   {uploadProgress > 0 && uploadProgress < 100 && (
-                    <p className="text-xs text-muted-foreground">Uploading: {uploadProgress}%</p>
+                    <p className="text-xs text-muted-foreground">
+                      Uploading: {uploadProgress}%
+                    </p>
                   )}
                 </div>
                 <Button
@@ -222,7 +232,7 @@ export default function ProfileCard() {
                   onClick={handleSaveImage}
                   disabled={isPending}
                 >
-                  {isPending ? 'Saving...' : 'Save'}
+                  {isPending ? "Saving..." : "Save"}
                 </Button>
                 <Button
                   size="sm"

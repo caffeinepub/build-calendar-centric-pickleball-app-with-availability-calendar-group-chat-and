@@ -1,23 +1,29 @@
-import { useState } from 'react';
-import { useInternetIdentity } from '../../hooks/useInternetIdentity';
-import { useGetCallerUserProfile } from '../../hooks/useCurrentUserProfile';
-import { useQueryClient } from '@tanstack/react-query';
-import { Button } from '../ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { LogOut, Moon, Sun, Download } from 'lucide-react';
-import { useTheme } from '../../hooks/useTheme';
-import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
-import { getInitials } from '../../utils/file';
-import AppLogo from '../branding/AppLogo';
-import { usePWAInstallPrompt } from '../../hooks/usePWAInstallPrompt';
-import InstallInstructionsDialog from '../pwa/InstallInstructionsDialog';
+import { useQueryClient } from "@tanstack/react-query";
+import { Download, LogOut, Moon, Sun } from "lucide-react";
+import { useState } from "react";
+import { useGetCallerUserProfile } from "../../hooks/useCurrentUserProfile";
+import { useInternetIdentity } from "../../hooks/useInternetIdentity";
+import { usePWAInstallPrompt } from "../../hooks/usePWAInstallPrompt";
+import { useTheme } from "../../hooks/useTheme";
+import { getInitials } from "../../utils/file";
+import AppLogo from "../branding/AppLogo";
+import InstallInstructionsDialog from "../pwa/InstallInstructionsDialog";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Button } from "../ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
 export default function TopBar() {
   const { clear, identity } = useInternetIdentity();
   const { data: userProfile } = useGetCallerUserProfile();
   const queryClient = useQueryClient();
   const { theme, toggleTheme } = useTheme();
-  const { isInstallAvailable, isStandalone, isIOS, canPrompt, promptInstall } = usePWAInstallPrompt();
+  const { isInstallAvailable, isStandalone, isIOS, canPrompt, promptInstall } =
+    usePWAInstallPrompt();
   const [showInstructions, setShowInstructions] = useState(false);
 
   const handleLogout = async () => {
@@ -33,9 +39,9 @@ export default function TopBar() {
     }
   };
 
-  const displayName = userProfile?.name || 'User';
+  const displayName = userProfile?.name || "User";
   const avatarUrl = userProfile?.customProfilePicture?.getDirectURL();
-  const initials = userProfile?.name ? getInitials(userProfile.name) : 'U';
+  const initials = userProfile?.name ? getInitials(userProfile.name) : "U";
 
   return (
     <>
@@ -45,7 +51,7 @@ export default function TopBar() {
             <AppLogo className="h-10 w-10" />
             <h1 className="text-xl font-bold">Somers Scheduler</h1>
           </div>
-          
+
           {identity && (
             <div className="flex items-center gap-2">
               {isInstallAvailable && !isStandalone && (
@@ -64,9 +70,13 @@ export default function TopBar() {
                 variant="ghost"
                 size="icon"
                 onClick={toggleTheme}
-                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                aria-label={
+                  theme === "dark"
+                    ? "Switch to light mode"
+                    : "Switch to dark mode"
+                }
               >
-                {theme === 'dark' ? (
+                {theme === "dark" ? (
                   <Sun className="h-5 w-5" />
                 ) : (
                   <Moon className="h-5 w-5" />
@@ -77,7 +87,9 @@ export default function TopBar() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="gap-2">
                     <Avatar className="h-6 w-6">
-                      {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
+                      {avatarUrl && (
+                        <AvatarImage src={avatarUrl} alt={displayName} />
+                      )}
                       <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
                         {initials}
                       </AvatarFallback>

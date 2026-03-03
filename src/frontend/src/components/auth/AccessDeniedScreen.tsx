@@ -1,7 +1,13 @@
-import { ShieldAlert } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Link } from '@tanstack/react-router';
+import { Link } from "@tanstack/react-router";
+import { ShieldAlert } from "lucide-react";
+import { Button } from "../ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
 
 export default function AccessDeniedScreen() {
   return (
@@ -13,7 +19,8 @@ export default function AccessDeniedScreen() {
           </div>
           <CardTitle className="text-2xl">Access Denied</CardTitle>
           <CardDescription>
-            You don't have permission to access this page. This area is restricted to administrators only.
+            You don't have permission to access this page. This area is
+            restricted to administrators only.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-center">

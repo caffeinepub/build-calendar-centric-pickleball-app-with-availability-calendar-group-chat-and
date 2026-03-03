@@ -1,4 +1,4 @@
-import type { Post } from '../backend';
+import type { Post } from "../backend";
 
 export interface ThreadNode {
   post: Post;
@@ -14,17 +14,17 @@ export function buildThreadTree(posts: Post[]): ThreadNode[] {
   const rootNodes: ThreadNode[] = [];
 
   // First pass: create nodes for all posts
-  posts.forEach(post => {
+  for (const post of posts) {
     postMap.set(post.id.toString(), {
       post,
       replies: [],
     });
-  });
+  }
 
   // Second pass: build parent-child relationships
-  posts.forEach(post => {
+  for (const post of posts) {
     const node = postMap.get(post.id.toString());
-    if (!node) return;
+    if (!node) continue;
 
     if (post.parentId === null || post.parentId === undefined) {
       // Top-level post
@@ -39,7 +39,7 @@ export function buildThreadTree(posts: Post[]): ThreadNode[] {
         rootNodes.push(node);
       }
     }
-  });
+  }
 
   // Sort root nodes by timestamp (newest first)
   rootNodes.sort((a, b) => Number(b.post.timestamp - a.post.timestamp));
@@ -62,15 +62,18 @@ export interface FlatThreadItem {
   depth: number;
 }
 
-export function flattenThreadTree(nodes: ThreadNode[], depth: number = 0): FlatThreadItem[] {
+export function flattenThreadTree(
+  nodes: ThreadNode[],
+  depth = 0,
+): FlatThreadItem[] {
   const result: FlatThreadItem[] = [];
-  
-  nodes.forEach(node => {
+
+  for (const node of nodes) {
     result.push({ post: node.post, depth });
     if (node.replies.length > 0) {
       result.push(...flattenThreadTree(node.replies, depth + 1));
     }
-  });
-  
+  }
+
   return result;
 }

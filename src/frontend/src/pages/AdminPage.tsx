@@ -1,8 +1,12 @@
-import { useState } from 'react';
-import { Shield, Trash2 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { Button } from '../components/ui/button';
+import type { Principal } from "@dfinity/principal";
+import { Award, Shield, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import AdminBadgeAwardPanel from "../components/admin/AdminBadgeAwardPanel";
+import BadgeManagement from "../components/admin/BadgeManagement";
+import AccessDeniedScreen from "../components/auth/AccessDeniedScreen";
+import { InlineLoading } from "../components/common/LoadingState";
+import { Page, PageHeader } from "../components/layout/PageLayout";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,26 +16,48 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '../components/ui/alert-dialog';
-import { useGetAllRegisteredUsers, useGetAllAvailabilities, useGetAllLoginTimestamps, useDeleteUser, useDeleteUserDayAvailability } from '../hooks/useQueries';
-import { useIsCallerAdmin } from '../hooks/useCurrentUserRole';
-import { formatDateTime, formatDayId } from '../lib/date';
-import { toast } from 'sonner';
-import AccessDeniedScreen from '../components/auth/AccessDeniedScreen';
-import { Page, PageHeader } from '../components/layout/PageLayout';
-import { InlineLoading } from '../components/common/LoadingState';
-import type { Principal } from '@dfinity/principal';
+} from "../components/ui/alert-dialog";
+import { Button } from "../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
+import { useIsCallerAdmin } from "../hooks/useCurrentUserRole";
+import {
+  useDeleteUser,
+  useDeleteUserDayAvailability,
+  useGetAllAvailabilities,
+  useGetAllLoginTimestamps,
+  useGetAllRegisteredUsers,
+} from "../hooks/useQueries";
+import { formatDateTime, formatDayId } from "../lib/date";
 
 export default function AdminPage() {
   const { data: isAdmin, isLoading: isAdminLoading } = useIsCallerAdmin();
-  const { data: users = [], isLoading: usersLoading } = useGetAllRegisteredUsers();
-  const { data: availabilities = [], isLoading: availabilitiesLoading } = useGetAllAvailabilities();
+  const { data: users = [], isLoading: usersLoading } =
+    useGetAllRegisteredUsers();
+  const { data: availabilities = [], isLoading: availabilitiesLoading } =
+    useGetAllAvailabilities();
   const { data: loginTimestamps } = useGetAllLoginTimestamps();
   const deleteUserMutation = useDeleteUser();
   const deleteAvailabilityMutation = useDeleteUserDayAvailability();
 
   const [userToDelete, setUserToDelete] = useState<Principal | null>(null);
-  const [availabilityToDelete, setAvailabilityToDelete] = useState<{ user: Principal; day: bigint } | null>(null);
+  const [availabilityToDelete, setAvailabilityToDelete] = useState<{
+    user: Principal;
+    day: bigint;
+  } | null>(null);
 
   if (isAdminLoading) {
     return (
@@ -50,10 +76,10 @@ export default function AdminPage() {
 
     try {
       await deleteUserMutation.mutateAsync(userToDelete);
-      toast.success('User deleted successfully');
+      toast.success("User deleted successfully");
       setUserToDelete(null);
     } catch (error: any) {
-      toast.error(error.message || 'Failed to delete user');
+      toast.error(error.message || "Failed to delete user");
     }
   };
 
@@ -62,10 +88,10 @@ export default function AdminPage() {
 
     try {
       await deleteAvailabilityMutation.mutateAsync(availabilityToDelete);
-      toast.success('Availability deleted successfully');
+      toast.success("Availability deleted successfully");
       setAvailabilityToDelete(null);
     } catch (error: any) {
-      toast.error(error.message || 'Failed to delete availability');
+      toast.error(error.message || "Failed to delete availability");
     }
   };
 
@@ -85,7 +111,9 @@ export default function AdminPage() {
           {usersLoading ? (
             <InlineLoading message="Loading users..." />
           ) : users.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No registered users yet</p>
+            <p className="text-muted-foreground text-center py-8">
+              No registered users yet
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -100,10 +128,14 @@ export default function AdminPage() {
                 </TableHeader>
                 <TableBody>
                   {users.map(([principal, profile, createdAt]) => {
-                    const lastLogin = loginTimestamps?.get(principal.toString());
+                    const lastLogin = loginTimestamps?.get(
+                      principal.toString(),
+                    );
                     return (
                       <TableRow key={principal.toString()}>
-                        <TableCell className="font-medium">{profile.name}</TableCell>
+                        <TableCell className="font-medium">
+                          {profile.name}
+                        </TableCell>
                         <TableCell className="font-mono text-xs max-w-[200px] truncate">
                           {principal.toString()}
                         </TableCell>
@@ -111,7 +143,7 @@ export default function AdminPage() {
                           {formatDateTime(createdAt)}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {lastLogin ? formatDateTime(lastLogin) : '—'}
+                          {lastLogin ? formatDateTime(lastLogin) : "—"}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
@@ -142,7 +174,9 @@ export default function AdminPage() {
           {availabilitiesLoading ? (
             <InlineLoading message="Loading availabilities..." />
           ) : availabilities.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No availabilities yet</p>
+            <p className="text-muted-foreground text-center py-8">
+              No availabilities yet
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -160,13 +194,17 @@ export default function AdminPage() {
                       <TableCell className="font-mono text-xs max-w-[200px] truncate">
                         {principal.toString()}
                       </TableCell>
-                      <TableCell className="text-sm">{formatDayId(day)}</TableCell>
+                      <TableCell className="text-sm">
+                        {formatDayId(day)}
+                      </TableCell>
                       <TableCell className="text-sm">{time}</TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => setAvailabilityToDelete({ user: principal, day })}
+                          onClick={() =>
+                            setAvailabilityToDelete({ user: principal, day })
+                          }
                           disabled={deleteAvailabilityMutation.isPending}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -181,34 +219,79 @@ export default function AdminPage() {
         </CardContent>
       </Card>
 
-      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Award className="h-5 w-5 text-yellow-500" />
+            Badge Management
+          </CardTitle>
+          <CardDescription>
+            Create, edit, and remove badges with custom award criteria
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BadgeManagement />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Award className="h-5 w-5 text-blue-500" />
+            Award / Revoke Badges
+          </CardTitle>
+          <CardDescription>
+            Manually grant or remove badges for any player
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AdminBadgeAwardPanel />
+        </CardContent>
+      </Card>
+
+      <AlertDialog
+        open={!!userToDelete}
+        onOpenChange={(open) => !open && setUserToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this user? This will remove all their data including availabilities and stats. This action cannot be undone.
+              Are you sure you want to delete this user? This will remove all
+              their data including availabilities and stats. This action cannot
+              be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!availabilityToDelete} onOpenChange={(open) => !open && setAvailabilityToDelete(null)}>
+      <AlertDialog
+        open={!!availabilityToDelete}
+        onOpenChange={(open) => !open && setAvailabilityToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Availability</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this availability entry? This action cannot be undone.
+              Are you sure you want to delete this availability entry? This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteAvailability} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDeleteAvailability}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

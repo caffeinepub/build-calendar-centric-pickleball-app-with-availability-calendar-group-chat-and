@@ -1,7 +1,7 @@
-import { Link, useRouterState } from '@tanstack/react-router';
-import { Calendar, Trophy, User, Shield } from 'lucide-react';
-import { Button } from '../ui/button';
-import { useIsCallerAdmin } from '../../hooks/useCurrentUserRole';
+import { Link, useRouterState } from "@tanstack/react-router";
+import { Calendar, Shield, Trophy, User } from "lucide-react";
+import { useIsCallerAdmin } from "../../hooks/useCurrentUserRole";
+import { Button } from "../ui/button";
 
 export default function Navigation() {
   const router = useRouterState();
@@ -9,13 +9,13 @@ export default function Navigation() {
   const { data: isAdmin } = useIsCallerAdmin();
 
   const navItems = [
-    { path: '/', label: 'Calendar', icon: Calendar },
-    { path: '/leaderboard', label: 'Leaderboard', icon: Trophy },
-    { path: '/profile', label: 'Profile', icon: User },
+    { path: "/", label: "Calendar", icon: Calendar },
+    { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
+    { path: "/profile", label: "Profile", icon: User },
   ];
 
   if (isAdmin) {
-    navItems.push({ path: '/admin', label: 'Admin', icon: Shield });
+    navItems.push({ path: "/admin", label: "Admin", icon: Shield });
   }
 
   return (
@@ -25,11 +25,11 @@ export default function Navigation() {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPath === item.path;
-            
+
             return (
               <Link key={item.path} to={item.path}>
                 <Button
-                  variant={isActive ? 'default' : 'ghost'}
+                  variant={isActive ? "default" : "ghost"}
                   size="sm"
                   className="gap-2 whitespace-nowrap"
                 >

@@ -1,6 +1,6 @@
-import { MessageSquare } from 'lucide-react';
-import ChatPanel from '../components/chat/ChatPanel';
-import { Page, PageHeader } from '../components/layout/PageLayout';
+import { MessageSquare } from "lucide-react";
+import ChatPanel from "../components/chat/ChatPanel";
+import { Page, PageHeader } from "../components/layout/PageLayout";
 
 export default function ChatPage() {
   return (
@@ -9,7 +9,14 @@ export default function ChatPage() {
         icon={<MessageSquare className="h-8 w-8 text-primary" />}
         title="Group Chat"
       />
-      <div className="flex-1 min-h-0" style={{ height: 'calc(100dvh - 150px)', minHeight: '800px', maxHeight: '2134px' }}>
+      <div
+        className="flex-1 min-h-0"
+        style={{
+          height: "calc(100dvh - 150px)",
+          minHeight: "800px",
+          maxHeight: "2134px",
+        }}
+      >
         <ChatPanel />
       </div>
     </Page>

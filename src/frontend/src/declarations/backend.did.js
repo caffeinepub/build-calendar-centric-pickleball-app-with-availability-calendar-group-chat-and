@@ -30,6 +30,34 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const MonthCriteria = IDL.Record({
+  'month' : IDL.Nat,
+  'matchesThreshold' : IDL.Nat,
+  'year' : IDL.Nat,
+});
+export const BadgeCriteria = IDL.Variant({
+  'consecutiveWeeksAvailable' : IDL.Nat,
+  'firstMatchLogged' : IDL.Nat,
+  'totalGamesPlayed' : IDL.Nat,
+  'daysAtNumber1' : IDL.Nat,
+  'totalWins' : IDL.Nat,
+  'winsStreak' : IDL.Nat,
+  'totalChatMessages' : IDL.Nat,
+  'totalGames' : IDL.Nat,
+  'topLeaderboardPosition' : IDL.Nat,
+  'winPercentage' : IDL.Nat,
+  'monthlyParticipation' : MonthCriteria,
+  'firstImageUploaded' : IDL.Nat,
+  'totalDaysAvailable' : IDL.Nat,
+  'totalLikesReceived' : IDL.Nat,
+  'bestWinStreak' : IDL.Nat,
+});
+export const BadgeDefinition = IDL.Record({
+  'id' : IDL.Text,
+  'name' : IDL.Text,
+  'description' : IDL.Text,
+  'criteria' : BadgeCriteria,
+});
 export const DayAvailabilityCount = IDL.Record({
   'day' : IDL.Int,
   'count' : IDL.Nat,
@@ -52,11 +80,14 @@ export const T = IDL.Record({
   'wins' : IDL.Nat,
   'losses' : IDL.Nat,
   'totalGames' : IDL.Nat,
+  'bestStreak' : IDL.Int,
 });
 export const Post = IDL.Record({
   'id' : IDL.Int,
   'content' : IDL.Text,
+  'edited' : IDL.Bool,
   'author' : IDL.Principal,
+  'editTimestamp' : IDL.Opt(IDL.Int),
   'timestamp' : IDL.Int,
   'image' : IDL.Opt(ExternalBlob),
   'parentId' : IDL.Opt(IDL.Int),
@@ -104,6 +135,8 @@ export const idlService = IDL.Service({
   'addReaction' : IDL.Func([IDL.Int, ReactionType], [], []),
   'anyUserHasAvailability' : IDL.Func([IDL.Int], [IDL.Bool], ['query']),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'awardBadgeToUser' : IDL.Func([IDL.Principal, IDL.Text], [], []),
+  'createBadgeDefinition' : IDL.Func([BadgeDefinition], [], []),
   'daysWithAnyAvailability' : IDL.Func(
       [IDL.Vec(IDL.Int)],
       [IDL.Vec(IDL.Bool)],
@@ -111,12 +144,20 @@ export const idlService = IDL.Service({
     ),
   'decrementDailyLog' : IDL.Func([IDL.Int, IDL.Bool], [], []),
   'deleteAllDayAvailabilities' : IDL.Func([IDL.Int], [], []),
+  'deleteBadgeDefinition' : IDL.Func([IDL.Text], [], []),
   'deleteCallerDayAvailability' : IDL.Func([IDL.Int], [], []),
+  'deletePost' : IDL.Func([IDL.Int], [], []),
   'deleteUser' : IDL.Func([IDL.Principal], [], []),
   'deleteUserDayAvailability' : IDL.Func([IDL.Principal, IDL.Int], [], []),
+  'editPost' : IDL.Func([IDL.Int, IDL.Text], [], []),
   'getAllAvailabilities' : IDL.Func(
       [],
       [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Int, IDL.Text))],
+      ['query'],
+    ),
+  'getAllBadgeDefinitions' : IDL.Func(
+      [],
+      [IDL.Vec(BadgeDefinition)],
       ['query'],
     ),
   'getAllDayAvailabilityCounts' : IDL.Func(
@@ -174,6 +215,7 @@ export const idlService = IDL.Service({
       [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
       ['query'],
     ),
+  'getUserBadges' : IDL.Func([IDL.Principal], [IDL.Vec(IDL.Text)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -186,7 +228,9 @@ export const idlService = IDL.Service({
   'recordDailyWin' : IDL.Func([IDL.Int], [], []),
   'recordLoginTime' : IDL.Func([], [], []),
   'removeReaction' : IDL.Func([IDL.Int], [], []),
+  'revokeBadgeFromUser' : IDL.Func([IDL.Principal, IDL.Text], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'updateBadgeDefinition' : IDL.Func([BadgeDefinition], [], []),
   'updateCallerStats' : IDL.Func([T], [], []),
 });
 
@@ -212,6 +256,34 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const MonthCriteria = IDL.Record({
+    'month' : IDL.Nat,
+    'matchesThreshold' : IDL.Nat,
+    'year' : IDL.Nat,
+  });
+  const BadgeCriteria = IDL.Variant({
+    'consecutiveWeeksAvailable' : IDL.Nat,
+    'firstMatchLogged' : IDL.Nat,
+    'totalGamesPlayed' : IDL.Nat,
+    'daysAtNumber1' : IDL.Nat,
+    'totalWins' : IDL.Nat,
+    'winsStreak' : IDL.Nat,
+    'totalChatMessages' : IDL.Nat,
+    'totalGames' : IDL.Nat,
+    'topLeaderboardPosition' : IDL.Nat,
+    'winPercentage' : IDL.Nat,
+    'monthlyParticipation' : MonthCriteria,
+    'firstImageUploaded' : IDL.Nat,
+    'totalDaysAvailable' : IDL.Nat,
+    'totalLikesReceived' : IDL.Nat,
+    'bestWinStreak' : IDL.Nat,
+  });
+  const BadgeDefinition = IDL.Record({
+    'id' : IDL.Text,
+    'name' : IDL.Text,
+    'description' : IDL.Text,
+    'criteria' : BadgeCriteria,
+  });
   const DayAvailabilityCount = IDL.Record({
     'day' : IDL.Int,
     'count' : IDL.Nat,
@@ -234,11 +306,14 @@ export const idlFactory = ({ IDL }) => {
     'wins' : IDL.Nat,
     'losses' : IDL.Nat,
     'totalGames' : IDL.Nat,
+    'bestStreak' : IDL.Int,
   });
   const Post = IDL.Record({
     'id' : IDL.Int,
     'content' : IDL.Text,
+    'edited' : IDL.Bool,
     'author' : IDL.Principal,
+    'editTimestamp' : IDL.Opt(IDL.Int),
     'timestamp' : IDL.Int,
     'image' : IDL.Opt(ExternalBlob),
     'parentId' : IDL.Opt(IDL.Int),
@@ -290,6 +365,8 @@ export const idlFactory = ({ IDL }) => {
     'addReaction' : IDL.Func([IDL.Int, ReactionType], [], []),
     'anyUserHasAvailability' : IDL.Func([IDL.Int], [IDL.Bool], ['query']),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'awardBadgeToUser' : IDL.Func([IDL.Principal, IDL.Text], [], []),
+    'createBadgeDefinition' : IDL.Func([BadgeDefinition], [], []),
     'daysWithAnyAvailability' : IDL.Func(
         [IDL.Vec(IDL.Int)],
         [IDL.Vec(IDL.Bool)],
@@ -297,12 +374,20 @@ export const idlFactory = ({ IDL }) => {
       ),
     'decrementDailyLog' : IDL.Func([IDL.Int, IDL.Bool], [], []),
     'deleteAllDayAvailabilities' : IDL.Func([IDL.Int], [], []),
+    'deleteBadgeDefinition' : IDL.Func([IDL.Text], [], []),
     'deleteCallerDayAvailability' : IDL.Func([IDL.Int], [], []),
+    'deletePost' : IDL.Func([IDL.Int], [], []),
     'deleteUser' : IDL.Func([IDL.Principal], [], []),
     'deleteUserDayAvailability' : IDL.Func([IDL.Principal, IDL.Int], [], []),
+    'editPost' : IDL.Func([IDL.Int, IDL.Text], [], []),
     'getAllAvailabilities' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Int, IDL.Text))],
+        ['query'],
+      ),
+    'getAllBadgeDefinitions' : IDL.Func(
+        [],
+        [IDL.Vec(BadgeDefinition)],
         ['query'],
       ),
     'getAllDayAvailabilityCounts' : IDL.Func(
@@ -360,6 +445,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
         ['query'],
       ),
+    'getUserBadges' : IDL.Func([IDL.Principal], [IDL.Vec(IDL.Text)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
@@ -372,7 +458,9 @@ export const idlFactory = ({ IDL }) => {
     'recordDailyWin' : IDL.Func([IDL.Int], [], []),
     'recordLoginTime' : IDL.Func([], [], []),
     'removeReaction' : IDL.Func([IDL.Int], [], []),
+    'revokeBadgeFromUser' : IDL.Func([IDL.Principal, IDL.Text], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'updateBadgeDefinition' : IDL.Func([BadgeDefinition], [], []),
     'updateCallerStats' : IDL.Func([T], [], []),
   });
 };

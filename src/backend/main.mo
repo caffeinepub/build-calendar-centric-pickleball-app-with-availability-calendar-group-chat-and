@@ -9,13 +9,11 @@ import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
 import Iter "mo:core/Iter";
-
 import AccessControl "authorization/access-control";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
-
-
+import Set "mo:core/Set";
 
 actor {
   let accessControlState = AccessControl.initState();
@@ -39,6 +37,7 @@ actor {
       losses : Nat;
       totalGames : Nat;
       streak : Int;
+      bestStreak : Int;
     };
 
     public func compareByScore(a : (Principal, T), b : (Principal, T)) : Order.Order {
@@ -89,7 +88,7 @@ actor {
 
   type ReactionType = { #like; #dislike };
 
-  type Post = {
+  public type Post = {
     id : Int;
     author : Principal;
     content : Text;
@@ -98,6 +97,8 @@ actor {
     image : ?Storage.ExternalBlob;
     likesCount : Nat;
     dislikesCount : Nat;
+    edited : Bool;
+    editTimestamp : ?Int;
   };
 
   module Post {
@@ -116,6 +117,43 @@ actor {
     count : Nat;
   };
 
+  public type MonthCriteria = {
+    year : Nat;
+    month : Nat;
+    matchesThreshold : Nat;
+  };
+
+  public type BadgeCriteria = {
+    #winsStreak : Nat;
+    #totalWins : Nat;
+    #totalGames : Nat;
+    #totalDaysAvailable : Nat;
+    #totalGamesPlayed : Nat;
+    #firstMatchLogged : Nat;
+    #winPercentage : Nat;
+    #bestWinStreak : Nat;
+    #totalChatMessages : Nat;
+    #totalLikesReceived : Nat;
+    #firstImageUploaded : Nat;
+    #topLeaderboardPosition : Nat;
+    #daysAtNumber1 : Nat;
+    #monthlyParticipation : MonthCriteria;
+    #consecutiveWeeksAvailable : Nat;
+  };
+
+  public type BadgeDefinition = {
+    id : Text;
+    name : Text;
+    description : Text;
+    criteria : BadgeCriteria;
+  };
+
+  public type BadgeAward = {
+    user : Principal;
+    badgeId : Text;
+    awardedAt : Int;
+  };
+
   var loginRecords : Map.Map<Principal, Int> = Map.empty<Principal, Int>();
   let userProfiles = Map.empty<Principal, UserEntry>();
   let userStats = Map.empty<Principal, UserStats.T>();
@@ -123,7 +161,135 @@ actor {
   let posts = Map.empty<Int, Post>();
   let reactions = Map.empty<(Principal, Int), ReactionType>();
   let dailyLogs = Map.empty<(Principal, Int), DailyLog>();
+  let badgeDefinitions = Map.empty<Text, BadgeDefinition>();
+  let badgeAwards = Map.empty<Principal, Set.Set<Text>>();
   var messageCounter : Int = 0;
+
+  public shared ({ caller }) func createBadgeDefinition(definition : BadgeDefinition) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admin can create badge definitions");
+    };
+
+    badgeDefinitions.add(definition.id, definition);
+  };
+
+  public shared ({ caller }) func updateBadgeDefinition(definition : BadgeDefinition) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admin can update badge definitions");
+    };
+
+    switch (badgeDefinitions.get(definition.id)) {
+      case (null) {
+        Runtime.trap("Badge definition not found");
+      };
+      case (?existing) {
+        badgeDefinitions.add(definition.id, definition);
+      };
+    };
+  };
+
+  public shared ({ caller }) func deleteBadgeDefinition(definitionId : Text) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admin can delete badge definitions");
+    };
+
+    badgeDefinitions.remove(definitionId);
+  };
+
+  public shared ({ caller }) func awardBadgeToUser(user : Principal, badgeId : Text) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can award badges");
+    };
+
+    switch (badgeDefinitions.get(badgeId)) {
+      case (null) {
+        Runtime.trap("Badge definition not found");
+      };
+      case (?_) {
+        let userAwards = switch (badgeAwards.get(user)) {
+          case (null) { Set.empty<Text>() };
+          case (?awards) { awards };
+        };
+
+        if (not userAwards.contains(badgeId)) {
+          userAwards.add(badgeId);
+          badgeAwards.add(user, userAwards);
+        };
+      };
+    };
+  };
+
+  public shared ({ caller }) func revokeBadgeFromUser(user : Principal, badgeId : Text) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can revoke badges");
+    };
+
+    switch (badgeAwards.get(user)) {
+      case (null) {
+        Runtime.trap("User has no badge awards");
+      };
+      case (?userAwards) {
+        userAwards.remove(badgeId);
+        badgeAwards.add(user, userAwards);
+      };
+    };
+  };
+
+  public query ({ caller }) func getAllBadgeDefinitions() : async [BadgeDefinition] {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can view badge definitions");
+    };
+
+    badgeDefinitions.values().toArray();
+  };
+
+  public query ({ caller }) func getUserBadges(user : Principal) : async [Text] {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can view badges");
+    };
+
+    switch (badgeAwards.get(user)) {
+      case (null) { [] };
+      case (?awards) { awards.toArray() };
+    };
+  };
+
+  func evaluateAndAwardBadges(user : Principal, stats : UserStats.T) {
+    for ((_, badge) in badgeDefinitions.entries()) {
+      if (meetsCriteria(stats, badge.criteria)) {
+        let userAwards = switch (badgeAwards.get(user)) {
+          case (null) { Set.empty<Text>() };
+          case (?awards) { awards };
+        };
+
+        if (not userAwards.contains(badge.id)) {
+          userAwards.add(badge.id);
+          badgeAwards.add(user, userAwards);
+        };
+      };
+    };
+  };
+
+  func meetsCriteria(stats : UserStats.T, criteria : BadgeCriteria) : Bool {
+    switch (criteria) {
+      case (#winsStreak(threshold)) { stats.bestStreak >= threshold };
+      case (#totalWins(threshold)) { stats.wins >= threshold };
+      case (#totalGames(threshold)) { stats.totalGames >= threshold };
+      // Implement additional criteria checks if needed
+      case (#totalDaysAvailable(_)) { false };
+      case (#totalGamesPlayed(_)) { false };
+      case (#firstMatchLogged(_)) { false };
+      case (#winPercentage(_)) { false };
+      case (#bestWinStreak(_)) { false };
+      case (#totalChatMessages(_)) { false };
+      case (#totalLikesReceived(_)) { false };
+      case (#firstImageUploaded(_)) { false };
+      case (#topLeaderboardPosition(_)) { false };
+      case (#daysAtNumber1(_)) { false };
+      case (#monthlyParticipation(_)) { false };
+      case (#consecutiveWeeksAvailable(_)) { false };
+    };
+  };
 
   public query ({ caller }) func getAllDayAvailabilityCounts() : async [DayAvailabilityCount] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
@@ -381,6 +547,7 @@ actor {
           losses = 0;
           totalGames = 0;
           streak = 0;
+          bestStreak = 0;
         };
         userStats.add(user, stats);
       };
@@ -510,8 +677,11 @@ actor {
       losses = totalLosses;
       totalGames;
       streak = calculateStreak(user);
+      bestStreak = totalWins;
     };
     userStats.add(user, stats);
+
+    evaluateAndAwardBadges(user, stats);
   };
 
   func calculateStreak(user : Principal) : Int {
@@ -527,10 +697,7 @@ actor {
             foundWin := true;
             streak := 1;
           } else {
-            switch (streak) {
-              case (-1) { return 1 };
-              case (_) { streak += 1 };
-            };
+            streak += 1;
           };
         } else if (log.losses > 0) { return -1 };
       };
@@ -607,11 +774,58 @@ actor {
       image;
       likesCount = 0;
       dislikesCount = 0;
+      edited = false;
+      editTimestamp = null;
     };
 
     posts.add(messageCounter, post);
     messageCounter += 1;
     post.id;
+  };
+
+  public shared ({ caller }) func editPost(postId : Int, newContent : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can edit posts");
+    };
+
+    let existingPost = switch (posts.get(postId)) {
+      case (null) {
+        Runtime.trap("Post not found");
+      };
+      case (?post) { post };
+    };
+
+    if (caller != existingPost.author) {
+      Runtime.trap("Unauthorized: You can only edit your own posts");
+    };
+
+    let updatedPost = {
+      existingPost with
+      content = newContent;
+      edited = true;
+      editTimestamp = ?Time.now();
+    };
+
+    posts.add(postId, updatedPost);
+  };
+
+  public shared ({ caller }) func deletePost(postId : Int) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can delete posts");
+    };
+
+    let post = switch (posts.get(postId)) {
+      case (null) {
+        Runtime.trap("Post not found");
+      };
+      case (?post) { post };
+    };
+
+    if (caller != post.author and (not AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: You can only delete your own posts");
+    };
+
+    posts.remove(postId);
   };
 
   public shared ({ caller }) func addReaction(postId : Int, reactionType : ReactionType) : async () {

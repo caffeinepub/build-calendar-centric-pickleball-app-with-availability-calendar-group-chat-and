@@ -1,12 +1,22 @@
-import { useState, useMemo } from 'react';
-import { Link } from '@tanstack/react-router';
-import { ChevronLeft, ChevronRight, Plus, Calendar } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { useGetAllDayAvailabilityCounts } from '../hooks/useQueries';
-import { getDayId, getMonthGridDays, formatMonthYear, isToday } from '../lib/date';
-import ChatPanel from '../components/chat/ChatPanel';
-import { Page, PageHeader } from '../components/layout/PageLayout';
+import { Link } from "@tanstack/react-router";
+import { Calendar, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { useMemo, useState } from "react";
+import ChatPanel from "../components/chat/ChatPanel";
+import { Page, PageHeader } from "../components/layout/PageLayout";
+import { Button } from "../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { useGetAllDayAvailabilityCounts } from "../hooks/useQueries";
+import {
+  formatMonthYear,
+  getDayId,
+  getMonthGridDays,
+  isToday,
+} from "../lib/date";
 
 export default function CalendarMonthPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -14,7 +24,7 @@ export default function CalendarMonthPage() {
   const month = currentDate.getMonth();
 
   const gridDays = getMonthGridDays(year, month);
-  
+
   const { data: countsMap } = useGetAllDayAvailabilityCounts();
 
   const goToPreviousMonth = () => {
@@ -54,19 +64,22 @@ export default function CalendarMonthPage() {
         </CardHeader>
         <CardContent className="px-3 sm:px-6">
           <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="text-center text-xs sm:text-sm font-medium text-muted-foreground py-1.5 sm:py-2">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+              <div
+                key={day}
+                className="text-center text-xs sm:text-sm font-medium text-muted-foreground py-1.5 sm:py-2"
+              >
                 {day}
               </div>
             ))}
-            {gridDays.map((date, index) => {
+            {gridDays.map((date) => {
               const isCurrentMonth = date.getMonth() === month;
               const dayId = getDayId(date);
               const count = countsMap?.get(dayId.toString()) ?? 0;
-              
+
               return (
                 <DayCell
-                  key={index}
+                  key={date.toISOString()}
                   date={date}
                   dayId={dayId}
                   isCurrentMonth={isCurrentMonth}
@@ -78,34 +91,44 @@ export default function CalendarMonthPage() {
         </CardContent>
       </Card>
 
-      <div className="flex-1 min-h-0" style={{ height: 'calc(100dvh - 400px)', minHeight: '600px', maxHeight: '1334px' }}>
+      <div
+        className="flex-1 min-h-0"
+        style={{
+          height: "calc(100dvh - 400px)",
+          minHeight: "600px",
+          maxHeight: "1334px",
+        }}
+      >
         <ChatPanel />
       </div>
     </Page>
   );
 }
 
-function DayCell({ date, dayId, isCurrentMonth, count }: { date: Date; dayId: bigint; isCurrentMonth: boolean; count: number }) {
+function DayCell({
+  date,
+  dayId,
+  isCurrentMonth,
+  count,
+}: { date: Date; dayId: bigint; isCurrentMonth: boolean; count: number }) {
   const today = isToday(date);
 
   return (
-    <Link
-      to="/day/$date"
-      params={{ date: dayId.toString() }}
-      className="block"
-    >
+    <Link to="/day/$date" params={{ date: dayId.toString() }} className="block">
       <div
         className={`
           relative rounded-lg border transition-colors hover:bg-accent
           flex flex-col items-center justify-between
           min-h-[60px] sm:min-h-[70px] md:min-h-[80px]
           px-2 py-2
-          ${isCurrentMonth ? 'bg-card' : 'bg-muted/30'}
-          ${count > 0 ? 'bg-primary/5' : ''}
-          ${today ? 'border-primary border-2' : ''}
+          ${isCurrentMonth ? "bg-card" : "bg-muted/30"}
+          ${count > 0 ? "bg-primary/5" : ""}
+          ${today ? "border-primary border-2" : ""}
         `}
       >
-        <div className={`text-sm sm:text-base font-medium ${isCurrentMonth ? 'text-foreground' : 'text-muted-foreground'}`}>
+        <div
+          className={`text-sm sm:text-base font-medium ${isCurrentMonth ? "text-foreground" : "text-muted-foreground"}`}
+        >
           {date.getDate()}
         </div>
         <div className="h-5 flex items-center justify-center">

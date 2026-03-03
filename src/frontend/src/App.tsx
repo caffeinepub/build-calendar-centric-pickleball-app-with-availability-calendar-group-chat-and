@@ -1,35 +1,41 @@
-import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router';
-import { useEffect, useRef } from 'react';
-import { useInternetIdentity } from './hooks/useInternetIdentity';
-import { useGetCallerUserProfile } from './hooks/useCurrentUserProfile';
-import { useInitializeCallerLeaderboard } from './hooks/useQueries';
-import { useActor } from './hooks/useActor';
-import { useQueryClient } from '@tanstack/react-query';
-import LoginScreen from './components/auth/LoginScreen';
-import ProfileSetupModal from './components/profile/ProfileSetupModal';
-import AppLayout from './components/layout/AppLayout';
-import CalendarMonthPage from './pages/CalendarMonthPage';
-import DayDetailPage from './pages/DayDetailPage';
-import AddAvailabilityPage from './pages/AddAvailabilityPage';
-import ChatPage from './pages/ChatPage';
-import LeaderboardPage from './pages/LeaderboardPage';
-import ProfilePage from './pages/ProfilePage';
-import AdminPage from './pages/AdminPage';
-import Background from './components/theme/Background';
-import { Toaster } from './components/ui/sonner';
-import { FullPageLoading } from './components/common/LoadingState';
-import { ErrorState } from './components/common/ErrorState';
-import { Button } from './components/ui/button';
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  Outlet,
+  RouterProvider,
+  createRootRoute,
+  createRoute,
+  createRouter,
+} from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
+import LoginScreen from "./components/auth/LoginScreen";
+import { ErrorState } from "./components/common/ErrorState";
+import { FullPageLoading } from "./components/common/LoadingState";
+import AppLayout from "./components/layout/AppLayout";
+import ProfileSetupModal from "./components/profile/ProfileSetupModal";
+import Background from "./components/theme/Background";
+import { Button } from "./components/ui/button";
+import { Toaster } from "./components/ui/sonner";
+import { useActor } from "./hooks/useActor";
+import { useGetCallerUserProfile } from "./hooks/useCurrentUserProfile";
+import { useInternetIdentity } from "./hooks/useInternetIdentity";
+import { useInitializeCallerLeaderboard } from "./hooks/useQueries";
+import AddAvailabilityPage from "./pages/AddAvailabilityPage";
+import AdminPage from "./pages/AdminPage";
+import CalendarMonthPage from "./pages/CalendarMonthPage";
+import ChatPage from "./pages/ChatPage";
+import DayDetailPage from "./pages/DayDetailPage";
+import LeaderboardPage from "./pages/LeaderboardPage";
+import ProfilePage from "./pages/ProfilePage";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { identity, isInitializing, clear } = useInternetIdentity();
   const { actor, isFetching: actorFetching } = useActor();
-  const { 
-    data: userProfile, 
-    isLoading: profileLoading, 
-    isFetched, 
-    error: profileError, 
-    refetch: refetchProfile 
+  const {
+    data: userProfile,
+    isLoading: profileLoading,
+    isFetched,
+    error: profileError,
+    refetch: refetchProfile,
   } = useGetCallerUserProfile();
   const { mutate: initializeLeaderboard } = useInitializeCallerLeaderboard();
   const queryClient = useQueryClient();
@@ -60,7 +66,10 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   };
 
   // Show loading only while there is active progress
-  const isLoading = isInitializing || (isAuthenticated && actorFetching) || (isAuthenticated && actor && profileLoading && !profileError);
+  const isLoading =
+    isInitializing ||
+    (isAuthenticated && actorFetching) ||
+    (isAuthenticated && actor && profileLoading && !profileError);
 
   if (isLoading) {
     return <FullPageLoading message="Loading your account..." />;
@@ -110,7 +119,8 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     return <LoginScreen />;
   }
 
-  const showProfileSetup = isAuthenticated && !profileLoading && isFetched && userProfile === null;
+  const showProfileSetup =
+    isAuthenticated && !profileLoading && isFetched && userProfile === null;
 
   return (
     <>
@@ -137,43 +147,43 @@ const rootRoute = createRootRoute({
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/',
+  path: "/",
   component: CalendarMonthPage,
 });
 
 const dayDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/day/$date',
+  path: "/day/$date",
   component: DayDetailPage,
 });
 
 const addAvailabilityRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/add-availability',
+  path: "/add-availability",
   component: AddAvailabilityPage,
 });
 
 const chatRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/chat',
+  path: "/chat",
   component: ChatPage,
 });
 
 const leaderboardRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/leaderboard',
+  path: "/leaderboard",
   component: LeaderboardPage,
 });
 
 const profileRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/profile',
+  path: "/profile",
   component: ProfilePage,
 });
 
 const adminRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/admin',
+  path: "/admin",
   component: AdminPage,
 });
 
@@ -187,9 +197,9 @@ const routeTree = rootRoute.addChildren([
   adminRoute,
 ]);
 
-const router = createRouter({ routeTree, defaultPreload: 'intent' });
+const router = createRouter({ routeTree, defaultPreload: "intent" });
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;
   }

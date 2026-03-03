@@ -1,10 +1,12 @@
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from "lucide-react";
 
 interface FullPageLoadingProps {
   message?: string;
 }
 
-export function FullPageLoading({ message = 'Loading...' }: FullPageLoadingProps) {
+export function FullPageLoading({
+  message = "Loading...",
+}: FullPageLoadingProps) {
   return (
     <div className="flex h-screen items-center justify-center">
       <div className="text-center space-y-4">
@@ -17,14 +19,17 @@ export function FullPageLoading({ message = 'Loading...' }: FullPageLoadingProps
 
 interface InlineLoadingProps {
   message?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
 }
 
-export function InlineLoading({ message = 'Loading...', size = 'md' }: InlineLoadingProps) {
+export function InlineLoading({
+  message = "Loading...",
+  size = "md",
+}: InlineLoadingProps) {
   const sizeClasses = {
-    sm: 'h-4 w-4',
-    md: 'h-8 w-8',
-    lg: 'h-12 w-12',
+    sm: "h-4 w-4",
+    md: "h-8 w-8",
+    lg: "h-12 w-12",
   };
 
   return (

@@ -1,15 +1,21 @@
-import { useState, useRef } from 'react';
-import { Image as ImageIcon, X } from 'lucide-react';
-import { Button } from '../ui/button';
-import { validateImageFile } from '../../utils/file';
-import { toast } from 'sonner';
+import { Paperclip, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { validateImageFile } from "../../utils/file";
+import { Button } from "../ui/button";
 
 interface ImageAttachmentPickerProps {
   onImageSelected: (file: File | null) => void;
   selectedFile: File | null;
+  /** When true, renders only the hidden input + paperclip trigger button (no preview). */
+  triggerOnly?: boolean;
 }
 
-export default function ImageAttachmentPicker({ onImageSelected, selectedFile }: ImageAttachmentPickerProps) {
+export default function ImageAttachmentPicker({
+  onImageSelected,
+  selectedFile,
+  triggerOnly = false,
+}: ImageAttachmentPickerProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,25 +47,38 @@ export default function ImageAttachmentPicker({ onImageSelected, selectedFile }:
     setPreviewUrl(null);
     onImageSelected(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
-  return (
-    <div className="space-y-2 min-w-0">
-      {!selectedFile && (
+  if (triggerOnly) {
+    // Render only the hidden input + paperclip button (used inline in the input row)
+    return (
+      <>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
         <Button
           type="button"
-          variant="outline"
-          size="sm"
+          variant="ghost"
+          size="icon"
           onClick={() => fileInputRef.current?.click()}
-          className="gap-2"
+          className="flex-shrink-0"
+          aria-label="Attach image"
+          data-ocid="chat.upload_button"
         >
-          <ImageIcon className="h-4 w-4" />
-          Attach Image
+          <Paperclip className="h-4 w-4" />
         </Button>
-      )}
-      
+      </>
+    );
+  }
+
+  return (
+    <div className="space-y-2 min-w-0">
       <input
         ref={fileInputRef}
         type="file"
@@ -74,7 +93,7 @@ export default function ImageAttachmentPicker({ onImageSelected, selectedFile }:
             src={previewUrl}
             alt="Preview"
             className="max-w-full h-auto rounded-lg border border-border"
-            style={{ maxHeight: '200px' }}
+            style={{ maxHeight: "200px" }}
           />
           <Button
             type="button"
@@ -86,6 +105,19 @@ export default function ImageAttachmentPicker({ onImageSelected, selectedFile }:
             <X className="h-3 w-3" />
           </Button>
         </div>
+      )}
+
+      {!selectedFile && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => fileInputRef.current?.click()}
+          className="flex-shrink-0"
+          data-ocid="chat.upload_button"
+        >
+          <Paperclip className="h-4 w-4" />
+        </Button>
       )}
     </div>
   );
