@@ -142,16 +142,31 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
   };
 
   // Build the list of reaction pills to always show (count > 0 or selected by user)
+  // The backend only tracks a single likesCount for all like-mapped emojis (👍 😂 ❤️ 🔥 😮).
+  // We attribute that total count to whichever like-mapped emoji the current user selected,
+  // so we never show the 👍 pill just because another emoji bumped likesCount.
+  const selectedLikeEmoji = selectedEmoji
+    ? EMOJI_REACTIONS.find(
+        (e) => e.emoji === selectedEmoji && e.type === ReactionType.like,
+      )
+    : null;
+
   const reactionPills = EMOJI_REACTIONS.map((emojiDef) => {
     const isSelected = selectedEmoji === emojiDef.emoji;
     let count = 0;
-    if (emojiDef.emoji === "👍") {
-      count = likesCount;
-    } else if (emojiDef.emoji === "👎") {
+    if (emojiDef.emoji === "👎") {
       count = dislikesCount;
-    } else {
-      // For other "like"-mapped emojis, we only know the user selected it
-      count = isSelected ? 1 : 0;
+    } else if (emojiDef.type === ReactionType.like) {
+      // Only show likesCount on the emoji the user actually picked.
+      // If the user hasn't picked any like-mapped emoji, show likesCount on 👍
+      // only if it is genuinely > 0 AND no other like-mapped emoji is selected.
+      if (selectedLikeEmoji) {
+        count = emojiDef.emoji === selectedLikeEmoji.emoji ? likesCount : 0;
+      } else {
+        // No like-mapped emoji selected by this user — show total on 👍 as a fallback
+        // but only if likesCount > 0 and this is the 👍 slot.
+        count = emojiDef.emoji === "👍" ? likesCount : 0;
+      }
     }
     return { ...emojiDef, count, isSelected };
   }).filter((pill) => pill.count > 0);
