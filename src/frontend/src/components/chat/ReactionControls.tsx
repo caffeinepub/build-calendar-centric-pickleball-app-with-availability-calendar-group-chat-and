@@ -25,8 +25,6 @@ const EMOJI_REACTIONS: Array<{
   { emoji: "😮", label: "Wow", type: ReactionType.like },
 ];
 
-const LONG_PRESS_DURATION = 400;
-
 export default function ReactionControls({ post }: ReactionControlsProps) {
   const { identity } = useInternetIdentity();
   const { mutate: addReaction, isPending: isAddingReaction } = useAddReaction();
@@ -40,10 +38,9 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
   );
   // Track which emoji the user has selected (null = no reaction)
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
-  // Controls visibility of the full emoji picker
+  // Controls visibility of the emoji picker (opened via smiley button)
   const [showPicker, setShowPicker] = useState(false);
 
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   const isPending = isAddingReaction || isRemovingReaction;
@@ -66,19 +63,6 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showPicker]);
-
-  const startLongPress = () => {
-    longPressTimer.current = setTimeout(() => {
-      setShowPicker(true);
-    }, LONG_PRESS_DURATION);
-  };
-
-  const cancelLongPress = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  };
 
   const handleEmojiClick = (emojiDef: (typeof EMOJI_REACTIONS)[number]) => {
     if (!identity || isPending) return;
@@ -157,95 +141,90 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
     }
   };
 
+  // Build the list of reaction pills to always show (count > 0 or selected by user)
+  const reactionPills = EMOJI_REACTIONS.map((emojiDef) => {
+    const isSelected = selectedEmoji === emojiDef.emoji;
+    let count = 0;
+    if (emojiDef.emoji === "👍") {
+      count = likesCount;
+    } else if (emojiDef.emoji === "👎") {
+      count = dislikesCount;
+    } else {
+      // For other "like"-mapped emojis, we only know the user selected it
+      count = isSelected ? 1 : 0;
+    }
+    return { ...emojiDef, count, isSelected };
+  }).filter((pill) => pill.count > 0);
+
   return (
-    <div className="flex items-center gap-0.5" ref={pickerRef}>
-      {!showPicker &&
-        (selectedEmoji ? (
-          // Show the selected emoji as the trigger — long-press to open picker
-          (() => {
-            const emojiDef = EMOJI_REACTIONS.find(
-              (e) => e.emoji === selectedEmoji,
-            );
-            const showCount = selectedEmoji === "👍" || selectedEmoji === "👎";
-            const count = selectedEmoji === "👍" ? likesCount : dislikesCount;
-            return (
-              <Button
-                type="button"
-                variant="default"
-                size="sm"
-                disabled={isPending}
-                aria-label={`${emojiDef?.label ?? "Reaction"} — long press to change`}
-                data-ocid="chat.reaction.button"
-                onMouseDown={startLongPress}
-                onMouseUp={cancelLongPress}
-                onMouseLeave={cancelLongPress}
-                onTouchStart={startLongPress}
-                onTouchEnd={cancelLongPress}
-                className="h-7 px-1.5 text-base gap-1 min-w-0 bg-primary/20 text-primary border border-primary/40 hover:bg-primary/30"
-              >
-                <span className="leading-none">{selectedEmoji}</span>
-                {showCount && count > 0 && (
-                  <span className="text-xs font-medium leading-none">
-                    {count}
-                  </span>
-                )}
-              </Button>
-            );
-          })()
-        ) : (
-          // No reaction yet — show neutral smiley trigger
+    <div className="flex flex-col gap-1 min-w-0" ref={pickerRef}>
+      {/* Always-visible reaction pills row */}
+      {reactionPills.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {reactionPills.map((pill) => (
+            <button
+              key={pill.emoji}
+              type="button"
+              disabled={isPending || !identity}
+              aria-label={`${pill.label}: ${pill.count}`}
+              data-ocid="chat.reaction.button"
+              onClick={() => handleEmojiClick(pill)}
+              className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs border transition-colors cursor-pointer select-none ${
+                pill.isSelected
+                  ? "bg-primary/20 border-primary/40 text-primary"
+                  : "bg-muted/60 border-border text-foreground hover:bg-muted"
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              <span className="leading-none text-sm">{pill.emoji}</span>
+              <span className="font-medium leading-none">{pill.count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Emoji picker trigger + inline picker */}
+      <div className="flex items-center gap-0.5">
+        {!showPicker && (
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            disabled={isPending}
+            disabled={isPending || !identity}
             aria-label="React to message"
             data-ocid="chat.reaction.button"
-            onMouseDown={startLongPress}
-            onMouseUp={cancelLongPress}
-            onMouseLeave={cancelLongPress}
-            onTouchStart={startLongPress}
-            onTouchEnd={cancelLongPress}
-            className="h-7 w-7 p-0 min-w-0 hover:bg-muted"
+            onClick={() => setShowPicker(true)}
+            className="h-6 w-6 p-0 min-w-0 hover:bg-muted rounded-full"
           >
-            <Smile className="h-4 w-4 text-muted-foreground" />
+            <Smile className="h-3.5 w-3.5 text-muted-foreground" />
           </Button>
-        ))}
+        )}
 
-      {showPicker && (
-        <div className="flex items-center flex-wrap gap-0.5">
-          {EMOJI_REACTIONS.map((emojiDef) => {
-            const isSelected = selectedEmoji === emojiDef.emoji;
-            const showCount =
-              emojiDef.emoji === "👍" || emojiDef.emoji === "👎";
-            const count = emojiDef.emoji === "👍" ? likesCount : dislikesCount;
-
-            return (
-              <Button
-                key={emojiDef.emoji}
-                variant={isSelected ? "default" : "ghost"}
-                size="sm"
-                onClick={() => handleEmojiClick(emojiDef)}
-                disabled={isPending}
-                aria-label={emojiDef.label}
-                data-ocid="chat.reaction.button"
-                className={`h-8 px-1.5 text-base gap-1 min-w-0 ${
-                  isSelected
-                    ? "bg-primary/20 text-primary border border-primary/40 hover:bg-primary/30"
-                    : "hover:bg-muted"
-                }`}
-              >
-                <span className="leading-none">{emojiDef.emoji}</span>
-                {showCount && count > 0 && (
-                  <span className="text-xs font-medium leading-none">
-                    {count}
-                  </span>
-                )}
-              </Button>
-            );
-          })}
-        </div>
-      )}
+        {showPicker && (
+          <div className="flex items-center flex-wrap gap-0.5">
+            {EMOJI_REACTIONS.map((emojiDef) => {
+              const isSelected = selectedEmoji === emojiDef.emoji;
+              return (
+                <Button
+                  key={emojiDef.emoji}
+                  variant={isSelected ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => handleEmojiClick(emojiDef)}
+                  disabled={isPending}
+                  aria-label={emojiDef.label}
+                  data-ocid="chat.reaction.button"
+                  className={`h-7 w-7 p-0 text-base min-w-0 rounded-full ${
+                    isSelected
+                      ? "bg-primary/20 text-primary border border-primary/40 hover:bg-primary/30"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  <span className="leading-none">{emojiDef.emoji}</span>
+                </Button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

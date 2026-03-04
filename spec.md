@@ -1,28 +1,30 @@
 # Somers Scheduler
 
 ## Current State
-- Primary color is OKLCH hue 145 (teal/blue-green), which appears washed out or white on some backgrounds
-- Chat emoji reactions (👍 👎 😂 ❤️ 🔥 😮) are always visible as a row of buttons under every message
-- ImageAttachmentPicker (paperclip) renders above the message input row as a separate component
-- Leaderboard PlayerProfileModal shows earned badges as small Badge chips with just the badge name and a star icon — no description text
+- `src/frontend/index.css` uses a default shadcn neutral/grayscale theme (--primary: 0.205 0 0 / 0.922 0 0), causing buttons, tabs, and calendar highlights to appear white/gray instead of green.
+- `src/frontend/src/index.css` has the correct green theme (--primary: 0.85 0.22 120 / 0.82 0.25 118) but the build picks up the root-level file first.
+- Chat `ReactionControls.tsx`: Emojis are hidden behind a long-press gesture; only the selected emoji is shown on a message; no persistent reaction counts displayed below messages for all users.
+- Chat `ChatPanel.tsx`: Input row order is `[text input] [paperclip] [send]`.
+- Chat `ReplyComposer.tsx`: `ImageAttachmentPicker` rendered above the input row; no inline paperclip next to send button.
+- Leaderboard `LeaderboardPage.tsx`: No rank change indicator next to player positions in the Rankings table.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Badge description text under each earned badge in the PlayerProfileModal (leaderboard user stats modal)
-- Long-press interaction on messages to reveal emoji picker in ReactionControls
+- Rank change indicator column in leaderboard Rankings table: green up arrow (▲) for improvement, red down arrow (▼) for drop, dash (—) for no change. Store previous rank snapshot in localStorage keyed by principal, compare on each leaderboard load.
+- Persistent emoji reaction display: below every chat message/reply, show a row of reacted emojis with their counts, visible to all users at all times (no interaction required to see them).
 
 ### Modify
-- `src/frontend/src/index.css`: Update `--primary` and `--ring` tokens in both `:root` and `.dark` to neon yellow-green (OKLCH ~0.85 chroma 0.22 hue 120 in light, ~0.82 chroma 0.25 hue 118 in dark). Update `--primary-foreground` to a dark color (near black) so text on neon-green buttons is readable. Also update `--chart-1`, `--sidebar-primary`, `--sidebar-ring` to match.
-- `ReactionControls.tsx`: Hide all emoji buttons by default. Show a small smiley/reaction trigger icon. On long-press (or long-touch on mobile), reveal the emoji picker row. After a user selects an emoji, hide the picker and show only that selected emoji (with its count if applicable). If no reaction is selected, show no emoji — just the trigger icon.
-- `ChatPanel.tsx` + `ImageAttachmentPicker.tsx`: Move the paperclip icon button out of the separate component area above the input and into the same flex row as the text input and send button, positioned to the left of the send button (right of the text input).
-- `PlayerProfileModal.tsx`: In the earned badges section, change from a flat Badge chip list to a vertical list where each item shows the badge name + a small description text below it (sourced from `badge.description`).
+- `src/frontend/index.css`: overwrite entirely with the correct green OKLCH theme matching `src/frontend/src/index.css` (already done via direct file write).
+- `ChatPanel.tsx` input row: reorder to `[text input] [paperclip] [send]` → `[text input] [paperclip] [send]`. Currently paperclip is between input and send — move paperclip to be immediately left of the send button (order is already correct in ChatPanel; confirm paperclip stays left of send).
+- `ReplyComposer.tsx`: move `ImageAttachmentPicker` out of the top area and place a paperclip icon button inline in the input row, to the left of the send button (matching ChatPanel layout).
+- `ReactionControls.tsx`: Remove long-press requirement. Always show all reactions with counts > 0 below the message as small pill badges. Add a small "+" or smiley trigger button to open the emoji picker inline (tap, not long-press). When user has reacted, highlight their selected emoji pill.
 
 ### Remove
-- Nothing removed
+- Long-press gesture for triggering emoji picker in `ReactionControls.tsx`.
 
 ## Implementation Plan
-1. Update `index.css` — change `--primary` to OKLCH neon yellow-green, update foreground to dark/black, update ring and chart tokens to match in both light and dark modes.
-2. Update `ReactionControls.tsx` — implement long-press detection (using onMouseDown/onTouchStart timers), hide emoji row by default, show emoji picker on long-press, collapse back to showing only the selected emoji after selection.
-3. Update `ChatPanel.tsx` and `ImageAttachmentPicker.tsx` — restructure the form so the paperclip trigger button sits inline in the message row (left of the send button), while the image preview still shows above the row when an image is selected.
-4. Update `PlayerProfileModal.tsx` — replace the flat badge chip list with a styled list showing badge name and description text beneath each badge.
+1. `src/frontend/index.css` — already fixed (correct green theme written).
+2. `ReactionControls.tsx` — Refactor: always render reaction pills (emoji + count) below message when count > 0. Add a small smiley/+ button to open picker on tap. Remove long-press logic entirely. Highlight the user's own selected emoji.
+3. `ReplyComposer.tsx` — Move `ImageAttachmentPicker` logic inline: add hidden file input + paperclip icon button inside the input row, left of the send button. Remove the separate `ImageAttachmentPicker` block above.
+4. `LeaderboardPage.tsx` — Add rank change tracking: on leaderboard load, read previous ranks from localStorage, compare to current ranks, compute delta per principal, write new snapshot to localStorage. Add a new column in the Rankings table showing ▲ (green), ▼ (red), or — for each player.

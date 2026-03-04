@@ -1,5 +1,12 @@
 import type { Principal } from "@dfinity/principal";
-import { Calendar, Minus, Plus, Trophy } from "lucide-react";
+import {
+  Calendar,
+  Minus,
+  Plus,
+  TrendingDown,
+  TrendingUp,
+  Trophy,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { DayWithLog } from "../backend";
@@ -88,12 +95,18 @@ export default function LeaderboardPage() {
   const [selectedPlayerPrincipal, setSelectedPlayerPrincipal] =
     useState<Principal | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [rankChanges, setRankChanges] = useState<
+    Map<string, "up" | "down" | "same">
+  >(new Map());
 
   const callerPrincipal = identity?.getPrincipal().toString();
 
   // Track rank changes for toast notifications
   const previousRankRef = useRef<number | null>(null);
   const isInitialLoadRef = useRef(true);
+
+  // Rank change tracking via localStorage snapshot
+  const RANK_SNAPSHOT_KEY = "leaderboard_rank_snapshot";
 
   // Sort match history in descending order (newest first) for the dropdown
   const sortedMatchHistory = [...matchHistory].sort((a, b) =>
@@ -128,6 +141,49 @@ export default function LeaderboardPage() {
       previousRankRef.current = currentRankNumber;
     }
   }, [leaderboard, callerPrincipal]);
+
+  // Compute rank change indicators using localStorage snapshot
+  useEffect(() => {
+    if (leaderboard.length === 0) return;
+
+    // Build current rank map: principal → rank
+    const currentSnapshot: Record<string, number> = {};
+    leaderboard.forEach(([principal], index) => {
+      currentSnapshot[principal.toString()] = index + 1;
+    });
+
+    // Load previous snapshot
+    let prevSnapshot: Record<string, number> = {};
+    try {
+      const stored = localStorage.getItem(RANK_SNAPSHOT_KEY);
+      if (stored) prevSnapshot = JSON.parse(stored);
+    } catch {
+      // ignore parse errors
+    }
+
+    // Compute changes
+    const changes = new Map<string, "up" | "down" | "same">();
+    for (const [principalStr, currentRank] of Object.entries(currentSnapshot)) {
+      const prevRank = prevSnapshot[principalStr];
+      if (prevRank === undefined) {
+        changes.set(principalStr, "same");
+      } else if (currentRank < prevRank) {
+        changes.set(principalStr, "up");
+      } else if (currentRank > prevRank) {
+        changes.set(principalStr, "down");
+      } else {
+        changes.set(principalStr, "same");
+      }
+    }
+    setRankChanges(changes);
+
+    // Save new snapshot
+    try {
+      localStorage.setItem(RANK_SNAPSHOT_KEY, JSON.stringify(currentSnapshot));
+    } catch {
+      // ignore storage errors
+    }
+  }, [leaderboard]);
 
   // Auto-select the most recent day when match history loads
   useEffect(() => {
@@ -448,7 +504,25 @@ export default function LeaderboardPage() {
                       className={`cursor-pointer transition-colors hover:bg-muted/60 ${isCurrentUser ? "bg-primary/5 font-medium" : ""}`}
                       onClick={() => handlePlayerClick(principal)}
                     >
-                      <TableCell>{getRankBadge(rank)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {getRankBadge(rank)}
+                          {(() => {
+                            const change = rankChanges.get(
+                              principal.toString(),
+                            );
+                            if (change === "up")
+                              return (
+                                <TrendingUp className="h-3 w-3 text-green-500 flex-shrink-0" />
+                              );
+                            if (change === "down")
+                              return (
+                                <TrendingDown className="h-3 w-3 text-red-500 flex-shrink-0" />
+                              );
+                            return null;
+                          })()}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <AvatarName
