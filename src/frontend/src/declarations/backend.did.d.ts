@@ -62,6 +62,10 @@ export interface PostWithReplies {
 }
 export type ReactionType = { 'like' : null } |
   { 'dislike' : null };
+export interface SeasonSnapshot {
+  'leaderboard' : Array<[Principal, T]>,
+  'year' : bigint,
+}
 export interface T {
   'streak' : bigint,
   'wins' : bigint,
@@ -120,6 +124,7 @@ export interface _SERVICE {
   'deleteUser' : ActorMethod<[Principal], undefined>,
   'deleteUserDayAvailability' : ActorMethod<[Principal, bigint], undefined>,
   'editPost' : ActorMethod<[bigint, string], undefined>,
+  'finalizeCurrentSeason' : ActorMethod<[bigint], undefined>,
   'getAllAvailabilities' : ActorMethod<[], Array<[Principal, bigint, string]>>,
   'getAllBadgeDefinitions' : ActorMethod<[], Array<BadgeDefinition>>,
   'getAllDayAvailabilityCounts' : ActorMethod<[], Array<DayAvailabilityCount>>,
@@ -133,11 +138,13 @@ export interface _SERVICE {
   'getCallerStats' : ActorMethod<[], [] | [T]>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getCurrentSeasonLeaderboard' : ActorMethod<[], Array<[Principal, T]>>,
   'getDayAvailability' : ActorMethod<
     [bigint],
     Array<[Principal, Availability]>
   >,
   'getLeaderboard' : ActorMethod<[], Array<[Principal, T]>>,
+  'getPastSeasonSnapshots' : ActorMethod<[], Array<SeasonSnapshot>>,
   'getPostWithReplies' : ActorMethod<[bigint], [] | [PostWithReplies]>,
   'getPosts' : ActorMethod<[bigint, bigint], Array<Post>>,
   'getReplies' : ActorMethod<[bigint], Array<Post>>,
@@ -146,6 +153,7 @@ export interface _SERVICE {
     Array<[Principal, T, bigint]>
   >,
   'getTopPlayersByScore' : ActorMethod<[bigint], Array<[Principal, T]>>,
+  'getTotalPostCount' : ActorMethod<[], bigint>,
   'getUserBadges' : ActorMethod<[Principal], Array<string>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getUserStats' : ActorMethod<[Principal], [] | [T]>,

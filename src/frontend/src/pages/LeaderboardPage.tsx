@@ -1,6 +1,9 @@
 import type { Principal } from "@dfinity/principal";
 import {
   Calendar,
+  ChevronDown,
+  ChevronUp,
+  Clock,
   Minus,
   Plus,
   TrendingDown,
@@ -10,6 +13,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { DayWithLog } from "../backend";
+import type { T as UserStats } from "../backend";
 import { InlineLoading } from "../components/common/LoadingState";
 import { Page, PageHeader } from "../components/layout/PageLayout";
 import PlayerProfileModal from "../components/leaderboard/PlayerProfileModal";
@@ -22,6 +26,11 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "../components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -37,12 +46,22 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "../components/ui/tabs";
 import AvatarName from "../components/user/AvatarName";
+import { useIsCallerAdmin } from "../hooks/useCurrentUserRole";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
+  useFinalizeCurrentSeason,
   useGetCallerAvailableDays,
   useGetCallerMatchHistory,
+  useGetCurrentSeasonLeaderboard,
   useGetLeaderboard,
+  useGetPastSeasonSnapshots,
   useRecordDailyLoss,
   useRecordDailyWin,
   useRemoveDailyLoss,
@@ -75,12 +94,197 @@ function computeCurrentStreak(history: DayWithLog[]): number {
   return streak;
 }
 
+/** Returns days remaining until Dec 31 of current year */
+function getDaysRemainingInSeason(): number {
+  const today = new Date();
+  const yearEnd = new Date(today.getFullYear(), 11, 31); // Dec 31
+  const msPerDay = 1000 * 60 * 60 * 24;
+  return Math.max(
+    0,
+    Math.ceil((yearEnd.getTime() - today.getTime()) / msPerDay),
+  );
+}
+
+// ─── Leaderboard table shared component ──────────────────────────────────────
+
+interface LeaderboardTableProps {
+  leaderboard: Array<[Principal, UserStats]>;
+  isLoading: boolean;
+  callerPrincipal?: string;
+  currentStreak?: number;
+  rankChanges?: Map<string, "up" | "down" | "same">;
+  onPlayerClick?: (principal: Principal) => void;
+  userDirectory?: Map<string, { displayName: string; avatarUrl?: string }>;
+  isLoadingDirectory?: boolean;
+}
+
+function LeaderboardTable({
+  leaderboard,
+  isLoading,
+  callerPrincipal,
+  currentStreak = 0,
+  rankChanges,
+  onPlayerClick,
+  userDirectory,
+  isLoadingDirectory,
+}: LeaderboardTableProps) {
+  const getRankBadge = (rank: number) => {
+    if (rank === 1)
+      return (
+        <Badge className="bg-yellow-500 text-white hover:bg-yellow-500">
+          🥇 #1
+        </Badge>
+      );
+    if (rank === 2)
+      return (
+        <Badge className="bg-gray-400 text-white hover:bg-gray-400">
+          🥈 #2
+        </Badge>
+      );
+    if (rank === 3)
+      return (
+        <Badge className="bg-amber-600 text-white hover:bg-amber-600">
+          🥉 #3
+        </Badge>
+      );
+    return <Badge variant="outline">#{rank}</Badge>;
+  };
+
+  const getWinRate = (wins: bigint, losses: bigint): string => {
+    const total = Number(wins) + Number(losses);
+    if (total === 0) return "—";
+    return `${Math.round((Number(wins) / total) * 100)}%`;
+  };
+
+  if (isLoading || isLoadingDirectory) {
+    return (
+      <div className="p-4">
+        <InlineLoading message="Loading leaderboard..." />
+      </div>
+    );
+  }
+
+  if (leaderboard.length === 0) {
+    return (
+      <p className="text-center text-muted-foreground py-8 text-sm">
+        No players on the leaderboard yet.
+      </p>
+    );
+  }
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-14">Rank</TableHead>
+          <TableHead>Player</TableHead>
+          <TableHead className="text-right">W</TableHead>
+          <TableHead className="text-right">L</TableHead>
+          <TableHead className="text-right">GP</TableHead>
+          <TableHead className="text-right">Win%</TableHead>
+          <TableHead className="text-right">Streak</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {leaderboard.map(([principal, stats], index) => {
+          const rank = index + 1;
+          const isCurrentUser = principal.toString() === callerPrincipal;
+          const entry = userDirectory?.get(principal.toString());
+          const displayStreak = isCurrentUser
+            ? currentStreak
+            : Number(stats.streak);
+          const gamesPlayed = Number(stats.wins) + Number(stats.losses);
+
+          return (
+            <TableRow
+              key={principal.toString()}
+              className={`cursor-pointer transition-colors hover:bg-muted/60 ${isCurrentUser ? "bg-primary/5 font-medium" : ""}`}
+              onClick={() => onPlayerClick?.(principal)}
+              data-ocid={`leaderboard.item.${rank}`}
+            >
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  {getRankBadge(rank)}
+                  {(() => {
+                    const change = rankChanges?.get(principal.toString());
+                    if (change === "up")
+                      return (
+                        <TrendingUp className="h-3 w-3 text-green-500 flex-shrink-0" />
+                      );
+                    if (change === "down")
+                      return (
+                        <TrendingDown className="h-3 w-3 text-red-500 flex-shrink-0" />
+                      );
+                    return null;
+                  })()}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  <AvatarName
+                    principal={principal}
+                    displayName={
+                      entry?.displayName ??
+                      `${principal.toString().slice(0, 8)}...`
+                    }
+                    avatarUrl={entry?.avatarUrl}
+                    size="sm"
+                  />
+                  {isCurrentUser && (
+                    <span className="ml-1 text-xs text-muted-foreground">
+                      (you)
+                    </span>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell className="text-right text-green-600 font-medium">
+                {Number(stats.wins)}
+              </TableCell>
+              <TableCell className="text-right text-red-500 font-medium">
+                {Number(stats.losses)}
+              </TableCell>
+              <TableCell className="text-right text-muted-foreground">
+                {gamesPlayed}
+              </TableCell>
+              <TableCell className="text-right">
+                {getWinRate(stats.wins, stats.losses)}
+              </TableCell>
+              <TableCell className="text-right">
+                {displayStreak > 0 ? (
+                  <span className="text-orange-500 font-medium">
+                    🔥 {displayStreak}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
 export default function LeaderboardPage() {
   const { data: leaderboard = [], isLoading } = useGetLeaderboard();
+  const {
+    data: currentSeasonLeaderboard = [],
+    isLoading: isLoadingCurrentSeason,
+  } = useGetCurrentSeasonLeaderboard();
+  const { data: pastSeasonSnapshots = [], isLoading: isLoadingPastSeasons } =
+    useGetPastSeasonSnapshots();
+  const { mutate: finalizeSeasonMutate, isPending: isFinalizingSeason } =
+    useFinalizeCurrentSeason();
+
   const principals = leaderboard.map(([principal]) => principal);
   const { data: userDirectory, isLoading: isLoadingDirectory } =
     useUserDirectoryWithAvatars(principals);
+
   const { identity } = useInternetIdentity();
+  const { data: isAdmin } = useIsCallerAdmin();
   const { isLoading: isLoadingDays, isFetched: isDaysFetched } =
     useGetCallerAvailableDays();
   const { data: matchHistory = [] } = useGetCallerMatchHistory();
@@ -99,7 +303,14 @@ export default function LeaderboardPage() {
     Map<string, "up" | "down" | "same">
   >(new Map());
 
+  // Past season expand state
+  const [expandedSeasons, setExpandedSeasons] = useState<Set<string>>(
+    new Set(),
+  );
+
   const callerPrincipal = identity?.getPrincipal().toString();
+  const currentYear = new Date().getFullYear();
+  const daysRemaining = getDaysRemainingInSeason();
 
   // Track rank changes for toast notifications
   const previousRankRef = useRef<number | null>(null);
@@ -146,22 +357,19 @@ export default function LeaderboardPage() {
   useEffect(() => {
     if (leaderboard.length === 0) return;
 
-    // Build current rank map: principal → rank
     const currentSnapshot: Record<string, number> = {};
     leaderboard.forEach(([principal], index) => {
       currentSnapshot[principal.toString()] = index + 1;
     });
 
-    // Load previous snapshot
     let prevSnapshot: Record<string, number> = {};
     try {
       const stored = localStorage.getItem(RANK_SNAPSHOT_KEY);
       if (stored) prevSnapshot = JSON.parse(stored);
     } catch {
-      // ignore parse errors
+      // ignore
     }
 
-    // Compute changes
     const changes = new Map<string, "up" | "down" | "same">();
     for (const [principalStr, currentRank] of Object.entries(currentSnapshot)) {
       const prevRank = prevSnapshot[principalStr];
@@ -177,11 +385,10 @@ export default function LeaderboardPage() {
     }
     setRankChanges(changes);
 
-    // Save new snapshot
     try {
       localStorage.setItem(RANK_SNAPSHOT_KEY, JSON.stringify(currentSnapshot));
     } catch {
-      // ignore storage errors
+      // ignore
     }
   }, [leaderboard]);
 
@@ -270,49 +477,48 @@ export default function LeaderboardPage() {
     setModalOpen(true);
   };
 
+  const handleFinalizeSeason = () => {
+    finalizeSeasonMutate(BigInt(currentYear), {
+      onSuccess: () =>
+        toast.success(`${currentYear} season finalized and scores reset!`),
+      onError: (err: any) =>
+        toast.error(err?.message || "Failed to finalize season"),
+    });
+  };
+
   const selectedDayLog = selectedDay
     ? matchHistory.find((entry) => entry.day.toString() === selectedDay)
     : null;
 
-  const getRankBadge = (rank: number) => {
-    if (rank === 1)
-      return (
-        <Badge className="bg-yellow-500 text-white hover:bg-yellow-500">
-          🥇 #1
-        </Badge>
-      );
-    if (rank === 2)
-      return (
-        <Badge className="bg-gray-400 text-white hover:bg-gray-400">
-          🥈 #2
-        </Badge>
-      );
-    if (rank === 3)
-      return (
-        <Badge className="bg-amber-600 text-white hover:bg-amber-600">
-          🥉 #3
-        </Badge>
-      );
-    return <Badge variant="outline">#{rank}</Badge>;
-  };
-
-  const getWinRate = (wins: bigint, losses: bigint): string => {
-    const total = Number(wins) + Number(losses);
-    if (total === 0) return "—";
-    return `${Math.round((Number(wins) / total) * 100)}%`;
-  };
-
   const currentStreak = computeCurrentStreak(matchHistory);
 
-  // Find match history for the selected player (only available for current user)
   const selectedPlayerMatchHistory: DayWithLog[] =
     selectedPlayerPrincipal?.toString() === callerPrincipal ? matchHistory : [];
+
+  const toggleSeason = (year: string) => {
+    setExpandedSeasons((prev) => {
+      const next = new Set(prev);
+      if (next.has(year)) next.delete(year);
+      else next.add(year);
+      return next;
+    });
+  };
+
+  // Table props shared between current-season and all-time tabs
+  const sharedTableProps = {
+    callerPrincipal,
+    currentStreak,
+    rankChanges,
+    onPlayerClick: handlePlayerClick,
+    userDirectory,
+    isLoadingDirectory,
+  };
 
   return (
     <Page>
       <PageHeader icon={<Trophy className="h-5 w-5" />} title="Leaderboard" />
 
-      {/* Record wins/losses section */}
+      {/* Record Match Result — always visible */}
       <Card className="mb-6">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -340,7 +546,10 @@ export default function LeaderboardPage() {
                   value={selectedDay ?? ""}
                   onValueChange={setSelectedDay}
                 >
-                  <SelectTrigger id="select-date">
+                  <SelectTrigger
+                    id="select-date"
+                    data-ocid="leaderboard.date.select"
+                  >
                     <SelectValue placeholder="Choose a date..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -382,6 +591,7 @@ export default function LeaderboardPage() {
                   onClick={handleRecordWin}
                   disabled={isPending || !selectedDay}
                   className="bg-green-600 hover:bg-green-700 text-white"
+                  data-ocid="leaderboard.win.primary_button"
                 >
                   {isRecordingWin ? (
                     <span className="flex items-center gap-1.5">
@@ -399,6 +609,7 @@ export default function LeaderboardPage() {
                   onClick={handleRecordLoss}
                   disabled={isPending || !selectedDay}
                   variant="destructive"
+                  data-ocid="leaderboard.loss.primary_button"
                 >
                   {isRecordingLoss ? (
                     <span className="flex items-center gap-1.5">
@@ -420,6 +631,7 @@ export default function LeaderboardPage() {
                   disabled={isPending || !selectedDay}
                   variant="outline"
                   size="sm"
+                  data-ocid="leaderboard.win.secondary_button"
                 >
                   {isRemovingWin ? (
                     <span className="flex items-center gap-1.5">
@@ -438,6 +650,7 @@ export default function LeaderboardPage() {
                   disabled={isPending || !selectedDay}
                   variant="outline"
                   size="sm"
+                  data-ocid="leaderboard.loss.secondary_button"
                 >
                   {isRemovingLoss ? (
                     <span className="flex items-center gap-1.5">
@@ -457,119 +670,195 @@ export default function LeaderboardPage() {
         </CardContent>
       </Card>
 
-      {/* Leaderboard table */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Rankings</CardTitle>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Tap a player to view their profile
-          </p>
-        </CardHeader>
-        <CardContent className="p-0">
-          {isLoading || isLoadingDirectory ? (
-            <div className="p-4">
-              <InlineLoading message="Loading leaderboard..." />
-            </div>
-          ) : leaderboard.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8 text-sm">
-              No players on the leaderboard yet.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-14">Rank</TableHead>
-                  <TableHead>Player</TableHead>
-                  <TableHead className="text-right">W</TableHead>
-                  <TableHead className="text-right">L</TableHead>
-                  <TableHead className="text-right">GP</TableHead>
-                  <TableHead className="text-right">Win%</TableHead>
-                  <TableHead className="text-right">Streak</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {leaderboard.map(([principal, stats], index) => {
-                  const rank = index + 1;
-                  const isCurrentUser =
-                    principal.toString() === callerPrincipal;
-                  const entry = userDirectory?.get(principal.toString());
-                  const displayStreak = isCurrentUser
-                    ? currentStreak
-                    : Number(stats.streak);
-                  const gamesPlayed = Number(stats.wins) + Number(stats.losses);
+      {/* Season countdown */}
+      <div className="flex items-center gap-2 mb-4 px-1 text-sm text-muted-foreground">
+        <Clock className="h-4 w-4 flex-shrink-0" />
+        <span>
+          <span className="font-semibold text-foreground">
+            {currentYear} Season
+          </span>
+          {" — "}
+          <span className="text-primary font-medium">
+            {daysRemaining} days remaining
+          </span>
+        </span>
+      </div>
 
-                  return (
-                    <TableRow
-                      key={principal.toString()}
-                      className={`cursor-pointer transition-colors hover:bg-muted/60 ${isCurrentUser ? "bg-primary/5 font-medium" : ""}`}
-                      onClick={() => handlePlayerClick(principal)}
+      {/* Leaderboard tabs */}
+      <Tabs defaultValue="current-season">
+        <TabsList className="w-full mb-4">
+          <TabsTrigger
+            value="current-season"
+            className="flex-1 text-xs"
+            data-ocid="leaderboard.current_season.tab"
+          >
+            Current Season
+          </TabsTrigger>
+          <TabsTrigger
+            value="all-time"
+            className="flex-1 text-xs"
+            data-ocid="leaderboard.all_time.tab"
+          >
+            All Time
+          </TabsTrigger>
+          <TabsTrigger
+            value="past-seasons"
+            className="flex-1 text-xs"
+            data-ocid="leaderboard.past_seasons.tab"
+          >
+            Past Seasons
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ── Current Season ── */}
+        <TabsContent value="current-season">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <CardTitle className="text-base">
+                    {currentYear} Season Rankings
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Tap a player to view their profile
+                  </p>
+                </div>
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleFinalizeSeason}
+                    disabled={isFinalizingSeason}
+                    className="flex-shrink-0 text-xs"
+                    data-ocid="leaderboard.season_finalize.button"
+                  >
+                    {isFinalizingSeason ? (
+                      <span className="flex items-center gap-1">
+                        <span className="h-3 w-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        Finalizing...
+                      </span>
+                    ) : (
+                      "Finalize Season"
+                    )}
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <LeaderboardTable
+                leaderboard={currentSeasonLeaderboard}
+                isLoading={isLoadingCurrentSeason}
+                {...sharedTableProps}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── All Time ── */}
+        <TabsContent value="all-time">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">All-Time Rankings</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Tap a player to view their profile
+              </p>
+            </CardHeader>
+            <CardContent className="p-0">
+              <LeaderboardTable
+                leaderboard={leaderboard}
+                isLoading={isLoading}
+                {...sharedTableProps}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Past Seasons ── */}
+        <TabsContent value="past-seasons">
+          {isLoadingPastSeasons ? (
+            <Card>
+              <CardContent className="p-6">
+                <InlineLoading message="Loading past seasons..." />
+              </CardContent>
+            </Card>
+          ) : pastSeasonSnapshots.length === 0 ? (
+            <Card>
+              <CardContent className="py-10 text-center">
+                <Trophy className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">
+                  No past seasons yet.
+                </p>
+                <p className="text-muted-foreground text-xs mt-1">
+                  Past seasons will appear here after the year ends.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {pastSeasonSnapshots.map((snapshot) => {
+                const yearStr = snapshot.year.toString();
+                const isOpen = expandedSeasons.has(yearStr);
+                const champion = snapshot.leaderboard[0];
+                const championEntry = champion
+                  ? userDirectory?.get(champion[0].toString())
+                  : null;
+                const championName =
+                  championEntry?.displayName ??
+                  (champion
+                    ? `${champion[0].toString().slice(0, 8)}...`
+                    : "Unknown");
+
+                return (
+                  <Card key={yearStr}>
+                    <Collapsible
+                      open={isOpen}
+                      onOpenChange={() => toggleSeason(yearStr)}
                     >
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {getRankBadge(rank)}
-                          {(() => {
-                            const change = rankChanges.get(
-                              principal.toString(),
-                            );
-                            if (change === "up")
-                              return (
-                                <TrendingUp className="h-3 w-3 text-green-500 flex-shrink-0" />
-                              );
-                            if (change === "down")
-                              return (
-                                <TrendingDown className="h-3 w-3 text-red-500 flex-shrink-0" />
-                              );
-                            return null;
-                          })()}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <AvatarName
-                            principal={principal}
-                            displayName={
-                              entry?.displayName ??
-                              `${principal.toString().slice(0, 8)}...`
-                            }
-                            avatarUrl={entry?.avatarUrl}
-                            size="sm"
+                      <CollapsibleTrigger asChild>
+                        <CardHeader className="pb-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-t-lg">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <CardTitle className="text-base flex items-center gap-2">
+                                🏆 {yearStr} Season
+                              </CardTitle>
+                              {champion && (
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  Champion: {championName}
+                                </p>
+                              )}
+                            </div>
+                            {isOpen ? (
+                              <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            )}
+                          </div>
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className="p-0 pb-2">
+                          <div className="px-4 pb-2">
+                            <p className="text-xs text-muted-foreground italic">
+                              Locked snapshot — scores are final for this
+                              season.
+                            </p>
+                          </div>
+                          <LeaderboardTable
+                            leaderboard={snapshot.leaderboard}
+                            isLoading={false}
+                            userDirectory={userDirectory}
+                            isLoadingDirectory={isLoadingDirectory}
                           />
-                          {isCurrentUser && (
-                            <span className="ml-1 text-xs text-muted-foreground">
-                              (you)
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right text-green-600 font-medium">
-                        {Number(stats.wins)}
-                      </TableCell>
-                      <TableCell className="text-right text-red-500 font-medium">
-                        {Number(stats.losses)}
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {gamesPlayed}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {getWinRate(stats.wins, stats.losses)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {displayStreak > 0 ? (
-                          <span className="text-orange-500 font-medium">
-                            🔥 {displayStreak}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </Card>
+                );
+              })}
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Player Profile Modal */}
       <PlayerProfileModal

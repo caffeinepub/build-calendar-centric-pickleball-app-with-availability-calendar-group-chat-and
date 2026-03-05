@@ -82,6 +82,10 @@ export const T = IDL.Record({
   'totalGames' : IDL.Nat,
   'bestStreak' : IDL.Int,
 });
+export const SeasonSnapshot = IDL.Record({
+  'leaderboard' : IDL.Vec(IDL.Tuple(IDL.Principal, T)),
+  'year' : IDL.Nat,
+});
 export const Post = IDL.Record({
   'id' : IDL.Int,
   'content' : IDL.Text,
@@ -150,6 +154,7 @@ export const idlService = IDL.Service({
   'deleteUser' : IDL.Func([IDL.Principal], [], []),
   'deleteUserDayAvailability' : IDL.Func([IDL.Principal, IDL.Int], [], []),
   'editPost' : IDL.Func([IDL.Int, IDL.Text], [], []),
+  'finalizeCurrentSeason' : IDL.Func([IDL.Nat], [], []),
   'getAllAvailabilities' : IDL.Func(
       [],
       [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Int, IDL.Text))],
@@ -188,6 +193,11 @@ export const idlService = IDL.Service({
   'getCallerStats' : IDL.Func([], [IDL.Opt(T)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getCurrentSeasonLeaderboard' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
+      ['query'],
+    ),
   'getDayAvailability' : IDL.Func(
       [IDL.Int],
       [IDL.Vec(IDL.Tuple(IDL.Principal, Availability))],
@@ -198,6 +208,7 @@ export const idlService = IDL.Service({
       [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
       ['query'],
     ),
+  'getPastSeasonSnapshots' : IDL.Func([], [IDL.Vec(SeasonSnapshot)], ['query']),
   'getPostWithReplies' : IDL.Func(
       [IDL.Int],
       [IDL.Opt(PostWithReplies)],
@@ -215,6 +226,7 @@ export const idlService = IDL.Service({
       [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
       ['query'],
     ),
+  'getTotalPostCount' : IDL.Func([], [IDL.Nat], ['query']),
   'getUserBadges' : IDL.Func([IDL.Principal], [IDL.Vec(IDL.Text)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
@@ -308,6 +320,10 @@ export const idlFactory = ({ IDL }) => {
     'totalGames' : IDL.Nat,
     'bestStreak' : IDL.Int,
   });
+  const SeasonSnapshot = IDL.Record({
+    'leaderboard' : IDL.Vec(IDL.Tuple(IDL.Principal, T)),
+    'year' : IDL.Nat,
+  });
   const Post = IDL.Record({
     'id' : IDL.Int,
     'content' : IDL.Text,
@@ -380,6 +396,7 @@ export const idlFactory = ({ IDL }) => {
     'deleteUser' : IDL.Func([IDL.Principal], [], []),
     'deleteUserDayAvailability' : IDL.Func([IDL.Principal, IDL.Int], [], []),
     'editPost' : IDL.Func([IDL.Int, IDL.Text], [], []),
+    'finalizeCurrentSeason' : IDL.Func([IDL.Nat], [], []),
     'getAllAvailabilities' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Int, IDL.Text))],
@@ -418,6 +435,11 @@ export const idlFactory = ({ IDL }) => {
     'getCallerStats' : IDL.Func([], [IDL.Opt(T)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getCurrentSeasonLeaderboard' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
+        ['query'],
+      ),
     'getDayAvailability' : IDL.Func(
         [IDL.Int],
         [IDL.Vec(IDL.Tuple(IDL.Principal, Availability))],
@@ -426,6 +448,11 @@ export const idlFactory = ({ IDL }) => {
     'getLeaderboard' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
+        ['query'],
+      ),
+    'getPastSeasonSnapshots' : IDL.Func(
+        [],
+        [IDL.Vec(SeasonSnapshot)],
         ['query'],
       ),
     'getPostWithReplies' : IDL.Func(
@@ -445,6 +472,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
         ['query'],
       ),
+    'getTotalPostCount' : IDL.Func([], [IDL.Nat], ['query']),
     'getUserBadges' : IDL.Func([IDL.Principal], [IDL.Vec(IDL.Text)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],

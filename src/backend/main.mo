@@ -15,6 +15,8 @@ import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import Set "mo:core/Set";
 
+
+
 actor {
   let accessControlState = AccessControl.initState();
   include MixinStorage();
@@ -154,6 +156,11 @@ actor {
     awardedAt : Int;
   };
 
+  public type SeasonSnapshot = {
+    year : Nat;
+    leaderboard : [(Principal, UserStats.T)];
+  };
+
   var loginRecords : Map.Map<Principal, Int> = Map.empty<Principal, Int>();
   let userProfiles = Map.empty<Principal, UserEntry>();
   let userStats = Map.empty<Principal, UserStats.T>();
@@ -163,6 +170,7 @@ actor {
   let dailyLogs = Map.empty<(Principal, Int), DailyLog>();
   let badgeDefinitions = Map.empty<Text, BadgeDefinition>();
   let badgeAwards = Map.empty<Principal, Set.Set<Text>>();
+  let seasonSnapshots = Map.empty<Nat, SeasonSnapshot>();
   var messageCounter : Int = 0;
 
   public shared ({ caller }) func createBadgeDefinition(definition : BadgeDefinition) : async () {
@@ -201,6 +209,10 @@ actor {
       Runtime.trap("Unauthorized: Only admins can award badges");
     };
 
+    awardBadgeToUserInternal(user, badgeId);
+  };
+
+  func awardBadgeToUserInternal(user : Principal, badgeId : Text) {
     switch (badgeDefinitions.get(badgeId)) {
       case (null) {
         Runtime.trap("Badge definition not found");
@@ -677,7 +689,7 @@ actor {
       losses = totalLosses;
       totalGames;
       streak = calculateStreak(user);
-      bestStreak = totalWins;
+      bestStreak = calculateBestStreak(user);
     };
     userStats.add(user, stats);
 
@@ -703,6 +715,42 @@ actor {
       };
     };
     streak;
+  };
+
+  func calculateBestStreak(user : Principal) : Int {
+    var currentStreak = 0;
+    var bestStreak = 0;
+
+    let userLogs = dailyLogs.entries().toArray().filter(
+      func((key, _)) { key.0 == user }
+    );
+
+    let logsWithDay = userLogs;
+
+    let compareLogsByDay = func(a : ((Principal, Int), DailyLog), b : ((Principal, Int), DailyLog)) : Order.Order {
+      Int.compare(a.0.1, b.0.1);
+    };
+
+    let sortedLogs = logsWithDay.sort(compareLogsByDay);
+
+    for (((_, _), log) in sortedLogs.values()) {
+      var i = 0;
+      while (i < log.wins) {
+        currentStreak += 1;
+        if (currentStreak > bestStreak) {
+          bestStreak := currentStreak;
+        };
+        i += 1;
+      };
+
+      var j = 0;
+      while (j < log.losses) {
+        currentStreak := 0;
+        j += 1;
+      };
+    };
+
+    bestStreak;
   };
 
   public shared ({ caller }) func addAvailability(day : Int, time : Text, notes : ?Text) : async () {
@@ -926,9 +974,18 @@ actor {
       Runtime.trap("Unauthorized: Only users can view posts");
     };
 
-    posts.values().toArray().sort(Post.compareByTimestamp).sliceToArray(
+    let topLevelPosts = posts.values().toArray().filter(
+      func(post) {
+        switch (post.parentId) {
+          case (null) { true };
+          case (?_) { false };
+        };
+      }
+    );
+
+    topLevelPosts.sort(Post.compareByTimestamp).sliceToArray(
       offset,
-      Nat.min(offset + limit, posts.size()),
+      Nat.min(offset + limit, topLevelPosts.size()),
     );
   };
 
@@ -988,5 +1045,87 @@ actor {
 
   func getCurrentDay() : Int {
     Time.now() / (24 * 60 * 60 * 1_000_000_000 : Int);
+  };
+
+  public query ({ caller }) func getCurrentSeasonLeaderboard() : async [(Principal, UserStats.T)] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view seasonal leaderboard");
+    };
+    userStats.entries().toArray().sort(UserStats.compareByScore);
+  };
+
+  public shared ({ caller }) func finalizeCurrentSeason(year : Nat) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admin can finalize season");
+    };
+
+    if (seasonSnapshots.containsKey(year)) {
+      Runtime.trap("Season snapshot for this year already exists");
+    };
+
+    let currentLeaderboard = userStats.entries().toArray().sort(UserStats.compareByScore);
+
+    let snapshot : SeasonSnapshot = {
+      year;
+      leaderboard = currentLeaderboard;
+    };
+
+    seasonSnapshots.add(year, snapshot);
+
+    // Reset seasonal stats and award Season Champion badge
+    let sortedLeaderboard = currentLeaderboard;
+    let currentLeader = if (sortedLeaderboard.size() > 0) {
+      sortedLeaderboard[0].0;
+    } else {
+      Runtime.trap("No players found to award season champion");
+    };
+
+    for ((principal, _) in userStats.entries()) {
+      let currentStats = switch (userStats.get(principal)) {
+        case (null) {
+          Runtime.trap("UserStats not found for principal");
+        };
+        case (?stats) { stats };
+      };
+
+      let resetStats = {
+        currentStats with
+        wins = 0;
+        losses = 0;
+        totalGames = 0;
+      };
+      userStats.add(principal, resetStats);
+    };
+
+    awardBadgeToUserInternal(currentLeader, "season-champion");
+  };
+
+  public query ({ caller }) func getPastSeasonSnapshots() : async [SeasonSnapshot] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view past snapshots");
+    };
+
+    seasonSnapshots.values().toArray().sort(
+      func(a, b) {
+        if (a.year > b.year) { #less } else if (a.year < b.year) { #greater } else {
+          #equal;
+        };
+      }
+    );
+  };
+
+  public query ({ caller }) func getTotalPostCount() : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view post count");
+    };
+
+    var count = 0;
+    for ((_, post) in posts.entries()) {
+      switch (post.parentId) {
+        case (null) { count += 1 };
+        case (?_) { () };
+      };
+    };
+    count;
   };
 };

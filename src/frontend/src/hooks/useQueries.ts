@@ -338,6 +338,20 @@ export function useGetPosts(limit = 100n, offset = 0n) {
   });
 }
 
+export function useGetTotalPostCount() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<bigint>({
+    queryKey: ["totalPostCount"],
+    queryFn: async () => {
+      if (!actor) return 0n;
+      return actor.getTotalPostCount();
+    },
+    enabled: !!actor && !isFetching,
+    refetchInterval: 5000,
+  });
+}
+
 export function useCreatePost() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -634,6 +648,52 @@ export function useRevokeBadgeFromUser() {
       queryClient.invalidateQueries({
         queryKey: ["userBadges", user.toString()],
       });
+    },
+  });
+}
+
+// Seasonal leaderboard queries
+export function useGetCurrentSeasonLeaderboard() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Array<[Principal, UserStats]>>({
+    queryKey: ["currentSeasonLeaderboard"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getCurrentSeasonLeaderboard();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetPastSeasonSnapshots() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<
+    Array<{ year: bigint; leaderboard: Array<[Principal, UserStats]> }>
+  >({
+    queryKey: ["pastSeasonSnapshots"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getPastSeasonSnapshots();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useFinalizeCurrentSeason() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (year: bigint) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.finalizeCurrentSeason(year);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["pastSeasonSnapshots"] });
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
     },
   });
 }

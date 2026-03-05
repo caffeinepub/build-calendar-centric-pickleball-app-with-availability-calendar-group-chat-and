@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import LoginScreen from "./components/auth/LoginScreen";
+import BadgeUnlockAnimation from "./components/badges/BadgeUnlockAnimation";
 import { ErrorState } from "./components/common/ErrorState";
 import { FullPageLoading } from "./components/common/LoadingState";
 import AppLayout from "./components/layout/AppLayout";
@@ -16,9 +17,13 @@ import Background from "./components/theme/Background";
 import { Button } from "./components/ui/button";
 import { Toaster } from "./components/ui/sonner";
 import { useActor } from "./hooks/useActor";
+import { useBadgeUnlockWatcher } from "./hooks/useBadgeUnlockWatcher";
 import { useGetCallerUserProfile } from "./hooks/useCurrentUserProfile";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
-import { useInitializeCallerLeaderboard } from "./hooks/useQueries";
+import {
+  useGetCallerStats,
+  useInitializeCallerLeaderboard,
+} from "./hooks/useQueries";
 import AddAvailabilityPage from "./pages/AddAvailabilityPage";
 import AdminPage from "./pages/AdminPage";
 import CalendarMonthPage from "./pages/CalendarMonthPage";
@@ -130,6 +135,23 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   );
 }
 
+function BadgeWatcher() {
+  const { identity } = useInternetIdentity();
+  const principal = identity?.getPrincipal() ?? null;
+  const { data: callerStats } = useGetCallerStats();
+  const { pendingBadge, dismissBadge } = useBadgeUnlockWatcher(principal);
+
+  if (!pendingBadge) return null;
+
+  return (
+    <BadgeUnlockAnimation
+      badge={pendingBadge}
+      currentStreak={Number(callerStats?.streak ?? 0n)}
+      onDismiss={dismissBadge}
+    />
+  );
+}
+
 function Layout() {
   return (
     <Background>
@@ -137,6 +159,7 @@ function Layout() {
         <Outlet />
       </AppLayout>
       <Toaster />
+      <BadgeWatcher />
     </Background>
   );
 }

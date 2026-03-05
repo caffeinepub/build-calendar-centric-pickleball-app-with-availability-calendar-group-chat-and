@@ -1,8 +1,10 @@
-import { Paperclip, Send, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { ArrowDown, Loader2, Paperclip, Send, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import type { Post } from "../../backend";
 import { ExternalBlob } from "../../backend";
-import { useCreatePost, useGetPosts } from "../../hooks/useQueries";
+import { useActor } from "../../hooks/useActor";
+import { useCreatePost } from "../../hooks/useQueries";
 import { buildThreadTree } from "../../lib/chatThreads";
 import { fileToUint8Array, validateImageFile } from "../../utils/file";
 import { ErrorState } from "../common/ErrorState";
@@ -10,32 +12,214 @@ import { InlineLoading } from "../common/LoadingState";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Input } from "../ui/input";
-import { ScrollArea } from "../ui/scroll-area";
 import ThreadedPostTree from "./ThreadedPostTree";
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 30n;
+
+function getDateLabel(timestampNs: bigint): string {
+  const ms = Number(timestampNs / 1_000_000n);
+  const d = new Date(ms);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "Today";
+  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return d.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+/** Returns the "YYYY-MM-DD" date string from a nanosecond timestamp */
+function getDateKey(timestampNs: bigint): string {
+  const ms = Number(timestampNs / 1_000_000n);
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
 export default function ChatPanel() {
+  const { actor, isFetching: actorFetching } = useActor();
+
+  // Pagination state
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [offset, setOffset] = useState(0n);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingInitial, setIsLoadingInitial] = useState(true);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Compose state
   const [message, setMessage] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const { data: posts = [], isLoading, error, refetch } = useGetPosts();
   const { mutate: createPost, isPending } = useCreatePost();
+
+  // Scroll state
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [_isAtBottom, setIsAtBottom] = useState(true);
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false);
+  const wasAtBottomRef = useRef(true);
+  // Flag to prevent load-older trigger after prepending old messages
+  const prependingRef = useRef(false);
+  // Flag to scroll to bottom on very first load
+  const initialScrollDoneRef = useRef(false);
+
+  // ── Fetch helpers ────────────────────────────────────────────────────────
+
+  const fetchPage = useCallback(
+    async (pageOffset: bigint, prepend: boolean) => {
+      if (!actor || actorFetching) return;
+      try {
+        const page = await actor.getPosts(PAGE_SIZE, pageOffset);
+        // API returns newest-first; reverse so we can render oldest-at-top
+        const reversed = [...page].reverse();
+        if (prepend) {
+          prependingRef.current = true;
+          setPosts((prev) => [...reversed, ...prev]);
+        } else {
+          setPosts(reversed);
+        }
+        setHasMore(page.length >= Number(PAGE_SIZE));
+        setOffset(pageOffset + PAGE_SIZE);
+      } catch {
+        setLoadError("Failed to load messages.");
+      }
+    },
+    [actor, actorFetching],
+  );
+
+  // Initial load
+  useEffect(() => {
+    if (!actor || actorFetching) return;
+    setIsLoadingInitial(true);
+    setLoadError(null);
+    fetchPage(0n, false).finally(() => setIsLoadingInitial(false));
+  }, [actor, actorFetching, fetchPage]);
+
+  // Poll for new messages (newest page only)
+  useEffect(() => {
+    if (!actor || actorFetching || isLoadingInitial) return;
+    const interval = setInterval(async () => {
+      if (!actor) return;
+      try {
+        const latestPage = await actor.getPosts(PAGE_SIZE, 0n);
+        const reversed = [...latestPage].reverse();
+        setPosts((prev) => {
+          // Merge: keep all old posts that are older than the oldest in latestPage
+          // and append any new ones from latestPage not already in prev
+          const prevIds = new Set(prev.map((p) => p.id.toString()));
+          const newPosts = reversed.filter(
+            (p) => !prevIds.has(p.id.toString()),
+          );
+          if (newPosts.length === 0) return prev;
+          return [...prev, ...newPosts];
+        });
+      } catch {
+        // silent — polling failure shouldn't flash errors
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [actor, actorFetching, isLoadingInitial]);
+
+  // ── Scroll handling ──────────────────────────────────────────────────────
+
+  const scrollToBottom = useCallback((smooth = false) => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: smooth ? "smooth" : "instant",
+    });
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const atBottom = distFromBottom < 100;
+    setIsAtBottom(atBottom);
+    wasAtBottomRef.current = atBottom;
+    setShowJumpToLatest(!atBottom);
+
+    // Load older messages when near top
+    if (
+      el.scrollTop < 200 &&
+      hasMore &&
+      !isLoadingOlder &&
+      !prependingRef.current
+    ) {
+      loadOlderMessages();
+    }
+  }, [hasMore, isLoadingOlder]);
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!actor || isLoadingOlder || !hasMore) return;
+    setIsLoadingOlder(true);
+
+    // Remember scroll position before prepend
+    const el = scrollContainerRef.current;
+    const prevScrollHeight = el?.scrollHeight ?? 0;
+
+    await fetchPage(offset, true);
+
+    setIsLoadingOlder(false);
+
+    // Restore scroll position after DOM updates
+    requestAnimationFrame(() => {
+      if (el) {
+        el.scrollTop = el.scrollHeight - prevScrollHeight;
+        prependingRef.current = false;
+      }
+    });
+  }, [actor, isLoadingOlder, hasMore, offset, fetchPage]);
+
+  // Scroll to bottom on initial load
+  useEffect(() => {
+    if (
+      !isLoadingInitial &&
+      posts.length > 0 &&
+      !initialScrollDoneRef.current
+    ) {
+      initialScrollDoneRef.current = true;
+      requestAnimationFrame(() => scrollToBottom(false));
+    }
+  }, [isLoadingInitial, posts.length, scrollToBottom]);
+
+  // Auto-scroll when new messages arrive (only if was at bottom)
+  const prevPostsLengthRef = useRef(0);
+  useEffect(() => {
+    const grew = posts.length > prevPostsLengthRef.current;
+    prevPostsLengthRef.current = posts.length;
+    if (
+      grew &&
+      wasAtBottomRef.current &&
+      initialScrollDoneRef.current &&
+      !prependingRef.current
+    ) {
+      requestAnimationFrame(() => scrollToBottom(false));
+    }
+  }, [posts.length, scrollToBottom]);
+
+  // ── Image handling ───────────────────────────────────────────────────────
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const validation = validateImageFile(file);
     if (!validation.valid) {
       toast.error(validation.error);
       return;
     }
-
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
+    setPreviewUrl(URL.createObjectURL(file));
     setSelectedImage(file);
   };
 
@@ -46,20 +230,19 @@ export default function ChatPanel() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // ── Send ─────────────────────────────────────────────────────────────────
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!message.trim() && !selectedImage) || isPending) return;
 
     try {
       let imageBlob: ExternalBlob | null = null;
-
       if (selectedImage) {
         const bytes = await fileToUint8Array(selectedImage);
         imageBlob = ExternalBlob.fromBytes(
           bytes as Uint8Array<ArrayBuffer>,
-        ).withUploadProgress((percentage) => {
-          setUploadProgress(percentage);
-        });
+        ).withUploadProgress((pct) => setUploadProgress(pct));
       }
 
       createPost(
@@ -70,48 +253,115 @@ export default function ChatPanel() {
             handleClearImage();
             setUploadProgress(0);
             toast.success("Message sent");
+            // Ensure we scroll to bottom after sending
+            wasAtBottomRef.current = true;
           },
-          onError: (error: any) => {
-            toast.error(error?.message || "Failed to send message");
+          onError: (err: any) => {
+            toast.error(err?.message || "Failed to send message");
             setUploadProgress(0);
           },
         },
       );
-    } catch (error: any) {
-      toast.error(error?.message || "Failed to prepare image");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to prepare image");
       setUploadProgress(0);
     }
   };
 
+  // ── Build thread tree from top-level posts only ──────────────────────────
+  // All posts (including replies) are stored flat in state; buildThreadTree
+  // groups them into a nested structure.
   const threadTree = buildThreadTree(posts);
+
+  // ── Date separators ──────────────────────────────────────────────────────
+  // We need to inject date separators between thread roots that cross a day
+  // boundary. We'll track dates per top-level post.
+  const topLevelPosts = posts.filter((p) => !p.parentId);
+
+  // ── Render ───────────────────────────────────────────────────────────────
 
   return (
     <Card className="flex flex-col h-full overflow-hidden">
-      <CardHeader className="flex-shrink-0">
+      <CardHeader className="flex-shrink-0 pb-2">
         <CardTitle>Group Chat</CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col min-h-0 space-y-4 overflow-hidden">
-        <ScrollArea className="flex-1 min-h-0 pr-4">
-          <div className="space-y-4">
-            {isLoading ? (
-              <InlineLoading message="Loading messages..." size="sm" />
-            ) : error ? (
-              <ErrorState
-                message="Failed to load messages. Please try again."
-                onRetry={() => refetch()}
-              />
-            ) : posts.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                No messages yet. Start the conversation!
-              </p>
-            ) : (
-              <ThreadedPostTree nodes={threadTree} />
-            )}
-          </div>
-        </ScrollArea>
 
+      <CardContent className="flex-1 flex flex-col min-h-0 space-y-3 overflow-hidden px-3 pb-3">
+        {/* ── Message list ─────────────────────────────────────────────── */}
+        <div className="relative flex-1 min-h-0">
+          <div
+            ref={scrollContainerRef}
+            className="h-full overflow-y-auto pr-1"
+            onScroll={handleScroll}
+          >
+            {/* Load-older indicator */}
+            {isLoadingOlder && (
+              <div className="flex justify-center py-3">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            )}
+
+            {/* Load-older button (when near top but hasMore) */}
+            {!isLoadingOlder && hasMore && posts.length > 0 && (
+              <div className="flex justify-center py-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground h-7"
+                  onClick={loadOlderMessages}
+                  data-ocid="chat.load_older.button"
+                >
+                  Load older messages
+                </Button>
+              </div>
+            )}
+
+            <div className="space-y-4 pb-2">
+              {isLoadingInitial ? (
+                <InlineLoading message="Loading messages..." size="sm" />
+              ) : loadError ? (
+                <ErrorState
+                  message={loadError}
+                  onRetry={() => {
+                    setLoadError(null);
+                    setIsLoadingInitial(true);
+                    fetchPage(0n, false).finally(() =>
+                      setIsLoadingInitial(false),
+                    );
+                  }}
+                />
+              ) : posts.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8 text-sm">
+                  No messages yet. Start the conversation!
+                </p>
+              ) : (
+                /* Render thread tree with date separators between top-level nodes */
+                renderTreeWithDateSeparators(threadTree, topLevelPosts)
+              )}
+            </div>
+          </div>
+
+          {/* Jump to Latest button */}
+          {showJumpToLatest && (
+            <div className="absolute bottom-2 left-0 right-0 flex justify-center pointer-events-none">
+              <Button
+                size="sm"
+                className="pointer-events-auto shadow-lg gap-1.5 text-xs h-8 px-3"
+                onClick={() => {
+                  scrollToBottom(true);
+                  setShowJumpToLatest(false);
+                }}
+                data-ocid="chat.jump_to_latest.button"
+              >
+                <ArrowDown className="h-3.5 w-3.5" />
+                Jump to Latest
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* ── Compose form ─────────────────────────────────────────────── */}
         <form onSubmit={handleSend} className="flex-shrink-0 space-y-2">
-          {/* Image preview — shown above input row when a file is selected */}
           {previewUrl && selectedImage && (
             <div className="relative inline-block max-w-full">
               <img
@@ -138,7 +388,6 @@ export default function ChatPanel() {
             </div>
           )}
 
-          {/* Hidden file input */}
           <input
             ref={fileInputRef}
             type="file"
@@ -147,7 +396,7 @@ export default function ChatPanel() {
             className="hidden"
           />
 
-          {/* Input row: [text input] [paperclip] [send] */}
+          {/* Input row: [text] [paperclip] [send] */}
           <div className="flex gap-2 min-w-0 items-center">
             <Input
               value={message}
@@ -181,5 +430,57 @@ export default function ChatPanel() {
         </form>
       </CardContent>
     </Card>
+  );
+}
+
+// ─── Helper: render thread nodes with date separators ───────────────────────
+
+function renderTreeWithDateSeparators(
+  nodes: ReturnType<typeof buildThreadTree>,
+  topLevelPosts: Post[],
+) {
+  if (nodes.length === 0) return null;
+
+  // Map postId → date key for quick lookup
+  const postDateMap = new Map<string, string>();
+  for (const p of topLevelPosts) {
+    postDateMap.set(p.id.toString(), getDateKey(p.timestamp));
+  }
+
+  const elements: React.ReactNode[] = [];
+  let lastDateKey: string | null = null;
+
+  for (const node of nodes) {
+    const dateKey = postDateMap.get(node.post.id.toString());
+    if (dateKey && dateKey !== lastDateKey) {
+      lastDateKey = dateKey;
+      elements.push(
+        <DateSeparator
+          key={`sep-${dateKey}`}
+          label={getDateLabel(node.post.timestamp)}
+        />,
+      );
+    }
+    elements.push(
+      <ThreadedPostTree
+        key={node.post.id.toString()}
+        nodes={[node]}
+        depth={0}
+      />,
+    );
+  }
+
+  return <>{elements}</>;
+}
+
+function DateSeparator({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 my-3">
+      <div className="flex-1 h-px bg-border/50" />
+      <span className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted/40 border border-border/30 whitespace-nowrap">
+        {label}
+      </span>
+      <div className="flex-1 h-px bg-border/50" />
+    </div>
   );
 }
