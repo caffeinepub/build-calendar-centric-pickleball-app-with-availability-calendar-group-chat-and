@@ -1,5 +1,5 @@
 import type { Principal } from "@dfinity/principal";
-import { Award, Shield, Trash2 } from "lucide-react";
+import { Award, Clock, Loader2, Shield, Trash2, Trophy } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import AdminBadgeAwardPanel from "../components/admin/AdminBadgeAwardPanel";
@@ -35,13 +35,28 @@ import {
 } from "../components/ui/table";
 import { useIsCallerAdmin } from "../hooks/useCurrentUserRole";
 import {
+  useCreateBadgeDefinition,
   useDeleteUser,
   useDeleteUserDayAvailability,
+  useFinalizeCurrentSeason,
   useGetAllAvailabilities,
+  useGetAllBadgeDefinitions,
   useGetAllLoginTimestamps,
   useGetAllRegisteredUsers,
+  useGetCurrentSeasonLeaderboard,
 } from "../hooks/useQueries";
 import { formatDateTime, formatDayId } from "../lib/date";
+
+/** Returns days remaining until Dec 31 of current year */
+function getDaysRemainingInSeason(): number {
+  const today = new Date();
+  const yearEnd = new Date(today.getFullYear(), 11, 31);
+  const msPerDay = 1000 * 60 * 60 * 24;
+  return Math.max(
+    0,
+    Math.ceil((yearEnd.getTime() - today.getTime()) / msPerDay),
+  );
+}
 
 export default function AdminPage() {
   const { data: isAdmin, isLoading: isAdminLoading } = useIsCallerAdmin();
@@ -50,14 +65,25 @@ export default function AdminPage() {
   const { data: availabilities = [], isLoading: availabilitiesLoading } =
     useGetAllAvailabilities();
   const { data: loginTimestamps } = useGetAllLoginTimestamps();
+  const { data: badgeDefinitions = [] } = useGetAllBadgeDefinitions();
+  const { data: currentSeasonLeaderboard = [] } =
+    useGetCurrentSeasonLeaderboard();
   const deleteUserMutation = useDeleteUser();
   const deleteAvailabilityMutation = useDeleteUserDayAvailability();
+  const { mutate: finalizeSeasonMutate, isPending: isFinalizingSeason } =
+    useFinalizeCurrentSeason();
+  const { mutateAsync: createBadgeDefinition, isPending: isCreatingBadge } =
+    useCreateBadgeDefinition();
 
   const [userToDelete, setUserToDelete] = useState<Principal | null>(null);
   const [availabilityToDelete, setAvailabilityToDelete] = useState<{
     user: Principal;
     day: bigint;
   } | null>(null);
+  const [finalizeDialogOpen, setFinalizeDialogOpen] = useState(false);
+
+  const currentYear = new Date().getFullYear();
+  const daysRemaining = getDaysRemainingInSeason();
 
   if (isAdminLoading) {
     return (
@@ -92,6 +118,39 @@ export default function AdminPage() {
       setAvailabilityToDelete(null);
     } catch (error: any) {
       toast.error(error.message || "Failed to delete availability");
+    }
+  };
+
+  const handleConfirmFinalizeSeason = async () => {
+    try {
+      // Ensure Season Champion badge exists before finalizing
+      const hasSeasonChampionBadge = badgeDefinitions.some(
+        (b) => b.id === "season-champion",
+      );
+      if (!hasSeasonChampionBadge) {
+        await createBadgeDefinition({
+          id: "season-champion",
+          name: "Season Champion [Legendary]",
+          description:
+            "Awarded to the player who finishes #1 on the leaderboard at the end of a season. The highest honor in Somers Scheduler.",
+          criteria: {
+            __kind__: "topLeaderboardPosition",
+            topLeaderboardPosition: 1n,
+          },
+        });
+      }
+
+      finalizeSeasonMutate(BigInt(currentYear), {
+        onSuccess: () => {
+          setFinalizeDialogOpen(false);
+          toast.success("Season finalized! Season Champion badge awarded.");
+        },
+        onError: (err: any) => {
+          toast.error(err?.message || "Failed to finalize season");
+        },
+      });
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to create Season Champion badge");
     }
   };
 
@@ -248,6 +307,106 @@ export default function AdminPage() {
           <AdminBadgeAwardPanel />
         </CardContent>
       </Card>
+
+      {/* Finalize Season */}
+      <Card className="border-amber-500/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-amber-500" />
+            Finalize Season
+          </CardTitle>
+          <CardDescription>
+            Lock the current season, award the Season Champion badge, and reset
+            all scores.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4 flex-shrink-0" />
+            <span>
+              Days remaining in{" "}
+              <span className="font-semibold text-foreground">
+                {currentYear}
+              </span>{" "}
+              season:{" "}
+              <span className="text-primary font-medium">
+                {daysRemaining} days
+              </span>
+            </span>
+          </div>
+          <div className="text-sm text-muted-foreground bg-amber-500/5 border border-amber-500/20 rounded-md px-3 py-2.5 space-y-1">
+            <p className="font-medium text-foreground text-xs">
+              ⚠️ This action cannot be undone
+            </p>
+            <p className="text-xs">
+              Finalizing will snapshot the current {currentYear} season, award
+              the Season Champion badge to the #1 player (
+              {currentSeasonLeaderboard.length > 0
+                ? `currently #1 has ${Number(currentSeasonLeaderboard[0]?.[1]?.wins ?? 0)} wins`
+                : "no players yet"}
+              ), and reset all season scores to 0-0.
+            </p>
+          </div>
+          <Button
+            onClick={() => setFinalizeDialogOpen(true)}
+            disabled={isFinalizingSeason || isCreatingBadge}
+            className="bg-amber-600 hover:bg-amber-700 text-white"
+            data-ocid="admin.finalize_season.button"
+          >
+            {isFinalizingSeason || isCreatingBadge ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Finalizing...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Trophy className="h-4 w-4" />
+                Finalize {currentYear} Season
+              </span>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Finalize Season confirmation dialog */}
+      <AlertDialog
+        open={finalizeDialogOpen}
+        onOpenChange={setFinalizeDialogOpen}
+      >
+        <AlertDialogContent data-ocid="admin.finalize_season.dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finalize {currentYear} Season?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure? This will lock the {currentYear} season and reset
+              all scores. The Season Champion badge will be awarded to the #1
+              player. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              data-ocid="admin.finalize_season.cancel_button"
+              disabled={isFinalizingSeason || isCreatingBadge}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmFinalizeSeason}
+              disabled={isFinalizingSeason || isCreatingBadge}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              data-ocid="admin.finalize_season.confirm_button"
+            >
+              {isFinalizingSeason || isCreatingBadge ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Finalizing...
+                </span>
+              ) : (
+                "Yes, Finalize Season"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={!!userToDelete}

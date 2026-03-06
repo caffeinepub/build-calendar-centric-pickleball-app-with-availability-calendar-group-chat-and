@@ -453,6 +453,7 @@ export function useRecordDailyWin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["callerMatchHistory"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["callerStats"] });
       queryClient.invalidateQueries({ queryKey: ["userBadges"] });
     },
@@ -471,6 +472,7 @@ export function useRecordDailyLoss() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["callerMatchHistory"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["callerStats"] });
       queryClient.invalidateQueries({ queryKey: ["userBadges"] });
     },
@@ -506,6 +508,7 @@ export function useRemoveDailyWin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["callerMatchHistory"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["callerStats"] });
     },
   });
@@ -523,6 +526,7 @@ export function useRemoveDailyLoss() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["callerMatchHistory"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["callerStats"] });
     },
   });

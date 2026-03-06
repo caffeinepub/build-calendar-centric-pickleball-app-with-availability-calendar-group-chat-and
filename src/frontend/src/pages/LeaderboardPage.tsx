@@ -53,10 +53,8 @@ import {
   TabsTrigger,
 } from "../components/ui/tabs";
 import AvatarName from "../components/user/AvatarName";
-import { useIsCallerAdmin } from "../hooks/useCurrentUserRole";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
-  useFinalizeCurrentSeason,
   useGetCallerAvailableDays,
   useGetCallerMatchHistory,
   useGetCurrentSeasonLeaderboard,
@@ -276,15 +274,12 @@ export default function LeaderboardPage() {
   } = useGetCurrentSeasonLeaderboard();
   const { data: pastSeasonSnapshots = [], isLoading: isLoadingPastSeasons } =
     useGetPastSeasonSnapshots();
-  const { mutate: finalizeSeasonMutate, isPending: isFinalizingSeason } =
-    useFinalizeCurrentSeason();
 
   const principals = leaderboard.map(([principal]) => principal);
   const { data: userDirectory, isLoading: isLoadingDirectory } =
     useUserDirectoryWithAvatars(principals);
 
   const { identity } = useInternetIdentity();
-  const { data: isAdmin } = useIsCallerAdmin();
   const { isLoading: isLoadingDays, isFetched: isDaysFetched } =
     useGetCallerAvailableDays();
   const { data: matchHistory = [] } = useGetCallerMatchHistory();
@@ -475,15 +470,6 @@ export default function LeaderboardPage() {
   const handlePlayerClick = (principal: Principal) => {
     setSelectedPlayerPrincipal(principal);
     setModalOpen(true);
-  };
-
-  const handleFinalizeSeason = () => {
-    finalizeSeasonMutate(BigInt(currentYear), {
-      onSuccess: () =>
-        toast.success(`${currentYear} season finalized and scores reset!`),
-      onError: (err: any) =>
-        toast.error(err?.message || "Failed to finalize season"),
-    });
   };
 
   const selectedDayLog = selectedDay
@@ -714,35 +700,12 @@ export default function LeaderboardPage() {
         <TabsContent value="current-season">
           <Card>
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <CardTitle className="text-base">
-                    {currentYear} Season Rankings
-                  </CardTitle>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Tap a player to view their profile
-                  </p>
-                </div>
-                {isAdmin && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleFinalizeSeason}
-                    disabled={isFinalizingSeason}
-                    className="flex-shrink-0 text-xs"
-                    data-ocid="leaderboard.season_finalize.button"
-                  >
-                    {isFinalizingSeason ? (
-                      <span className="flex items-center gap-1">
-                        <span className="h-3 w-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        Finalizing...
-                      </span>
-                    ) : (
-                      "Finalize Season"
-                    )}
-                  </Button>
-                )}
-              </div>
+              <CardTitle className="text-base">
+                {currentYear} Season Rankings
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Tap a player to view their profile
+              </p>
             </CardHeader>
             <CardContent className="p-0">
               <LeaderboardTable

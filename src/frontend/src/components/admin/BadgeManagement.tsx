@@ -519,6 +519,8 @@ export default function BadgeManagement() {
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
+  const hasSeasonChampionBadge = badges.some((b) => b.id === "season-champion");
+
   return (
     <div className="space-y-4">
       {/* Header row */}
@@ -533,6 +535,21 @@ export default function BadgeManagement() {
           </Button>
         )}
       </div>
+
+      {/* Season Champion auto-create note */}
+      {!hasSeasonChampionBadge && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-xs text-muted-foreground">
+          <Trophy className="h-3.5 w-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <span>
+            The{" "}
+            <span className="font-medium text-foreground">
+              Season Champion [Legendary]
+            </span>{" "}
+            badge is auto-created when you finalize a season in the Finalize
+            Season section below.
+          </span>
+        </div>
+      )}
 
       {/* Inline form */}
       {showForm && (
