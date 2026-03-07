@@ -1,4 +1,4 @@
-import type { Principal } from "@dfinity/principal";
+import { Principal } from "@dfinity/principal";
 import {
   Calendar,
   ChevronDown,
@@ -264,6 +264,53 @@ function LeaderboardTable({
   );
 }
 
+// ─── All-Time cache helpers (module-level, stable references) ─────────────────
+
+const ALL_TIME_CACHE_KEY = "all_time_leaderboard_cache";
+
+interface AllTimeCacheEntry {
+  principal: string;
+  wins: number;
+  losses: number;
+  totalGames: number;
+  streak: number;
+  bestStreak: number;
+}
+
+function readAllTimeCache(): AllTimeCacheEntry[] {
+  try {
+    const raw = localStorage.getItem(ALL_TIME_CACHE_KEY);
+    if (raw) return JSON.parse(raw) as AllTimeCacheEntry[];
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+function computeScore(wins: number, totalGames: number): number {
+  return (wins * 100 + 500) / (totalGames + 10);
+}
+
+function cacheToLeaderboard(
+  cache: AllTimeCacheEntry[],
+): Array<[Principal, UserStats]> {
+  return cache
+    .sort(
+      (a, b) =>
+        computeScore(b.wins, b.totalGames) - computeScore(a.wins, a.totalGames),
+    )
+    .map((entry) => [
+      Principal.fromText(entry.principal),
+      {
+        wins: BigInt(entry.wins),
+        losses: BigInt(entry.losses),
+        totalGames: BigInt(entry.totalGames),
+        streak: BigInt(entry.streak),
+        bestStreak: BigInt(entry.bestStreak),
+      } as UserStats,
+    ]);
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function LeaderboardPage() {
@@ -313,6 +360,57 @@ export default function LeaderboardPage() {
 
   // Rank change tracking via localStorage snapshot
   const RANK_SNAPSHOT_KEY = "leaderboard_rank_snapshot";
+
+  // ─── All-Time cache (localStorage, never decreases) ─────────────────────────
+
+  /** Initialise state from localStorage so the All-Time tab is populated instantly */
+  const [allTimeLeaderboard, setAllTimeLeaderboard] = useState<
+    Array<[Principal, UserStats]>
+  >(() => cacheToLeaderboard(readAllTimeCache()));
+
+  /** Merge fresh leaderboard data into the all-time cache using max strategy */
+  useEffect(() => {
+    if (!leaderboard || leaderboard.length === 0) return;
+
+    const cache = readAllTimeCache();
+    const cacheMap = new Map<string, AllTimeCacheEntry>(
+      cache.map((e) => [e.principal, e]),
+    );
+
+    for (const [principal, stats] of leaderboard) {
+      const key = principal.toString();
+      const existing = cacheMap.get(key);
+      if (existing) {
+        cacheMap.set(key, {
+          principal: key,
+          wins: Math.max(existing.wins, Number(stats.wins)),
+          losses: Math.max(existing.losses, Number(stats.losses)),
+          totalGames: Math.max(existing.totalGames, Number(stats.totalGames)),
+          streak: Math.max(existing.streak, Number(stats.streak)),
+          bestStreak: Math.max(existing.bestStreak, Number(stats.bestStreak)),
+        });
+      } else {
+        cacheMap.set(key, {
+          principal: key,
+          wins: Number(stats.wins),
+          losses: Number(stats.losses),
+          totalGames: Number(stats.totalGames),
+          streak: Number(stats.streak),
+          bestStreak: Number(stats.bestStreak),
+        });
+      }
+    }
+
+    const merged = Array.from(cacheMap.values());
+
+    try {
+      localStorage.setItem(ALL_TIME_CACHE_KEY, JSON.stringify(merged));
+    } catch {
+      // ignore
+    }
+
+    setAllTimeLeaderboard(cacheToLeaderboard(merged));
+  }, [leaderboard]);
 
   // Sort match history in descending order (newest first) for the dropdown
   const sortedMatchHistory = [...matchHistory].sort((a, b) =>
@@ -728,8 +826,8 @@ export default function LeaderboardPage() {
             </CardHeader>
             <CardContent className="p-0">
               <LeaderboardTable
-                leaderboard={leaderboard}
-                isLoading={isLoading}
+                leaderboard={allTimeLeaderboard}
+                isLoading={isLoading && allTimeLeaderboard.length === 0}
                 {...sharedTableProps}
               />
             </CardContent>
