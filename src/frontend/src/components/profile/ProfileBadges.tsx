@@ -15,7 +15,8 @@ import {
   Trophy,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import type { BadgeCriteria, DayWithLog } from "../../backend";
 import type { T as UserStats } from "../../backend";
 import {
@@ -94,6 +95,28 @@ export default function ProfileBadges({
     useGetAllBadgeDefinitions();
   const { data: earnedBadgeIds = [], isLoading: isLoadingBadges } =
     useGetUserBadges(userPrincipal);
+
+  // Track previously seen badge IDs to detect newly earned badges
+  const prevEarnedIdsRef = useRef<Set<string> | null>(null);
+
+  useEffect(() => {
+    if (isLoadingBadges || isLoadingDefs) return;
+    const currentSet = new Set(earnedBadgeIds);
+    if (prevEarnedIdsRef.current === null) {
+      // First load — just snapshot, no toast
+      prevEarnedIdsRef.current = currentSet;
+      return;
+    }
+    // Find newly earned badges
+    for (const id of currentSet) {
+      if (!prevEarnedIdsRef.current.has(id)) {
+        const def = allDefinitions.find((d) => d.id === id);
+        const badgeName = def?.name ?? id;
+        toast.success(`You earned the ${badgeName} badge!`);
+      }
+    }
+    prevEarnedIdsRef.current = currentSet;
+  }, [earnedBadgeIds, allDefinitions, isLoadingBadges, isLoadingDefs]);
 
   // Compute derived data before any early returns so hooks always run in order
   const earnedSet = new Set(earnedBadgeIds);

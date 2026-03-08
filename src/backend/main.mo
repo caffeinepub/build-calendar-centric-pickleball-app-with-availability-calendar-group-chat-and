@@ -15,6 +15,7 @@ import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import Set "mo:core/Set";
 import Migration "migration";
+import Option "mo:core/Option";
 
 (with migration = Migration.run)
 actor {
@@ -121,6 +122,35 @@ actor {
 
   public type AllTimeStats = { wins : Nat; losses : Nat; totalGames : Nat; bestStreakEver : Int };
 
+  type NotificationCategory = {
+    #mention;
+    #reply;
+    #badgeUnlock;
+    #rankChange;
+    #availabilityOverlap;
+  };
+
+  type Notification = {
+    id : Int;
+    recipient : Principal;
+    category : NotificationCategory;
+    message : Text;
+    timestamp : Int;
+    read : Bool;
+    relatedPostId : ?Int;
+    badgeId : ?Text;
+    oldRank : ?Nat;
+    newRank : ?Nat;
+  };
+
+  public type NotificationView = {
+    id : Int;
+    category : NotificationCategory;
+    message : Text;
+    timestamp : Int;
+    read : Bool;
+  };
+
   var loginRecords : Map.Map<Principal, Int> = Map.empty<Principal, Int>();
   let userProfiles = Map.empty<Principal, UserEntry>();
   let userStats = Map.empty<Principal, UserStats.T>();
@@ -133,6 +163,10 @@ actor {
   let seasonSnapshots = Map.empty<Nat, SeasonSnapshot>();
   var messageCounter : Int = 0;
   let allTimeStats = Map.empty<Principal, AllTimeStats>();
+
+  var notificationCounter : Int = 0;
+  var notifications : Map.Map<(Principal, Int), Notification> = Map.empty<(Principal, Int), Notification>();
+  var rankSnapshot : Map.Map<Principal, Nat> = Map.empty<Principal, Nat>();
 
   public query ({ caller }) func getAllTimeLeaderboard() : async [(Principal, AllTimeStats)] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
@@ -244,6 +278,15 @@ actor {
         if (not userAwards.contains(badge.id)) {
           userAwards.add(badge.id);
           badgeAwards.add(user, userAwards);
+          createNotification(
+            user,
+            #badgeUnlock,
+            "Congrats! You earned the " # badge.name # " badge!",
+            null,
+            ?badge.id,
+            null,
+            null,
+          );
         };
       };
     };
@@ -589,7 +632,7 @@ actor {
     userStats.add(user, stats);
     evaluateAndAwardBadges(user, stats);
 
-    // Update all-time stats — recompute from dailyLogs, never reset
+    // Update all-time stats - recompute from dailyLogs, never reset
     ensureAllTimeStatsInitialized(user);
     let existingAllTime = switch (allTimeStats.get(user)) {
       case (null) { { wins = 0; losses = 0; totalGames = 0; bestStreakEver = 0 } };
@@ -607,6 +650,7 @@ actor {
         bestStreakEver = newBestStreakEver;
       },
     );
+    updateRankSnapshots();
   };
 
   func calculateStreak(user : Principal) : Int {
@@ -662,6 +706,19 @@ actor {
     ensureUserStatsInitialized(caller);
     let availability : Availability = { time; notes };
     availabilities.add((caller, day), availability);
+    let count = availabilities.entries().toArray().filter(
+      func(((p, availDay), _)) {
+        availDay == day and p != caller;
+      }
+    ).size();
+    if (count > 0) {
+      createNotification(
+        caller,
+        #availabilityOverlap,
+        "Awesome! " # count.toText() # " others are available on this day.",
+        null, null, null, null,
+      );
+    };
   };
 
   public query ({ caller }) func getDayAvailability(day : Int) : async [(Principal, Availability)] {
@@ -716,6 +773,26 @@ actor {
     };
     posts.add(messageCounter, post);
     messageCounter += 1;
+    switch (parentId) {
+      case (null) { () };
+      case (?parentId) {
+        let parent = switch (posts.get(parentId)) {
+          case (null) { return messageCounter - 1 };
+          case (?p) { p };
+        };
+        if (parent.author != caller) {
+          createNotification(
+            parent.author,
+            #reply,
+            "Your post received a new reply!",
+            ?parentId,
+            null,
+            null,
+            null,
+          );
+        };
+      };
+    };
     post.id;
   };
 
@@ -944,5 +1021,114 @@ actor {
       };
     };
     count;
+  };
+
+  func createNotification(
+    recipient : Principal,
+    category : NotificationCategory,
+    message : Text,
+    relatedPostId : ?Int,
+    badgeId : ?Text,
+    oldRank : ?Nat,
+    newRank : ?Nat,
+  ) {
+    let notification : Notification = {
+      id = notificationCounter;
+      recipient;
+      category;
+      message;
+      timestamp = Time.now();
+      read = false;
+      relatedPostId;
+      badgeId;
+      oldRank;
+      newRank;
+    };
+    notifications.add((recipient, notificationCounter), notification);
+    notificationCounter += 1;
+  };
+
+  public query ({ caller }) func getMyNotifications() : async [Notification] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view notifications");
+    };
+    let callerNotifications = List.empty<Notification>();
+    for (((recipient, _), notification) in notifications.entries()) {
+      if (recipient == caller) { callerNotifications.add(notification) };
+    };
+    let notificationsArray = callerNotifications.toArray();
+    notificationsArray.sort(
+      func(a, b) {
+        Int.compare(b.timestamp, a.timestamp);
+      }
+    );
+  };
+
+  public query ({ caller }) func getUnreadNotificationCount() : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can get unread count");
+    };
+    var count = 0;
+    for (((recipient, _), notification) in notifications.entries()) {
+      if (recipient == caller and not notification.read) { count += 1 };
+    };
+    count;
+  };
+
+  public shared ({ caller }) func markNotificationRead(notifId : Int) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can mark read");
+    };
+    switch (notifications.get((caller, notifId))) {
+      case (null) { Runtime.trap("Notification not found") };
+      case (?n) {
+        let updatedNotification = { n with read = true };
+        notifications.add((caller, notifId), updatedNotification);
+      };
+    };
+  };
+
+  public shared ({ caller }) func markAllNotificationsRead() : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can mark all read");
+    };
+    for (((recipient, notifId), notification) in notifications.entries()) {
+      if (recipient == caller and not notification.read) {
+        let updatedNotification = { notification with read = true };
+        notifications.add((recipient, notifId), updatedNotification);
+      };
+    };
+  };
+
+  func updateRankSnapshots() {
+    let sortedLeaderboard = userStats.entries().toArray().sort(
+      func(a, b) {
+        Int.compare(
+          calculateScore(b.1.wins, b.1.losses),
+          calculateScore(a.1.wins, a.1.losses),
+        );
+      }
+    );
+    for (i in Nat.range(0, sortedLeaderboard.size())) {
+      let entry = sortedLeaderboard[i];
+      let rank = i + 1 : Nat;
+      switch (rankSnapshot.get(entry.0)) {
+        case (null) {};
+        case (?currentRank) {
+          if (currentRank != rank) {
+            createNotification(
+              entry.0,
+              #rankChange,
+              "Your leaderboard rank changed from " # currentRank.toText() # " to " # rank.toText(),
+              null,
+              null,
+              ?currentRank,
+              ?rank,
+            );
+          };
+        };
+      };
+      rankSnapshot.add(entry.0, rank);
+    };
   };
 };

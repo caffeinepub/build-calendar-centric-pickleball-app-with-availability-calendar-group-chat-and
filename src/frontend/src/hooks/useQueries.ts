@@ -6,6 +6,7 @@ import type {
   BadgeDefinition,
   DayAvailabilityCount,
   DayWithLog,
+  Notification,
   Post,
   ReactionType,
   UserProfile,
@@ -719,6 +720,68 @@ export function useFinalizeCurrentSeason() {
       queryClient.invalidateQueries({ queryKey: ["pastSeasonSnapshots"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
+    },
+  });
+}
+
+// ─── Notification queries ──────────────────────────────────────────────────────
+
+export function useGetMyNotifications() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Notification[]>({
+    queryKey: ["myNotifications"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getMyNotifications();
+    },
+    enabled: !!actor && !isFetching,
+    refetchInterval: 30000,
+  });
+}
+
+export function useGetUnreadNotificationCount() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<bigint>({
+    queryKey: ["unreadNotificationCount"],
+    queryFn: async () => {
+      if (!actor) return 0n;
+      return actor.getUnreadNotificationCount();
+    },
+    enabled: !!actor && !isFetching,
+    refetchInterval: 30000,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (notifId: bigint) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.markNotificationRead(notifId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myNotifications"] });
+      queryClient.invalidateQueries({ queryKey: ["unreadNotificationCount"] });
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.markAllNotificationsRead();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myNotifications"] });
+      queryClient.invalidateQueries({ queryKey: ["unreadNotificationCount"] });
     },
   });
 }

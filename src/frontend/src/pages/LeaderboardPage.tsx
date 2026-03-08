@@ -13,8 +13,8 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { DayWithLog } from "../backend";
+import { NotificationCategory } from "../backend";
 import type { T as UserStats } from "../backend";
-import { InlineLoading } from "../components/common/LoadingState";
 import { Page, PageHeader } from "../components/layout/PageLayout";
 import PlayerProfileModal from "../components/leaderboard/PlayerProfileModal";
 import { Alert, AlertDescription } from "../components/ui/alert";
@@ -38,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
+import { Skeleton } from "../components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -60,7 +61,9 @@ import {
   useGetCallerMatchHistory,
   useGetCurrentSeasonLeaderboard,
   useGetLeaderboard,
+  useGetMyNotifications,
   useGetPastSeasonSnapshots,
+  useMarkNotificationRead,
   useRecordDailyLoss,
   useRecordDailyWin,
   useRemoveDailyLoss,
@@ -157,9 +160,49 @@ function LeaderboardTable({
 
   if (isLoading || isLoadingDirectory) {
     return (
-      <div className="p-4">
-        <InlineLoading message="Loading leaderboard..." />
-      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-14">Rank</TableHead>
+            <TableHead>Player</TableHead>
+            <TableHead className="text-right">W</TableHead>
+            <TableHead className="text-right">L</TableHead>
+            <TableHead className="text-right">GP</TableHead>
+            <TableHead className="text-right">Win%</TableHead>
+            <TableHead className="text-right">Streak</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <TableRow key={i} data-ocid="leaderboard.loading_state">
+              <TableCell>
+                <Skeleton className="h-5 w-10 rounded-full" />
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-6 w-6 rounded-full flex-shrink-0" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              </TableCell>
+              <TableCell className="text-right">
+                <Skeleton className="h-4 w-6 ml-auto" />
+              </TableCell>
+              <TableCell className="text-right">
+                <Skeleton className="h-4 w-6 ml-auto" />
+              </TableCell>
+              <TableCell className="text-right">
+                <Skeleton className="h-4 w-6 ml-auto" />
+              </TableCell>
+              <TableCell className="text-right">
+                <Skeleton className="h-4 w-8 ml-auto" />
+              </TableCell>
+              <TableCell className="text-right">
+                <Skeleton className="h-4 w-6 ml-auto" />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     );
   }
 
@@ -310,12 +353,10 @@ export default function LeaderboardPage() {
   const currentYear = new Date().getFullYear();
   const daysRemaining = getDaysRemainingInSeason();
 
-  // Track rank changes for toast notifications
-  const previousRankRef = useRef<number | null>(null);
-  const isInitialLoadRef = useRef(true);
-
-  // Rank change tracking via localStorage snapshot
-  const RANK_SNAPSHOT_KEY = "leaderboard_rank_snapshot";
+  // Notification-based rank change toasts
+  const { data: notifications = [] } = useGetMyNotifications();
+  const { mutate: markNotifRead } = useMarkNotificationRead();
+  const shownNotifIdsRef = useRef<Set<string>>(new Set());
 
   // Map AllTimeStats to UserStats shape for the leaderboard table.
   // bestStreakEver is placed in both streak and bestStreak so the Streak column
@@ -337,73 +378,61 @@ export default function LeaderboardPage() {
     a.day > b.day ? -1 : a.day < b.day ? 1 : 0,
   );
 
-  // Detect rank improvements
+  // Notification-based rank change toasts
   useEffect(() => {
-    if (!callerPrincipal || leaderboard.length === 0) return;
-
-    const currentRank = leaderboard.findIndex(
-      ([principal]) => principal.toString() === callerPrincipal,
+    if (notifications.length === 0) return;
+    const rankNotifs = notifications.filter(
+      (n) => n.category === NotificationCategory.rankChange,
     );
-
-    if (currentRank === -1) return;
-
-    const currentRankNumber = currentRank + 1;
-
-    if (isInitialLoadRef.current) {
-      previousRankRef.current = currentRankNumber;
-      isInitialLoadRef.current = false;
-    } else if (
-      previousRankRef.current !== null &&
-      currentRankNumber < previousRankRef.current
-    ) {
-      toast.success(`You moved up to #${currentRankNumber}!`);
-      previousRankRef.current = currentRankNumber;
-    } else if (
-      previousRankRef.current !== null &&
-      currentRankNumber !== previousRankRef.current
-    ) {
-      previousRankRef.current = currentRankNumber;
+    for (const notif of rankNotifs) {
+      const idStr = notif.id.toString();
+      if (shownNotifIdsRef.current.has(idStr)) continue;
+      shownNotifIdsRef.current.add(idStr);
+      if (
+        notif.newRank !== undefined &&
+        notif.oldRank !== undefined &&
+        notif.newRank < notif.oldRank
+      ) {
+        toast.success(`Your rank improved to #${Number(notif.newRank)}!`);
+      } else if (
+        notif.newRank !== undefined &&
+        notif.oldRank !== undefined &&
+        notif.newRank > notif.oldRank
+      ) {
+        toast.error(`Your rank dropped to #${Number(notif.newRank)}.`);
+      }
+      if (!notif.read) {
+        markNotifRead(notif.id);
+      }
     }
-  }, [leaderboard, callerPrincipal]);
+  }, [notifications, markNotifRead]);
 
-  // Compute rank change indicators using localStorage snapshot
+  // Compute rank change visual indicators from current leaderboard order
   useEffect(() => {
     if (leaderboard.length === 0) return;
 
-    const currentSnapshot: Record<string, number> = {};
-    leaderboard.forEach(([principal], index) => {
-      currentSnapshot[principal.toString()] = index + 1;
-    });
-
-    let prevSnapshot: Record<string, number> = {};
-    try {
-      const stored = localStorage.getItem(RANK_SNAPSHOT_KEY);
-      if (stored) prevSnapshot = JSON.parse(stored);
-    } catch {
-      // ignore
-    }
-
     const changes = new Map<string, "up" | "down" | "same">();
-    for (const [principalStr, currentRank] of Object.entries(currentSnapshot)) {
-      const prevRank = prevSnapshot[principalStr];
-      if (prevRank === undefined) {
-        changes.set(principalStr, "same");
-      } else if (currentRank < prevRank) {
-        changes.set(principalStr, "up");
-      } else if (currentRank > prevRank) {
-        changes.set(principalStr, "down");
-      } else {
-        changes.set(principalStr, "same");
+
+    // Build direction map from rankChange notifications for current user's neighbors
+    const rankNotifMap = new Map<string, "up" | "down">();
+    for (const notif of notifications) {
+      if (notif.category !== NotificationCategory.rankChange) continue;
+      if (notif.newRank !== undefined && notif.oldRank !== undefined) {
+        if (notif.newRank < notif.oldRank) {
+          rankNotifMap.set(callerPrincipal ?? "", "up");
+        } else if (notif.newRank > notif.oldRank) {
+          rankNotifMap.set(callerPrincipal ?? "", "down");
+        }
       }
     }
-    setRankChanges(changes);
 
-    try {
-      localStorage.setItem(RANK_SNAPSHOT_KEY, JSON.stringify(currentSnapshot));
-    } catch {
-      // ignore
+    for (const [principal] of leaderboard) {
+      const pStr = principal.toString();
+      const dir = rankNotifMap.get(pStr);
+      changes.set(pStr, dir ?? "same");
     }
-  }, [leaderboard]);
+    setRankChanges(changes);
+  }, [leaderboard, notifications, callerPrincipal]);
 
   // Auto-select the most recent day when match history loads
   useEffect(() => {
@@ -532,7 +561,14 @@ export default function LeaderboardPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoadingDays ? (
-            <InlineLoading message="Loading your available dates..." />
+            <div className="space-y-3 py-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-full" />
+              <div className="grid grid-cols-2 gap-2">
+                <Skeleton className="h-9 w-full" />
+                <Skeleton className="h-9 w-full" />
+              </div>
+            </div>
           ) : sortedMatchHistory.length === 0 ? (
             <Alert>
               <AlertDescription>
@@ -759,8 +795,13 @@ export default function LeaderboardPage() {
         <TabsContent value="past-seasons">
           {isLoadingPastSeasons ? (
             <Card>
-              <CardContent className="p-6">
-                <InlineLoading message="Loading past seasons..." />
+              <CardContent className="p-6 space-y-3">
+                {[1, 2].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-4 w-48" />
+                  </div>
+                ))}
               </CardContent>
             </Card>
           ) : pastSeasonSnapshots.length === 0 ? (

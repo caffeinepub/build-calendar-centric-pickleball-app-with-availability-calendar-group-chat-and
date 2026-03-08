@@ -50,6 +50,23 @@ export interface MonthCriteria {
   'matchesThreshold' : bigint,
   'year' : bigint,
 }
+export interface Notification {
+  'id' : bigint,
+  'oldRank' : [] | [bigint],
+  'read' : boolean,
+  'recipient' : Principal,
+  'badgeId' : [] | [string],
+  'message' : string,
+  'timestamp' : bigint,
+  'category' : NotificationCategory,
+  'relatedPostId' : [] | [bigint],
+  'newRank' : [] | [bigint],
+}
+export type NotificationCategory = { 'availabilityOverlap' : null } |
+  { 'rankChange' : null } |
+  { 'badgeUnlock' : null } |
+  { 'mention' : null } |
+  { 'reply' : null };
 export interface Post {
   'id' : bigint,
   'content' : string,
@@ -152,6 +169,7 @@ export interface _SERVICE {
     Array<[Principal, Availability]>
   >,
   'getLeaderboard' : ActorMethod<[], Array<[Principal, T]>>,
+  'getMyNotifications' : ActorMethod<[], Array<Notification>>,
   'getPastSeasonSnapshots' : ActorMethod<[], Array<SeasonSnapshot>>,
   'getPostWithReplies' : ActorMethod<[bigint], [] | [PostWithReplies]>,
   'getPosts' : ActorMethod<[bigint, bigint], Array<Post>>,
@@ -162,11 +180,14 @@ export interface _SERVICE {
   >,
   'getTopPlayersByScore' : ActorMethod<[bigint], Array<[Principal, T]>>,
   'getTotalPostCount' : ActorMethod<[], bigint>,
+  'getUnreadNotificationCount' : ActorMethod<[], bigint>,
   'getUserBadges' : ActorMethod<[Principal], Array<string>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getUserStats' : ActorMethod<[Principal], [] | [T]>,
   'hasAvailability' : ActorMethod<[bigint], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'markAllNotificationsRead' : ActorMethod<[], undefined>,
+  'markNotificationRead' : ActorMethod<[bigint], undefined>,
   'recordDailyLoss' : ActorMethod<[bigint], undefined>,
   'recordDailyWin' : ActorMethod<[bigint], undefined>,
   'recordLoginTime' : ActorMethod<[], undefined>,

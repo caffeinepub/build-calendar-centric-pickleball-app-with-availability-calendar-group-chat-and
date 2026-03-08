@@ -102,6 +102,18 @@ export interface Post {
     likesCount: bigint;
     dislikesCount: bigint;
 }
+export interface Notification {
+    id: bigint;
+    oldRank?: bigint;
+    read: boolean;
+    recipient: Principal;
+    badgeId?: string;
+    message: string;
+    timestamp: bigint;
+    category: NotificationCategory;
+    relatedPostId?: bigint;
+    newRank?: bigint;
+}
 export interface DayWithLog {
     day: bigint;
     wins: bigint;
@@ -120,6 +132,13 @@ export interface AllTimeStats {
 export interface PostWithReplies {
     post: Post;
     replies: Array<PostWithReplies>;
+}
+export enum NotificationCategory {
+    availabilityOverlap = "availabilityOverlap",
+    rankChange = "rankChange",
+    badgeUnlock = "badgeUnlock",
+    mention = "mention",
+    reply = "reply"
 }
 export enum ReactionType {
     like = "like",
@@ -163,6 +182,7 @@ export interface backendInterface {
     getCurrentSeasonLeaderboard(): Promise<Array<[Principal, T]>>;
     getDayAvailability(day: bigint): Promise<Array<[Principal, Availability]>>;
     getLeaderboard(): Promise<Array<[Principal, T]>>;
+    getMyNotifications(): Promise<Array<Notification>>;
     getPastSeasonSnapshots(): Promise<Array<SeasonSnapshot>>;
     getPostWithReplies(postId: bigint): Promise<PostWithReplies | null>;
     getPosts(limit: bigint, offset: bigint): Promise<Array<Post>>;
@@ -170,11 +190,14 @@ export interface backendInterface {
     getScoreLeaderboardWithStats(): Promise<Array<[Principal, T, bigint]>>;
     getTopPlayersByScore(limit: bigint): Promise<Array<[Principal, T]>>;
     getTotalPostCount(): Promise<bigint>;
+    getUnreadNotificationCount(): Promise<bigint>;
     getUserBadges(user: Principal): Promise<Array<string>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUserStats(user: Principal): Promise<T | null>;
     hasAvailability(day: bigint): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
+    markAllNotificationsRead(): Promise<void>;
+    markNotificationRead(notifId: bigint): Promise<void>;
     recordDailyLoss(day: bigint): Promise<void>;
     recordDailyWin(day: bigint): Promise<void>;
     recordLoginTime(): Promise<void>;

@@ -2,61 +2,78 @@
 
 ## Current State
 
-The backend has a single `userStats` map (`Map<Principal, UserStats.T>`) holding current season stats: wins, losses, totalGames, streak, bestStreak. When `finalizeCurrentSeason` is called, it resets wins/losses/totalGames to 0 for all users, effectively wiping their All Time stats from the backend.
-
-To work around this, the frontend uses a localStorage cache (`all_time_leaderboard_cache`) that merges leaderboard data using a max strategy so numbers never go down. This is unreliable — it is device-specific and can be cleared by the browser.
-
-The All Time tab on the leaderboard reads from this localStorage cache, not from the backend.
+The app has:
+- A full backend (Motoko) with userStats, allTimeStats, dailyLogs, availability, posts/chat, badges, seasonSnapshots
+- TopBar with light/dark toggle and user avatar dropdown — no notification bell
+- LeaderboardPage with rank change detection using a localStorage snapshot and a ref-based toast for the current user's own rank change (fires only when they themselves log a match)
+- ChatPage / ChatPanel with toast on send; uses `InlineLoading` (spinner) for initial load
+- ProfilePage with skeleton loaders already in StreakStats; other sections use data directly
+- AddAvailabilityPage with toast on availability submit
+- No backend notification storage — notifications are entirely ephemeral / localStorage-based
 
 ## Requested Changes (Diff)
 
 ### Add
-- New `AllTimeStats` type in the backend with fields: `wins: Nat`, `losses: Nat`, `totalGames: Nat`, `bestStreakEver: Int`
-- New `allTimeStats` map (`Map<Principal, AllTimeStats>`) in the backend, completely separate from `userStats`
-- `ensureAllTimeStatsInitialized(user)` helper function
-- `getAllTimeLeaderboard()` query function — returns `[(Principal, AllTimeStats)]` sorted by all-time score
-- `getAllTimeStats(user)` query function — returns `?AllTimeStats` for a given user
-- All-time stats update logic in `updateDailyLog` and `decrementDailyLog`: after updating `dailyLogs`, recompute raw cumulative totals (wins, losses, totalGames) from `dailyLogs` across ALL seasons and store in `allTimeStats`; also track `bestStreakEver` as the max of the current `calculateBestStreak` result and the stored `bestStreakEver`
-- New `useGetAllTimeLeaderboard` query hook on the frontend
+- **Backend: Notification domain**
+  - `Notification` type with fields: `id`, `recipient` (Principal), `category` (`#mention`, `#reply`, `#badgeUnlock`, `#rankChange`, `#availabilityOverlap`), `message` (Text), `timestamp` (Int), `read` (Bool), optional `relatedPostId` (for mentions/replies), optional `badgeId`, optional `rankInfo` (`{oldRank: Nat; newRank: Nat}`)
+  - `notifications` map: `Map<(Principal, Int), Notification>` (keyed by recipient + notification id)
+  - `notificationCounter` variable
+  - Internal `createNotification(recipient, category, message, ...)` helper
+  - `getMyNotifications() : async [Notification]` — returns caller's notifications sorted newest-first
+  - `markNotificationRead(notifId: Int) : async ()` — marks one notification read
+  - `markAllNotificationsRead() : async ()` — marks all caller notifications read
+  - `getUnreadNotificationCount() : async Nat` — returns count of unread notifications for caller
+
+- **Backend: Notification triggers**
+  - In `addPost`: when `parentId` is provided, create a `#reply` notification for the parent post's author (if different from caller). Also scan content for `@mentions` and create `#mention` notifications.
+  - In `addAvailability`: scan for other users already marked available on the same day and create `#availabilityOverlap` notifications for the caller (notifying them of the overlap).
+  - In `evaluateAndAwardBadges`: when a badge is newly awarded, create a `#badgeUnlock` notification for the user.
+  - In `updateOverallStats` / anywhere that recalculates leaderboard: after updating stats, compute each user's new rank and compare to their previous rank; if rank position changed, create a `#rankChange` notification for affected users.
+
+- **Frontend: Bell icon in TopBar**
+  - Add a Bell icon button between the theme toggle and the avatar dropdown in TopBar
+  - Show a red badge count bubble on the bell when unreadCount > 0 (capped at 99+)
+  - Clicking the bell opens a Popover/Sheet with the notification list
+  - Notification panel: shows all notifications in reverse-chronological order, grouped by category icon, with "Mark all as read" button
+  - Each notification item shows: icon (by category), message, relative time, and read/unread visual state
+  - Empty state: "You're all caught up" message
+  - Poll `getUnreadNotificationCount` every 30 seconds; poll `getMyNotifications` when panel is opened
+
+- **Frontend: Toast notifications**
+  - Availability submit: already exists in AddAvailabilityPage — confirm it's working
+  - Chat send: already exists in ChatPanel — confirm working
+  - Badge earned: trigger toast from ProfileBadges or BadgeUnlockAnimation when a new badge is detected
+  - Rank change (own): fires when user's own rank position improves OR drops — sourced from backend `#rankChange` notification, not just on own log action; also fires when someone else's match log bumps their rank. Polling backend notifications every 30s will catch passive rank changes.
+
+- **Frontend: Skeleton loaders**
+  - LeaderboardTable: replace `InlineLoading` spinner with a table-shaped skeleton (6 rows of rank/player/stats cells)
+  - ChatPanel initial load: replace `InlineLoading` with skeleton rows shaped like chat messages (avatar circle + lines)
+  - ProfileLeaderboardRanks: add skeleton while loading
+  - ProfileCard: add skeleton while profile data loads
+  - ProfileMatchHistory: add skeleton while loading
 
 ### Modify
-- `finalizeCurrentSeason` — must NOT touch `allTimeStats` in any way; only resets `userStats`
-- `deleteUser` — also remove the user's entry from `allTimeStats`
-- `updateOverallStats` — after updating `userStats`, also call the all-time stats update logic
-- `decrementDailyLog` — after updating `dailyLogs`, also update `allTimeStats` (decrement wins/losses/totalGames cumulatively, recalculate `bestStreakEver`)
-- `LeaderboardPage` (frontend) — replace the localStorage all-time cache with a real backend query using `useGetAllTimeLeaderboard`; remove all localStorage read/write code for `ALL_TIME_CACHE_KEY`; update the All Time tab to display `bestStreakEver` in the Streak column instead of the seasonal `streak`
-- `AllTimeCacheEntry`, `readAllTimeCache`, `cacheToLeaderboard`, `writeAllTimeCache` helpers — remove entirely from frontend
+- `TopBar.tsx`: add Bell button with unread badge between theme toggle and avatar menu
+- `LeaderboardTable`: replace `InlineLoading` with skeleton rows
+- `ChatPanel`: replace initial load `InlineLoading` with chat-shaped skeletons
+- `ProfileLeaderboardRanks`, `ProfileCard`, `ProfileMatchHistory`: add skeleton loading states
+- `useQueries.ts`: add `useGetMyNotifications`, `useGetUnreadNotificationCount`, `useMarkNotificationRead`, `useMarkAllNotificationsRead` hooks
+- Rank change toast: expand existing logic to also detect passive rank changes from backend notifications (fire when a `#rankChange` notification is received that wasn't there before)
 
 ### Remove
-- `ALL_TIME_CACHE_KEY` constant and all localStorage logic for all-time caching in `LeaderboardPage.tsx`
-- The `useEffect` that merges fresh leaderboard data into localStorage
+- The localStorage-based `RANK_SNAPSHOT_KEY` snapshot approach in LeaderboardPage can be kept for rank arrows (visual indicator) but rank-change toasts should be driven by backend notifications rather than local ref comparison
 
 ## Implementation Plan
 
-1. **Backend — add `AllTimeStats` type and `allTimeStats` map**
-   - Define `AllTimeStats` with `wins`, `losses`, `totalGames`, `bestStreakEver`
-   - Add `allTimeStats` map
-   - Add `ensureAllTimeStatsInitialized` helper
+1. **Backend**: Add `Notification` type, `notifications` map, `notificationCounter`, CRUD functions (`getMyNotifications`, `markNotificationRead`, `markAllNotificationsRead`, `getUnreadNotificationCount`). Wire notification creation into `addPost` (reply/mention), `addAvailability` (overlap), `evaluateAndAwardBadges` (badge unlock), and `updateOverallStats` (rank change by recomputing ranks for all users and diffing).
 
-2. **Backend — update `updateOverallStats`**
-   - After computing totals from `dailyLogs` for current user, also update `allTimeStats`:
-     - wins/losses/totalGames = sum of ALL dailyLogs for that user (same as current season since dailyLogs are not reset, but will be cumulative across seasons because dailyLogs are never wiped)
-     - `bestStreakEver` = max of `calculateBestStreak(user)` and existing `allTimeStats.bestStreakEver`
+2. **Frontend hooks**: Add notification query/mutation hooks in `useQueries.ts` typed against the new backend API.
 
-3. **Backend — update `decrementDailyLog`**
-   - After decrementing `dailyLogs`, call `updateOverallStats` which will cascade to update `allTimeStats`
+3. **TopBar bell**: Add Bell icon with popover notification panel, unread count badge, polling, mark-as-read actions, and category icons.
 
-4. **Backend — add `getAllTimeLeaderboard` and `getAllTimeStats` query functions**
+4. **Skeleton loaders**: 
+   - `LeaderboardTable`: 6-row skeleton with rank badge, avatar, and stats columns
+   - `ChatPanel`: 5 chat-bubble-shaped skeleton rows (alternating left-aligned)
+   - `ProfileLeaderboardRanks`, `ProfileCard`, `ProfileMatchHistory`: inline skeletons matching content shape
 
-5. **Backend — update `finalizeCurrentSeason`**
-   - Confirm it only resets `userStats`, never `allTimeStats` (already the case structurally, just needs to be explicit)
-
-6. **Backend — update `deleteUser`**
-   - Also call `allTimeStats.remove(userToDelete)`
-
-7. **Frontend — add `useGetAllTimeLeaderboard` hook**
-
-8. **Frontend — update `LeaderboardPage`**
-   - Remove all localStorage cache helpers and effects
-   - Replace `allTimeLeaderboard` state with data from `useGetAllTimeLeaderboard`
-   - In the All Time tab's `LeaderboardTable`, pass `bestStreakEver` as the streak value for each row
+5. **Rank change toast via notifications**: Poll `getUnreadNotificationCount` every 30s; when new `#rankChange` notifications appear, fire a toast describing the change. After showing, mark them read.

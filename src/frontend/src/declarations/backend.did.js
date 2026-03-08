@@ -88,6 +88,25 @@ export const T = IDL.Record({
   'totalGames' : IDL.Nat,
   'bestStreak' : IDL.Int,
 });
+export const NotificationCategory = IDL.Variant({
+  'availabilityOverlap' : IDL.Null,
+  'rankChange' : IDL.Null,
+  'badgeUnlock' : IDL.Null,
+  'mention' : IDL.Null,
+  'reply' : IDL.Null,
+});
+export const Notification = IDL.Record({
+  'id' : IDL.Int,
+  'oldRank' : IDL.Opt(IDL.Nat),
+  'read' : IDL.Bool,
+  'recipient' : IDL.Principal,
+  'badgeId' : IDL.Opt(IDL.Text),
+  'message' : IDL.Text,
+  'timestamp' : IDL.Int,
+  'category' : NotificationCategory,
+  'relatedPostId' : IDL.Opt(IDL.Int),
+  'newRank' : IDL.Opt(IDL.Nat),
+});
 export const SeasonSnapshot = IDL.Record({
   'leaderboard' : IDL.Vec(IDL.Tuple(IDL.Principal, T)),
   'year' : IDL.Nat,
@@ -224,6 +243,7 @@ export const idlService = IDL.Service({
       [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
       ['query'],
     ),
+  'getMyNotifications' : IDL.Func([], [IDL.Vec(Notification)], ['query']),
   'getPastSeasonSnapshots' : IDL.Func([], [IDL.Vec(SeasonSnapshot)], ['query']),
   'getPostWithReplies' : IDL.Func(
       [IDL.Int],
@@ -243,6 +263,7 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getTotalPostCount' : IDL.Func([], [IDL.Nat], ['query']),
+  'getUnreadNotificationCount' : IDL.Func([], [IDL.Nat], ['query']),
   'getUserBadges' : IDL.Func([IDL.Principal], [IDL.Vec(IDL.Text)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
@@ -252,6 +273,8 @@ export const idlService = IDL.Service({
   'getUserStats' : IDL.Func([IDL.Principal], [IDL.Opt(T)], ['query']),
   'hasAvailability' : IDL.Func([IDL.Int], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'markAllNotificationsRead' : IDL.Func([], [], []),
+  'markNotificationRead' : IDL.Func([IDL.Int], [], []),
   'recordDailyLoss' : IDL.Func([IDL.Int], [], []),
   'recordDailyWin' : IDL.Func([IDL.Int], [], []),
   'recordLoginTime' : IDL.Func([], [], []),
@@ -341,6 +364,25 @@ export const idlFactory = ({ IDL }) => {
     'losses' : IDL.Nat,
     'totalGames' : IDL.Nat,
     'bestStreak' : IDL.Int,
+  });
+  const NotificationCategory = IDL.Variant({
+    'availabilityOverlap' : IDL.Null,
+    'rankChange' : IDL.Null,
+    'badgeUnlock' : IDL.Null,
+    'mention' : IDL.Null,
+    'reply' : IDL.Null,
+  });
+  const Notification = IDL.Record({
+    'id' : IDL.Int,
+    'oldRank' : IDL.Opt(IDL.Nat),
+    'read' : IDL.Bool,
+    'recipient' : IDL.Principal,
+    'badgeId' : IDL.Opt(IDL.Text),
+    'message' : IDL.Text,
+    'timestamp' : IDL.Int,
+    'category' : NotificationCategory,
+    'relatedPostId' : IDL.Opt(IDL.Int),
+    'newRank' : IDL.Opt(IDL.Nat),
   });
   const SeasonSnapshot = IDL.Record({
     'leaderboard' : IDL.Vec(IDL.Tuple(IDL.Principal, T)),
@@ -482,6 +524,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
         ['query'],
       ),
+    'getMyNotifications' : IDL.Func([], [IDL.Vec(Notification)], ['query']),
     'getPastSeasonSnapshots' : IDL.Func(
         [],
         [IDL.Vec(SeasonSnapshot)],
@@ -505,6 +548,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getTotalPostCount' : IDL.Func([], [IDL.Nat], ['query']),
+    'getUnreadNotificationCount' : IDL.Func([], [IDL.Nat], ['query']),
     'getUserBadges' : IDL.Func([IDL.Principal], [IDL.Vec(IDL.Text)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
@@ -514,6 +558,8 @@ export const idlFactory = ({ IDL }) => {
     'getUserStats' : IDL.Func([IDL.Principal], [IDL.Opt(T)], ['query']),
     'hasAvailability' : IDL.Func([IDL.Int], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'markAllNotificationsRead' : IDL.Func([], [], []),
+    'markNotificationRead' : IDL.Func([IDL.Int], [], []),
     'recordDailyLoss' : IDL.Func([IDL.Int], [], []),
     'recordDailyWin' : IDL.Func([IDL.Int], [], []),
     'recordLoginTime' : IDL.Func([], [], []),

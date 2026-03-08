@@ -8,10 +8,10 @@ import { useCreatePost } from "../../hooks/useQueries";
 import { buildThreadTree } from "../../lib/chatThreads";
 import { fileToUint8Array, validateImageFile } from "../../utils/file";
 import { ErrorState } from "../common/ErrorState";
-import { InlineLoading } from "../common/LoadingState";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Input } from "../ui/input";
+import { Skeleton } from "../ui/skeleton";
 import ThreadedPostTree from "./ThreadedPostTree";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -318,7 +318,48 @@ export default function ChatPanel() {
 
             <div className="space-y-4 pb-2">
               {isLoadingInitial ? (
-                <InlineLoading message="Loading messages..." size="sm" />
+                <div className="space-y-3 pt-2" data-ocid="chat.loading_state">
+                  {/* Row 1 — left aligned */}
+                  <div className="flex items-start gap-2">
+                    <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
+                    <div className="space-y-1.5 flex-1 max-w-[65%]">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-10 w-full rounded-xl" />
+                    </div>
+                  </div>
+                  {/* Row 2 — right aligned */}
+                  <div className="flex items-start gap-2 flex-row-reverse">
+                    <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
+                    <div className="space-y-1.5 flex-1 max-w-[65%] items-end flex flex-col">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-14 w-full rounded-xl" />
+                    </div>
+                  </div>
+                  {/* Row 3 — left aligned */}
+                  <div className="flex items-start gap-2">
+                    <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
+                    <div className="space-y-1.5 flex-1 max-w-[55%]">
+                      <Skeleton className="h-4 w-28" />
+                      <Skeleton className="h-8 w-full rounded-xl" />
+                    </div>
+                  </div>
+                  {/* Row 4 — right aligned */}
+                  <div className="flex items-start gap-2 flex-row-reverse">
+                    <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
+                    <div className="space-y-1.5 flex-1 max-w-[70%] items-end flex flex-col">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-12 w-full rounded-xl" />
+                    </div>
+                  </div>
+                  {/* Row 5 — left aligned */}
+                  <div className="flex items-start gap-2">
+                    <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
+                    <div className="space-y-1.5 flex-1 max-w-[60%]">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-16 w-full rounded-xl" />
+                    </div>
+                  </div>
+                </div>
               ) : loadError ? (
                 <ErrorState
                   message={loadError}
