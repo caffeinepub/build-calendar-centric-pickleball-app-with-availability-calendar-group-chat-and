@@ -11,6 +11,13 @@ interface ReactionControlsProps {
   post: Post;
 }
 
+/**
+ * Module-level store so emoji selections survive component remounts
+ * (tab switches, scroll virtualization, etc.).
+ * Key: post id string → selected emoji string
+ */
+const emojiSelectionStore = new Map<string, string>();
+
 // Fixed emoji set — each maps to a backend ReactionType
 const EMOJI_REACTIONS: Array<{
   emoji: string;
@@ -36,8 +43,11 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
   const [optimisticDislikes, setOptimisticDislikes] = useState<number | null>(
     null,
   );
-  // Track which emoji the user has selected (null = no reaction)
-  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
+  // Track which emoji the user has selected (null = no reaction).
+  // Initialise from module-level store so selections survive remounts.
+  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(
+    () => emojiSelectionStore.get(post.id.toString()) ?? null,
+  );
   // Controls visibility of the emoji picker (opened via smiley button)
   const [showPicker, setShowPicker] = useState(false);
 
@@ -78,6 +88,7 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
       const prevEmojiDef = EMOJI_REACTIONS.find((e) => e.emoji === prevEmoji);
       const prevType = prevEmojiDef?.type ?? ReactionType.like;
 
+      emojiSelectionStore.delete(post.id.toString());
       setSelectedEmoji(null);
       if (prevType === ReactionType.like) {
         setOptimisticLikes(likesCount - 1);
@@ -93,6 +104,7 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
         onError: (error: any) => {
           setOptimisticLikes(null);
           setOptimisticDislikes(null);
+          emojiSelectionStore.set(post.id.toString(), prevEmoji);
           setSelectedEmoji(prevEmoji);
           toast.error(error?.message || "Failed to remove reaction");
         },
@@ -105,6 +117,7 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
         : null;
       const prevType = prevEmojiDef?.type ?? null;
 
+      emojiSelectionStore.set(post.id.toString(), emoji);
       setSelectedEmoji(emoji);
 
       // Adjust counts optimistically
@@ -133,6 +146,11 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
           onError: (error: any) => {
             setOptimisticLikes(null);
             setOptimisticDislikes(null);
+            if (prevEmoji) {
+              emojiSelectionStore.set(post.id.toString(), prevEmoji);
+            } else {
+              emojiSelectionStore.delete(post.id.toString());
+            }
             setSelectedEmoji(prevEmoji);
             toast.error(error?.message || "Failed to add reaction");
           },

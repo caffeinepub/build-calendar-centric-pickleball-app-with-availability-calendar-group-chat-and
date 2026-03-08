@@ -2,78 +2,59 @@
 
 ## Current State
 
-The app has:
-- A full backend (Motoko) with userStats, allTimeStats, dailyLogs, availability, posts/chat, badges, seasonSnapshots
-- TopBar with light/dark toggle and user avatar dropdown — no notification bell
-- LeaderboardPage with rank change detection using a localStorage snapshot and a ref-based toast for the current user's own rank change (fires only when they themselves log a match)
-- ChatPage / ChatPanel with toast on send; uses `InlineLoading` (spinner) for initial load
-- ProfilePage with skeleton loaders already in StreakStats; other sections use data directly
-- AddAvailabilityPage with toast on availability submit
-- No backend notification storage — notifications are entirely ephemeral / localStorage-based
+The app is a full-featured pickleball social scheduler with a chat panel (`ChatPanel.tsx`), leaderboard (`LeaderboardPage.tsx`), profile page, and admin features. There are four known bugs and one new feature to implement.
+
+**Chat bugs identified in code:**
+
+1. **Message deletion not reflecting in UI:** `ThreadedPostTree.tsx` calls `deletePost` via `useDeletePost()`, which on success calls `queryClient.invalidateQueries({ queryKey: ["posts"] })`. However, `ChatPanel` manages its own local `posts` state from a manual paginated fetch (not from React Query's cache), so query invalidation alone does NOT cause the chat list to re-render. The deleted post remains visible.
+
+2. **Emoji reaction defaulting to thumbs up:** In `ReactionControls.tsx`, `selectedEmoji` is local component state initialized to `null`. When the component re-renders (tab switch, scroll, etc.), the state is reset to `null`. The logic then falls back to showing `likesCount` on the `👍` slot since no like-mapped emoji is selected. This means if any `likesCount > 0` exists, a 👍 pill appears even if the user never selected thumbs up.
+
+3. **"Jump to Latest" scrolling to oldest:** `ChatPanel` renders the scroll container with messages ordered oldest-at-top, newest-at-bottom. The `scrollToBottom` function uses `el.scrollTo({ top: el.scrollHeight })` which is correct. However, on initial load `scrollToBottom` is also called, and there may be a race or the container scroll direction isn't establishing `scrollHeight` correctly before the jump occurs. The button triggers `scrollToBottom(true)` with smooth behavior; the issue may be that the DOM hasn't painted yet or the container layout isn't complete, causing `scrollHeight` to equal `clientHeight` (effectively 0 offset from top).
+
+4. **Season Champion badge not visible to other users:** The `BadgeDefinition` with `id = "season-champion"` (or similar) is awarded to the top player at season end, but there is no shared `SeasonChampionBadge` component that displays it in profile, leaderboard rows, or next to names in chat.
 
 ## Requested Changes (Diff)
 
 ### Add
-- **Backend: Notification domain**
-  - `Notification` type with fields: `id`, `recipient` (Principal), `category` (`#mention`, `#reply`, `#badgeUnlock`, `#rankChange`, `#availabilityOverlap`), `message` (Text), `timestamp` (Int), `read` (Bool), optional `relatedPostId` (for mentions/replies), optional `badgeId`, optional `rankInfo` (`{oldRank: Nat; newRank: Nat}`)
-  - `notifications` map: `Map<(Principal, Int), Notification>` (keyed by recipient + notification id)
-  - `notificationCounter` variable
-  - Internal `createNotification(recipient, category, message, ...)` helper
-  - `getMyNotifications() : async [Notification]` — returns caller's notifications sorted newest-first
-  - `markNotificationRead(notifId: Int) : async ()` — marks one notification read
-  - `markAllNotificationsRead() : async ()` — marks all caller notifications read
-  - `getUnreadNotificationCount() : async Nat` — returns count of unread notifications for caller
 
-- **Backend: Notification triggers**
-  - In `addPost`: when `parentId` is provided, create a `#reply` notification for the parent post's author (if different from caller). Also scan content for `@mentions` and create `#mention` notifications.
-  - In `addAvailability`: scan for other users already marked available on the same day and create `#availabilityOverlap` notifications for the caller (notifying them of the overlap).
-  - In `evaluateAndAwardBadges`: when a badge is newly awarded, create a `#badgeUnlock` notification for the user.
-  - In `updateOverallStats` / anywhere that recalculates leaderboard: after updating stats, compute each user's new rank and compare to their previous rank; if rank position changed, create a `#rankChange` notification for affected users.
-
-- **Frontend: Bell icon in TopBar**
-  - Add a Bell icon button between the theme toggle and the avatar dropdown in TopBar
-  - Show a red badge count bubble on the bell when unreadCount > 0 (capped at 99+)
-  - Clicking the bell opens a Popover/Sheet with the notification list
-  - Notification panel: shows all notifications in reverse-chronological order, grouped by category icon, with "Mark all as read" button
-  - Each notification item shows: icon (by category), message, relative time, and read/unread visual state
-  - Empty state: "You're all caught up" message
-  - Poll `getUnreadNotificationCount` every 30 seconds; poll `getMyNotifications` when panel is opened
-
-- **Frontend: Toast notifications**
-  - Availability submit: already exists in AddAvailabilityPage — confirm it's working
-  - Chat send: already exists in ChatPanel — confirm working
-  - Badge earned: trigger toast from ProfileBadges or BadgeUnlockAnimation when a new badge is detected
-  - Rank change (own): fires when user's own rank position improves OR drops — sourced from backend `#rankChange` notification, not just on own log action; also fires when someone else's match log bumps their rank. Polling backend notifications every 30s will catch passive rank changes.
-
-- **Frontend: Skeleton loaders**
-  - LeaderboardTable: replace `InlineLoading` spinner with a table-shaped skeleton (6 rows of rank/player/stats cells)
-  - ChatPanel initial load: replace `InlineLoading` with skeleton rows shaped like chat messages (avatar circle + lines)
-  - ProfileLeaderboardRanks: add skeleton while loading
-  - ProfileCard: add skeleton while profile data loads
-  - ProfileMatchHistory: add skeleton while loading
+- `SeasonChampionBadge` shared component in `src/frontend/src/components/badges/SeasonChampionBadge.tsx`: renders a small 🏆 crown/trophy badge pill. Accepts `badgeIds: string[]` and `allDefinitions: BadgeDefinition[]` as props; renders only if the user holds the Season Champion badge (identified by `id === "season-champion"`). Consistent size, border, and hover tooltip across all usages.
+- `useGetUserBadges` is already available in `useQueries.ts` — use it to fetch badge IDs per player in leaderboard rows and chat messages.
 
 ### Modify
-- `TopBar.tsx`: add Bell button with unread badge between theme toggle and avatar menu
-- `LeaderboardTable`: replace `InlineLoading` with skeleton rows
-- `ChatPanel`: replace initial load `InlineLoading` with chat-shaped skeletons
-- `ProfileLeaderboardRanks`, `ProfileCard`, `ProfileMatchHistory`: add skeleton loading states
-- `useQueries.ts`: add `useGetMyNotifications`, `useGetUnreadNotificationCount`, `useMarkNotificationRead`, `useMarkAllNotificationsRead` hooks
-- Rank change toast: expand existing logic to also detect passive rank changes from backend notifications (fire when a `#rankChange` notification is received that wasn't there before)
+
+- **`ChatPanel.tsx` — fix deletion:** Add a `handlePostDeleted(postId: bigint)` callback that is passed down into `ThreadedPostTree` → `PostItem`. When delete succeeds, call this callback to immediately filter the deleted post (and its replies) from the local `posts` state without waiting for a re-fetch.
+- **`ChatPanel.tsx` — fix Jump to Latest:** Ensure the scroll container uses `overflow-y: scroll` (not `auto`) and that the button's `onClick` uses a `requestAnimationFrame` with a small delay or a `setTimeout(0)` to ensure the DOM has painted before calling `scrollToBottom`. Also double-check that `scrollHeight` is correct by logging or wrapping in a rAF.
+- **`ReactionControls.tsx` — fix emoji default:** Remove the fallback `count = emojiDef.emoji === "👍" ? likesCount : 0` logic that shows 👍 when no emoji is selected. If no like-mapped emoji is selected by the current user and `likesCount > 0`, show the count on 👍 only if the post truly has reactions from _other_ users. Since the backend does not return per-user emoji info (only total `likesCount` and `dislikesCount`), the correct fix is: when `selectedEmoji` is null (no reaction from this user), display `likesCount` on 👍 only if `likesCount > 0`. This is actually what the current code does — but the issue is `selectedEmoji` **resets to null** when component re-renders. Fix: persist `selectedEmoji` per post id using a ref or derive it from the post data. Since the backend doesn't return per-user emoji, the best approach is to store the per-post emoji selection in a module-level `Map<string, string>` (keyed by post id string) that survives re-renders and tab switches.
+- **`ThreadedPostTree.tsx`** — accept an `onPostDeleted?: (postId: bigint) => void` prop and call it after successful delete. Also pass the prop through to nested `ThreadedPostTree` for replies.
+- **`LeaderboardPage.tsx` — show Season Champion badge:** In `LeaderboardTable`, next to each player's `AvatarName`, fetch and display the `SeasonChampionBadge` component if the player holds that badge.
+- **`ProfileBadges.tsx` / `ProfilePage.tsx`** — `SeasonChampionBadge` is already shown via the earned badges grid, but the shared compact badge should also appear prominently near the player's name/avatar at the top of their profile card.
+- **`ThreadedPostTree.tsx` (chat)** — next to each message author's `AvatarName`, display `SeasonChampionBadge` if that user holds it.
 
 ### Remove
-- The localStorage-based `RANK_SNAPSHOT_KEY` snapshot approach in LeaderboardPage can be kept for rank arrows (visual indicator) but rank-change toasts should be driven by backend notifications rather than local ref comparison
+
+- The hardcoded fallback in `ReactionControls.tsx` that defaults `likesCount` to the 👍 slot when `selectedEmoji` is null and no data about the user's actual selection is available.
 
 ## Implementation Plan
 
-1. **Backend**: Add `Notification` type, `notifications` map, `notificationCounter`, CRUD functions (`getMyNotifications`, `markNotificationRead`, `markAllNotificationsRead`, `getUnreadNotificationCount`). Wire notification creation into `addPost` (reply/mention), `addAvailability` (overlap), `evaluateAndAwardBadges` (badge unlock), and `updateOverallStats` (rank change by recomputing ranks for all users and diffing).
+1. **Fix message deletion (ChatPanel + ThreadedPostTree):**
+   - Add `onPostDeleted: (postId: bigint) => void` prop to `ThreadedPostTree` and `PostItem`.
+   - In `PostItem.handleDeleteConfirm`, after `mutateAsync` succeeds, call `onPostDeleted(post.id)`.
+   - In `ChatPanel`, implement `handlePostDeleted` that calls `setPosts(prev => prev.filter(p => p.id !== postId && p.parentId !== postId))` (removes the post and any direct replies from local state).
+   - Pass `handlePostDeleted` down through `renderTreeWithDateSeparators → ThreadedPostTree`.
 
-2. **Frontend hooks**: Add notification query/mutation hooks in `useQueries.ts` typed against the new backend API.
+2. **Fix Jump to Latest (ChatPanel):**
+   - In the "Jump to Latest" button `onClick`, replace direct `scrollToBottom(true)` with a double `requestAnimationFrame` to guarantee the container has fully painted before measuring `scrollHeight`.
+   - Alternatively, store a ref `bottomAnchorRef` on a sentinel div at the end of the message list and call `bottomAnchorRef.current?.scrollIntoView({ behavior: 'smooth' })` instead.
 
-3. **TopBar bell**: Add Bell icon with popover notification panel, unread count badge, polling, mark-as-read actions, and category icons.
+3. **Fix emoji reaction default (ReactionControls):**
+   - Create a module-level `Map<string, string>` called `emojiSelectionStore` keyed by `post.id.toString()`.
+   - Initialize `selectedEmoji` state from this store on mount: `useState(() => emojiSelectionStore.get(post.id.toString()) ?? null)`.
+   - On every `setSelectedEmoji(...)` call, also update the store: `emojiSelectionStore.set(postId, emoji)` or `emojiSelectionStore.delete(postId)` on removal.
+   - Update the pill display logic: when `selectedEmoji` is null, show `likesCount` on 👍 only if there are genuine other reactions (i.e. `likesCount > 0`). This preserves the informational count without implying the current user selected thumbs up.
 
-4. **Skeleton loaders**: 
-   - `LeaderboardTable`: 6-row skeleton with rank badge, avatar, and stats columns
-   - `ChatPanel`: 5 chat-bubble-shaped skeleton rows (alternating left-aligned)
-   - `ProfileLeaderboardRanks`, `ProfileCard`, `ProfileMatchHistory`: inline skeletons matching content shape
-
-5. **Rank change toast via notifications**: Poll `getUnreadNotificationCount` every 30s; when new `#rankChange` notifications appear, fire a toast describing the change. After showing, mark them read.
+4. **Season Champion badge component:**
+   - Create `SeasonChampionBadge.tsx`: accepts `earnedBadgeIds: string[]` and `allDefinitions: BadgeDefinition[]`. Returns a small pill `🏆 Champion` with a ring border and tooltip showing the badge name, only if `earnedBadgeIds` includes any badge with `name` matching `"Season Champion"` or `id === "season-champion"`.
+   - Add to leaderboard rows: in `LeaderboardTable`, each row already calls `useUserDirectoryWithAvatars`; add `useGetUserBadges` per player (or fetch batch) and pass badge ids to `SeasonChampionBadge`.
+   - Add to chat: in `PostItem`, fetch `useGetUserBadges(post.author)` and `useGetAllBadgeDefinitions()`, render `SeasonChampionBadge` next to `AvatarName`.
+   - Add to profile: in `ProfileCard` or the profile page header, render `SeasonChampionBadge` next to the player's display name.

@@ -12,9 +12,10 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import type { DayWithLog } from "../backend";
+import type { BadgeDefinition, DayWithLog } from "../backend";
 import { NotificationCategory } from "../backend";
 import type { T as UserStats } from "../backend";
+import SeasonChampionBadge from "../components/badges/SeasonChampionBadge";
 import { Page, PageHeader } from "../components/layout/PageLayout";
 import PlayerProfileModal from "../components/leaderboard/PlayerProfileModal";
 import { Alert, AlertDescription } from "../components/ui/alert";
@@ -56,6 +57,7 @@ import {
 import AvatarName from "../components/user/AvatarName";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
+  useGetAllBadgeDefinitions,
   useGetAllTimeLeaderboard,
   useGetCallerAvailableDays,
   useGetCallerMatchHistory,
@@ -63,6 +65,7 @@ import {
   useGetLeaderboard,
   useGetMyNotifications,
   useGetPastSeasonSnapshots,
+  useGetUserBadges,
   useMarkNotificationRead,
   useRecordDailyLoss,
   useRecordDailyWin,
@@ -71,6 +74,45 @@ import {
 } from "../hooks/useQueries";
 import { useUserDirectoryWithAvatars } from "../hooks/useUserDirectory";
 import { formatDayId } from "../lib/date";
+
+// ─── LeaderboardPlayerCell ────────────────────────────────────────────────────
+// Fetches badge data per player so hooks rules stay clean inside .map()
+
+interface LeaderboardPlayerCellProps {
+  principal: Principal;
+  displayName: string;
+  avatarUrl?: string;
+  allBadgeDefinitions: BadgeDefinition[];
+  isCurrentUser: boolean;
+}
+
+function LeaderboardPlayerCell({
+  principal,
+  displayName,
+  avatarUrl,
+  allBadgeDefinitions,
+  isCurrentUser,
+}: LeaderboardPlayerCellProps) {
+  const { data: userBadgeIds = [] } = useGetUserBadges(principal);
+
+  return (
+    <div className="flex items-center gap-1">
+      <AvatarName
+        principal={principal}
+        displayName={displayName}
+        avatarUrl={avatarUrl}
+        size="sm"
+      />
+      <SeasonChampionBadge
+        earnedBadgeIds={userBadgeIds}
+        allDefinitions={allBadgeDefinitions}
+      />
+      {isCurrentUser && (
+        <span className="ml-1 text-xs text-muted-foreground">(you)</span>
+      )}
+    </div>
+  );
+}
 
 /**
  * Computes the current win streak from a user's match history.
@@ -118,6 +160,7 @@ interface LeaderboardTableProps {
   onPlayerClick?: (principal: Principal) => void;
   userDirectory?: Map<string, { displayName: string; avatarUrl?: string }>;
   isLoadingDirectory?: boolean;
+  allBadgeDefinitions?: BadgeDefinition[];
 }
 
 function LeaderboardTable({
@@ -129,6 +172,7 @@ function LeaderboardTable({
   onPlayerClick,
   userDirectory,
   isLoadingDirectory,
+  allBadgeDefinitions = [],
 }: LeaderboardTableProps) {
   const getRankBadge = (rank: number) => {
     if (rank === 1)
@@ -262,22 +306,16 @@ function LeaderboardTable({
                 </div>
               </TableCell>
               <TableCell>
-                <div className="flex items-center gap-1">
-                  <AvatarName
-                    principal={principal}
-                    displayName={
-                      entry?.displayName ??
-                      `${principal.toString().slice(0, 8)}...`
-                    }
-                    avatarUrl={entry?.avatarUrl}
-                    size="sm"
-                  />
-                  {isCurrentUser && (
-                    <span className="ml-1 text-xs text-muted-foreground">
-                      (you)
-                    </span>
-                  )}
-                </div>
+                <LeaderboardPlayerCell
+                  principal={principal}
+                  displayName={
+                    entry?.displayName ??
+                    `${principal.toString().slice(0, 8)}...`
+                  }
+                  avatarUrl={entry?.avatarUrl}
+                  allBadgeDefinitions={allBadgeDefinitions}
+                  isCurrentUser={isCurrentUser}
+                />
               </TableCell>
               <TableCell className="text-right text-green-600 font-medium">
                 {Number(stats.wins)}
@@ -320,6 +358,7 @@ export default function LeaderboardPage() {
     useGetAllTimeLeaderboard();
   const { data: pastSeasonSnapshots = [], isLoading: isLoadingPastSeasons } =
     useGetPastSeasonSnapshots();
+  const { data: allBadgeDefinitions = [] } = useGetAllBadgeDefinitions();
 
   const principals = leaderboard.map(([principal]) => principal);
   const { data: userDirectory, isLoading: isLoadingDirectory } =
@@ -545,6 +584,7 @@ export default function LeaderboardPage() {
     onPlayerClick: handlePlayerClick,
     userDirectory,
     isLoadingDirectory,
+    allBadgeDefinitions,
   };
 
   return (

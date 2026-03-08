@@ -8,10 +8,16 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { useInternetIdentity } from "../../hooks/useInternetIdentity";
-import { useDeletePost, useEditPost } from "../../hooks/useQueries";
+import {
+  useDeletePost,
+  useEditPost,
+  useGetAllBadgeDefinitions,
+  useGetUserBadges,
+} from "../../hooks/useQueries";
 import { useUserDirectoryWithAvatars } from "../../hooks/useUserDirectory";
 import type { ThreadNode } from "../../lib/chatThreads";
 import { formatDateTime } from "../../lib/date";
+import SeasonChampionBadge from "../badges/SeasonChampionBadge";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -28,11 +34,13 @@ import ReplyComposer from "./ReplyComposer";
 interface ThreadedPostTreeProps {
   nodes: ThreadNode[];
   depth?: number;
+  onPostDeleted?: (postId: bigint) => void;
 }
 
 export default function ThreadedPostTree({
   nodes,
   depth = 0,
+  onPostDeleted,
 }: ThreadedPostTreeProps) {
   const principals = nodes.flatMap((node) => [
     node.post.author,
@@ -50,6 +58,7 @@ export default function ThreadedPostTree({
           depth={depth}
           userDirectory={userDirectory}
           isLoadingDirectory={isLoadingDirectory}
+          onPostDeleted={onPostDeleted}
         />
       ))}
     </div>
@@ -70,6 +79,7 @@ interface PostItemProps {
     | Map<string, { displayName: string; avatarUrl?: string }>
     | undefined;
   isLoadingDirectory: boolean;
+  onPostDeleted?: (postId: bigint) => void;
 }
 
 function PostItem({
@@ -77,6 +87,7 @@ function PostItem({
   depth,
   userDirectory,
   isLoadingDirectory,
+  onPostDeleted,
 }: PostItemProps) {
   const [showReplyComposer, setShowReplyComposer] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -90,6 +101,10 @@ function PostItem({
 
   const editPostMutation = useEditPost();
   const deletePostMutation = useDeletePost();
+
+  // Season Champion badge data for this post's author
+  const { data: authorBadgeIds = [] } = useGetUserBadges(post.author);
+  const { data: allBadgeDefinitions = [] } = useGetAllBadgeDefinitions();
 
   const isOwnPost =
     identity && post.author.toString() === identity.getPrincipal().toString();
@@ -131,6 +146,8 @@ function PostItem({
       await deletePostMutation.mutateAsync(post.id);
       toast.success("Message deleted");
       setShowDeleteDialog(false);
+      // Immediately remove this post (and its replies) from the visible list
+      onPostDeleted?.(post.id);
     } catch (error) {
       toast.error("Failed to delete message");
       console.error("Delete error:", error);
@@ -149,6 +166,10 @@ function PostItem({
             size="sm"
             avatarClassName="h-[25px] w-[25px] flex-shrink-0"
             nameClassName="text-[14px] font-medium truncate"
+          />
+          <SeasonChampionBadge
+            earnedBadgeIds={authorBadgeIds}
+            allDefinitions={allBadgeDefinitions}
           />
           <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
             {formatDateTime(post.timestamp)}
@@ -264,7 +285,11 @@ function PostItem({
 
       {replies.length > 0 && (
         <div className="mt-4 min-w-0">
-          <ThreadedPostTree nodes={replies} depth={depth + 1} />
+          <ThreadedPostTree
+            nodes={replies}
+            depth={depth + 1}
+            onPostDeleted={onPostDeleted}
+          />
         </div>
       )}
 

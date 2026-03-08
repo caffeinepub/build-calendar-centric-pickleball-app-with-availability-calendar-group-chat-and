@@ -5,7 +5,13 @@ import {
   useGetCallerUserProfile,
   useSaveCallerUserProfile,
 } from "../../hooks/useCurrentUserProfile";
+import { useInternetIdentity } from "../../hooks/useInternetIdentity";
+import {
+  useGetAllBadgeDefinitions,
+  useGetUserBadges,
+} from "../../hooks/useQueries";
 import { fileToUint8Array, getInitials } from "../../utils/file";
+import SeasonChampionBadge from "../badges/SeasonChampionBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
@@ -14,6 +20,10 @@ import { Input } from "../ui/input";
 export default function ProfileCard() {
   const { data: userProfile, isLoading } = useGetCallerUserProfile();
   const { mutate: saveProfile, isPending } = useSaveCallerUserProfile();
+  const { data: allBadgeDefinitions = [] } = useGetAllBadgeDefinitions();
+  const { identity } = useInternetIdentity();
+  const callerPrincipal = identity?.getPrincipal() ?? null;
+  const { data: callerBadgeIds = [] } = useGetUserBadges(callerPrincipal);
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState("");
@@ -200,6 +210,10 @@ export default function ProfileCard() {
               ) : (
                 <div className="flex items-center gap-2">
                   <h3 className="text-2xl font-bold">{displayName}</h3>
+                  <SeasonChampionBadge
+                    earnedBadgeIds={callerBadgeIds}
+                    allDefinitions={allBadgeDefinitions}
+                  />
                   <Button
                     size="icon"
                     variant="ghost"

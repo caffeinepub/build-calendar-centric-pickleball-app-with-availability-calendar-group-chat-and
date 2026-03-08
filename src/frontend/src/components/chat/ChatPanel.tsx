@@ -1,4 +1,5 @@
 import { ArrowDown, Loader2, Paperclip, Send, X } from "lucide-react";
+import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Post } from "../../backend";
@@ -63,6 +64,7 @@ export default function ChatPanel() {
 
   // Scroll state
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const [_isAtBottom, setIsAtBottom] = useState(true);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   const wasAtBottomRef = useRef(true);
@@ -131,10 +133,10 @@ export default function ChatPanel() {
   // ── Scroll handling ──────────────────────────────────────────────────────
 
   const scrollToBottom = useCallback((smooth = false) => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-    el.scrollTo({
-      top: el.scrollHeight,
+    // Use a sentinel div at the bottom of the list for reliable scrolling.
+    // scrollIntoView is more dependable than manually computing scrollHeight
+    // because it always targets the actual end of the content after layout.
+    bottomRef.current?.scrollIntoView({
       behavior: smooth ? "smooth" : "instant",
     });
   }, []);
@@ -268,6 +270,16 @@ export default function ChatPanel() {
     }
   };
 
+  // ── Handle post deletion ─────────────────────────────────────────────────
+  // Called by ThreadedPostTree after a successful delete mutation.
+  // Removes the deleted post AND any of its replies (parentId === postId)
+  // immediately from local state without waiting for a poll cycle.
+  const handlePostDeleted = useCallback((postId: bigint) => {
+    setPosts((prev) =>
+      prev.filter((p) => p.id !== postId && p.parentId !== postId),
+    );
+  }, []);
+
   // ── Build thread tree from top-level posts only ──────────────────────────
   // All posts (including replies) are stored flat in state; buildThreadTree
   // groups them into a nested structure.
@@ -316,7 +328,7 @@ export default function ChatPanel() {
               </div>
             )}
 
-            <div className="space-y-4 pb-2">
+            <div className="space-y-4 pb-2" data-testid="chat-messages">
               {isLoadingInitial ? (
                 <div className="space-y-3 pt-2" data-ocid="chat.loading_state">
                   {/* Row 1 — left aligned */}
@@ -377,8 +389,14 @@ export default function ChatPanel() {
                 </p>
               ) : (
                 /* Render thread tree with date separators between top-level nodes */
-                renderTreeWithDateSeparators(threadTree, topLevelPosts)
+                renderTreeWithDateSeparators(
+                  threadTree,
+                  topLevelPosts,
+                  handlePostDeleted,
+                )
               )}
+              {/* Bottom sentinel — scrollToBottom targets this element */}
+              <div ref={bottomRef} />
             </div>
           </div>
 
@@ -479,6 +497,7 @@ export default function ChatPanel() {
 function renderTreeWithDateSeparators(
   nodes: ReturnType<typeof buildThreadTree>,
   topLevelPosts: Post[],
+  onPostDeleted?: (postId: bigint) => void,
 ) {
   if (nodes.length === 0) return null;
 
@@ -507,6 +526,7 @@ function renderTreeWithDateSeparators(
         key={node.post.id.toString()}
         nodes={[node]}
         depth={0}
+        onPostDeleted={onPostDeleted}
       />,
     );
   }
