@@ -111,6 +111,12 @@ export interface DayAvailabilityCount {
     day: bigint;
     count: bigint;
 }
+export interface AllTimeStats {
+    wins: bigint;
+    bestStreakEver: bigint;
+    losses: bigint;
+    totalGames: bigint;
+}
 export interface PostWithReplies {
     post: Post;
     replies: Array<PostWithReplies>;
@@ -147,6 +153,8 @@ export interface backendInterface {
     getAllDayAvailabilityCounts(): Promise<Array<DayAvailabilityCount>>;
     getAllLoginTimestamps(): Promise<Array<[Principal, bigint]>>;
     getAllRegisteredUsers(): Promise<Array<[Principal, UserProfile, bigint]>>;
+    getAllTimeLeaderboard(): Promise<Array<[Principal, AllTimeStats]>>;
+    getAllTimeStats(user: Principal): Promise<AllTimeStats | null>;
     getCallerAvailability(day: bigint): Promise<Availability | null>;
     getCallerAvailableDaysWithLogs(): Promise<Array<DayWithLog>>;
     getCallerStats(): Promise<T | null>;

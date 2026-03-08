@@ -66,6 +66,12 @@ export const UserProfile = IDL.Record({
   'name' : IDL.Text,
   'customProfilePicture' : IDL.Opt(ExternalBlob),
 });
+export const AllTimeStats = IDL.Record({
+  'wins' : IDL.Nat,
+  'bestStreakEver' : IDL.Int,
+  'losses' : IDL.Nat,
+  'totalGames' : IDL.Nat,
+});
 export const Availability = IDL.Record({
   'time' : IDL.Text,
   'notes' : IDL.Opt(IDL.Text),
@@ -178,6 +184,16 @@ export const idlService = IDL.Service({
   'getAllRegisteredUsers' : IDL.Func(
       [],
       [IDL.Vec(IDL.Tuple(IDL.Principal, UserProfile, IDL.Int))],
+      ['query'],
+    ),
+  'getAllTimeLeaderboard' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(IDL.Principal, AllTimeStats))],
+      ['query'],
+    ),
+  'getAllTimeStats' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(AllTimeStats)],
       ['query'],
     ),
   'getCallerAvailability' : IDL.Func(
@@ -304,6 +320,12 @@ export const idlFactory = ({ IDL }) => {
     'name' : IDL.Text,
     'customProfilePicture' : IDL.Opt(ExternalBlob),
   });
+  const AllTimeStats = IDL.Record({
+    'wins' : IDL.Nat,
+    'bestStreakEver' : IDL.Int,
+    'losses' : IDL.Nat,
+    'totalGames' : IDL.Nat,
+  });
   const Availability = IDL.Record({
     'time' : IDL.Text,
     'notes' : IDL.Opt(IDL.Text),
@@ -420,6 +442,16 @@ export const idlFactory = ({ IDL }) => {
     'getAllRegisteredUsers' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Principal, UserProfile, IDL.Int))],
+        ['query'],
+      ),
+    'getAllTimeLeaderboard' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Principal, AllTimeStats))],
+        ['query'],
+      ),
+    'getAllTimeStats' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(AllTimeStats)],
         ['query'],
       ),
     'getCallerAvailability' : IDL.Func(

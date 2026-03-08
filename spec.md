@@ -2,30 +2,61 @@
 
 ## Current State
 
-The app has a seasonal leaderboard with three tabs: Current Season, All Time, and Past Seasons. Both "Current Season" and "All Time" tabs read from the same backend `userStats` map. When an admin finalizes a season via `finalizeCurrentSeason`, it resets all values in `userStats` to zero — which also zeroes out the All Time leaderboard because they share the same data source.
+The backend has a single `userStats` map (`Map<Principal, UserStats.T>`) holding current season stats: wins, losses, totalGames, streak, bestStreak. When `finalizeCurrentSeason` is called, it resets wins/losses/totalGames to 0 for all users, effectively wiping their All Time stats from the backend.
+
+To work around this, the frontend uses a localStorage cache (`all_time_leaderboard_cache`) that merges leaderboard data using a max strategy so numbers never go down. This is unreliable — it is device-specific and can be cleared by the browser.
+
+The All Time tab on the leaderboard reads from this localStorage cache, not from the backend.
 
 ## Requested Changes (Diff)
 
 ### Add
-- A new permanent `allTimeStats` map in the backend that accumulates wins/losses/streaks forever and is never reset.
-- A new `getAllTimeLeaderboard()` query that reads from `allTimeStats` instead of `userStats`.
+- New `AllTimeStats` type in the backend with fields: `wins: Nat`, `losses: Nat`, `totalGames: Nat`, `bestStreakEver: Int`
+- New `allTimeStats` map (`Map<Principal, AllTimeStats>`) in the backend, completely separate from `userStats`
+- `ensureAllTimeStatsInitialized(user)` helper function
+- `getAllTimeLeaderboard()` query function — returns `[(Principal, AllTimeStats)]` sorted by all-time score
+- `getAllTimeStats(user)` query function — returns `?AllTimeStats` for a given user
+- All-time stats update logic in `updateDailyLog` and `decrementDailyLog`: after updating `dailyLogs`, recompute raw cumulative totals (wins, losses, totalGames) from `dailyLogs` across ALL seasons and store in `allTimeStats`; also track `bestStreakEver` as the max of the current `calculateBestStreak` result and the stored `bestStreakEver`
+- New `useGetAllTimeLeaderboard` query hook on the frontend
 
 ### Modify
-- `updateOverallStats()` must update both `userStats` (current season) and `allTimeStats` (permanent) every time a win or loss is recorded. All-time stats use the same recalculation logic (sum all dailyLogs).
-- `finalizeCurrentSeason()` must only reset `userStats` (current season wins/losses/totalGames), leaving `allTimeStats` completely untouched.
-- `getLeaderboard()` (used by the All Time tab in the frontend) should be backed by `allTimeStats` so it is never affected by season resets.
-- `ensureUserStatsInitialized()` should also initialize `allTimeStats` for new users.
-- Frontend `useGetLeaderboard` hook already calls `getLeaderboard()` — no change needed there; the fix is purely in what data `getLeaderboard()` returns.
+- `finalizeCurrentSeason` — must NOT touch `allTimeStats` in any way; only resets `userStats`
+- `deleteUser` — also remove the user's entry from `allTimeStats`
+- `updateOverallStats` — after updating `userStats`, also call the all-time stats update logic
+- `decrementDailyLog` — after updating `dailyLogs`, also update `allTimeStats` (decrement wins/losses/totalGames cumulatively, recalculate `bestStreakEver`)
+- `LeaderboardPage` (frontend) — replace the localStorage all-time cache with a real backend query using `useGetAllTimeLeaderboard`; remove all localStorage read/write code for `ALL_TIME_CACHE_KEY`; update the All Time tab to display `bestStreakEver` in the Streak column instead of the seasonal `streak`
+- `AllTimeCacheEntry`, `readAllTimeCache`, `cacheToLeaderboard`, `writeAllTimeCache` helpers — remove entirely from frontend
 
 ### Remove
-- Nothing removed.
+- `ALL_TIME_CACHE_KEY` constant and all localStorage logic for all-time caching in `LeaderboardPage.tsx`
+- The `useEffect` that merges fresh leaderboard data into localStorage
 
 ## Implementation Plan
 
-1. Add `allTimeStats` map (same type as `userStats`) to the backend actor state.
-2. Update `ensureUserStatsInitialized` to also seed `allTimeStats` for new users.
-3. Update `updateOverallStats` to recompute totals from `dailyLogs` and write to BOTH `userStats` and `allTimeStats`.
-4. Add `getAllTimeLeaderboard()` query that sorts and returns `allTimeStats`.
-5. Change `getLeaderboard()` to return `allTimeStats` sorted by score (so the All Time tab is always correct).
-6. In `finalizeCurrentSeason`, only iterate over `userStats` for the reset — do not touch `allTimeStats`.
-7. No frontend changes needed; the existing `useGetLeaderboard` hook maps to `getLeaderboard()` which will now return all-time data correctly.
+1. **Backend — add `AllTimeStats` type and `allTimeStats` map**
+   - Define `AllTimeStats` with `wins`, `losses`, `totalGames`, `bestStreakEver`
+   - Add `allTimeStats` map
+   - Add `ensureAllTimeStatsInitialized` helper
+
+2. **Backend — update `updateOverallStats`**
+   - After computing totals from `dailyLogs` for current user, also update `allTimeStats`:
+     - wins/losses/totalGames = sum of ALL dailyLogs for that user (same as current season since dailyLogs are not reset, but will be cumulative across seasons because dailyLogs are never wiped)
+     - `bestStreakEver` = max of `calculateBestStreak(user)` and existing `allTimeStats.bestStreakEver`
+
+3. **Backend — update `decrementDailyLog`**
+   - After decrementing `dailyLogs`, call `updateOverallStats` which will cascade to update `allTimeStats`
+
+4. **Backend — add `getAllTimeLeaderboard` and `getAllTimeStats` query functions**
+
+5. **Backend — update `finalizeCurrentSeason`**
+   - Confirm it only resets `userStats`, never `allTimeStats` (already the case structurally, just needs to be explicit)
+
+6. **Backend — update `deleteUser`**
+   - Also call `allTimeStats.remove(userToDelete)`
+
+7. **Frontend — add `useGetAllTimeLeaderboard` hook**
+
+8. **Frontend — update `LeaderboardPage`**
+   - Remove all localStorage cache helpers and effects
+   - Replace `allTimeLeaderboard` state with data from `useGetAllTimeLeaderboard`
+   - In the All Time tab's `LeaderboardTable`, pass `bestStreakEver` as the streak value for each row

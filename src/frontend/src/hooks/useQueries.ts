@@ -1,6 +1,7 @@
 import type { Principal } from "@dfinity/principal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
+  AllTimeStats,
   Availability,
   BadgeDefinition,
   DayAvailabilityCount,
@@ -454,6 +455,7 @@ export function useRecordDailyWin() {
       queryClient.invalidateQueries({ queryKey: ["callerMatchHistory"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["callerStats"] });
       queryClient.invalidateQueries({ queryKey: ["userBadges"] });
     },
@@ -473,6 +475,7 @@ export function useRecordDailyLoss() {
       queryClient.invalidateQueries({ queryKey: ["callerMatchHistory"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["callerStats"] });
       queryClient.invalidateQueries({ queryKey: ["userBadges"] });
     },
@@ -491,6 +494,8 @@ export function useDecrementDailyLog() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["callerMatchHistory"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["callerStats"] });
     },
   });
@@ -509,6 +514,7 @@ export function useRemoveDailyWin() {
       queryClient.invalidateQueries({ queryKey: ["callerMatchHistory"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["callerStats"] });
     },
   });
@@ -527,6 +533,7 @@ export function useRemoveDailyLoss() {
       queryClient.invalidateQueries({ queryKey: ["callerMatchHistory"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["callerStats"] });
     },
   });
@@ -670,6 +677,19 @@ export function useGetCurrentSeasonLeaderboard() {
   });
 }
 
+export function useGetAllTimeLeaderboard() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Array<[Principal, AllTimeStats]>>({
+    queryKey: ["getAllTimeLeaderboard"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllTimeLeaderboard();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
 export function useGetPastSeasonSnapshots() {
   const { actor, isFetching } = useActor();
 
@@ -698,6 +718,7 @@ export function useFinalizeCurrentSeason() {
       queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["pastSeasonSnapshots"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
     },
   });
 }

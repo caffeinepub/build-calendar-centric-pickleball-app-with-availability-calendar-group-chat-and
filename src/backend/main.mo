@@ -14,9 +14,9 @@ import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import Set "mo:core/Set";
+import Migration "migration";
 
-
-
+(with migration = Migration.run)
 actor {
   let accessControlState = AccessControl.initState();
   include MixinStorage();
@@ -47,39 +47,24 @@ actor {
       let bScore = calculateScore(b.1.wins, b.1.losses);
 
       switch (Int.compare(bScore, aScore)) {
-        case (#equal) {
-          Int.compare(b.1.wins, a.1.wins);
-        };
+        case (#equal) { Int.compare(b.1.wins, a.1.wins) };
         case (order) { order };
       };
     };
   };
 
-  public type DailyLog = {
-    wins : Nat;
-    losses : Nat;
-  };
-
-  type DayWithLog = {
-    day : Int;
-    wins : Nat;
-    losses : Nat;
-  };
-
+  public type DailyLog = { wins : Nat; losses : Nat };
   module DayWithLog {
     public func compareByDay(a : DayWithLog, b : DayWithLog) : Order.Order {
       Int.compare(a.day, b.day);
     };
   };
 
-  type Availability = {
-    time : Text;
-    notes : ?Text;
-  };
+  type DayWithLog = { day : Int; wins : Nat; losses : Nat };
 
+  type Availability = { time : Text; notes : ?Text };
   module Availability {
     public type Key = (Principal, Int);
-
     public func compare(a : Key, b : Key) : Order.Order {
       switch (Principal.compare(a.0, b.0)) {
         case (#equal) { Int.compare(a.1, b.1) };
@@ -102,28 +87,15 @@ actor {
     edited : Bool;
     editTimestamp : ?Int;
   };
-
   module Post {
     public func compareByTimestamp(a : Post, b : Post) : Order.Order {
       Int.compare(b.timestamp, a.timestamp);
     };
   };
 
-  public type PostWithReplies = {
-    post : Post;
-    replies : [PostWithReplies];
-  };
-
-  public type DayAvailabilityCount = {
-    day : Int;
-    count : Nat;
-  };
-
-  public type MonthCriteria = {
-    year : Nat;
-    month : Nat;
-    matchesThreshold : Nat;
-  };
+  public type PostWithReplies = { post : Post; replies : [PostWithReplies] };
+  public type DayAvailabilityCount = { day : Int; count : Nat };
+  public type MonthCriteria = { year : Nat; month : Nat; matchesThreshold : Nat };
 
   public type BadgeCriteria = {
     #winsStreak : Nat;
@@ -143,23 +115,11 @@ actor {
     #consecutiveWeeksAvailable : Nat;
   };
 
-  public type BadgeDefinition = {
-    id : Text;
-    name : Text;
-    description : Text;
-    criteria : BadgeCriteria;
-  };
+  public type BadgeDefinition = { id : Text; name : Text; description : Text; criteria : BadgeCriteria };
+  public type BadgeAward = { user : Principal; badgeId : Text; awardedAt : Int };
+  public type SeasonSnapshot = { year : Nat; leaderboard : [(Principal, UserStats.T)] };
 
-  public type BadgeAward = {
-    user : Principal;
-    badgeId : Text;
-    awardedAt : Int;
-  };
-
-  public type SeasonSnapshot = {
-    year : Nat;
-    leaderboard : [(Principal, UserStats.T)];
-  };
+  public type AllTimeStats = { wins : Nat; losses : Nat; totalGames : Nat; bestStreakEver : Int };
 
   var loginRecords : Map.Map<Principal, Int> = Map.empty<Principal, Int>();
   let userProfiles = Map.empty<Principal, UserEntry>();
@@ -172,57 +132,70 @@ actor {
   let badgeAwards = Map.empty<Principal, Set.Set<Text>>();
   let seasonSnapshots = Map.empty<Nat, SeasonSnapshot>();
   var messageCounter : Int = 0;
+  let allTimeStats = Map.empty<Principal, AllTimeStats>();
+
+  public query ({ caller }) func getAllTimeLeaderboard() : async [(Principal, AllTimeStats)] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view all-time leaderboard");
+    };
+    let compareByAllTimeScore = func(a : (Principal, AllTimeStats), b : (Principal, AllTimeStats)) : Order.Order {
+      let aScore = calculateScore(a.1.wins, a.1.losses);
+      let bScore = calculateScore(b.1.wins, b.1.losses);
+
+      switch (Int.compare(bScore, aScore)) {
+        case (#equal) { Int.compare(b.1.wins, a.1.wins) };
+        case (order) { order };
+      };
+    };
+    allTimeStats.entries().toArray().sort(compareByAllTimeScore);
+  };
+
+  public query ({ caller }) func getAllTimeStats(user : Principal) : async ?AllTimeStats {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view all-time stats");
+    };
+    allTimeStats.get(user);
+  };
 
   public shared ({ caller }) func createBadgeDefinition(definition : BadgeDefinition) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admin can create badge definitions");
     };
-
     badgeDefinitions.add(definition.id, definition);
   };
 
   public shared ({ caller }) func updateBadgeDefinition(definition : BadgeDefinition) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admin can update badge definitions");
     };
-
     switch (badgeDefinitions.get(definition.id)) {
-      case (null) {
-        Runtime.trap("Badge definition not found");
-      };
-      case (?existing) {
-        badgeDefinitions.add(definition.id, definition);
-      };
+      case (null) { Runtime.trap("Badge definition not found") };
+      case (?_) { badgeDefinitions.add(definition.id, definition) };
     };
   };
 
   public shared ({ caller }) func deleteBadgeDefinition(definitionId : Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admin can delete badge definitions");
     };
-
     badgeDefinitions.remove(definitionId);
   };
 
   public shared ({ caller }) func awardBadgeToUser(user : Principal, badgeId : Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can award badges");
     };
-
     awardBadgeToUserInternal(user, badgeId);
   };
 
   func awardBadgeToUserInternal(user : Principal, badgeId : Text) {
     switch (badgeDefinitions.get(badgeId)) {
-      case (null) {
-        Runtime.trap("Badge definition not found");
-      };
+      case (null) { Runtime.trap("Badge definition not found") };
       case (?_) {
         let userAwards = switch (badgeAwards.get(user)) {
           case (null) { Set.empty<Text>() };
           case (?awards) { awards };
         };
-
         if (not userAwards.contains(badgeId)) {
           userAwards.add(badgeId);
           badgeAwards.add(user, userAwards);
@@ -232,14 +205,11 @@ actor {
   };
 
   public shared ({ caller }) func revokeBadgeFromUser(user : Principal, badgeId : Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can revoke badges");
     };
-
     switch (badgeAwards.get(user)) {
-      case (null) {
-        Runtime.trap("User has no badge awards");
-      };
+      case (null) { Runtime.trap("User has no badge awards") };
       case (?userAwards) {
         userAwards.remove(badgeId);
         badgeAwards.add(user, userAwards);
@@ -248,18 +218,16 @@ actor {
   };
 
   public query ({ caller }) func getAllBadgeDefinitions() : async [BadgeDefinition] {
-    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view badge definitions");
     };
-
     badgeDefinitions.values().toArray();
   };
 
   public query ({ caller }) func getUserBadges(user : Principal) : async [Text] {
-    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view badges");
     };
-
     switch (badgeAwards.get(user)) {
       case (null) { [] };
       case (?awards) { awards.toArray() };
@@ -273,7 +241,6 @@ actor {
           case (null) { Set.empty<Text>() };
           case (?awards) { awards };
         };
-
         if (not userAwards.contains(badge.id)) {
           userAwards.add(badge.id);
           badgeAwards.add(user, userAwards);
@@ -287,7 +254,6 @@ actor {
       case (#winsStreak(threshold)) { stats.bestStreak >= threshold };
       case (#totalWins(threshold)) { stats.wins >= threshold };
       case (#totalGames(threshold)) { stats.totalGames >= threshold };
-      // Implement additional criteria checks if needed
       case (#totalDaysAvailable(_)) { false };
       case (#totalGamesPlayed(_)) { false };
       case (#firstMatchLogged(_)) { false };
@@ -307,28 +273,17 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view availability counts");
     };
-
     let dayCountsMap = Map.empty<Int, Nat>();
-
     for (((_, day), _) in availabilities.entries()) {
       switch (dayCountsMap.get(day)) {
-        case (null) {
-          dayCountsMap.add(day, 1);
-        };
-        case (?count) {
-          dayCountsMap.add(day, count + 1);
-        };
+        case (null) { dayCountsMap.add(day, 1) };
+        case (?count) { dayCountsMap.add(day, count + 1) };
       };
     };
-
     let results = List.empty<DayAvailabilityCount>();
-
     for ((day, count) in dayCountsMap.entries()) {
-      if (count > 0) {
-        results.add({ day; count });
-      };
+      if (count > 0) { results.add({ day; count }) };
     };
-
     results.toArray();
   };
 
@@ -336,7 +291,6 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view availability");
     };
-
     for (((_user, dayKey), _availability) in availabilities.entries()) {
       if (dayKey == day) { return true };
     };
@@ -347,7 +301,6 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view availability");
     };
-
     days.map(func(day) { anyUserHasAvailabilitySync(day) });
   };
 
@@ -358,17 +311,21 @@ actor {
     false;
   };
 
+  private func ensureAllTimeStatsInitialized(user : Principal) {
+    switch (allTimeStats.get(user)) {
+      case (null) { allTimeStats.add(user, { wins = 0; losses = 0; totalGames = 0; bestStreakEver = 0 }) };
+      case (?_) {};
+    };
+  };
+
   public query ({ caller }) func getCallerAvailableDaysWithLogs() : async [DayWithLog] {
-    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can get available days");
     };
-
     let entries = availabilities.entries().toArray();
-
     let filteredAvailabilities = entries.filter(
       func(entry) { entry.0.0 == caller }
     );
-
     let daysWithLogs = filteredAvailabilities.map(
       func((key, _)) {
         let day = key.1;
@@ -376,15 +333,9 @@ actor {
           case (null) { { wins = 0; losses = 0 } };
           case (?log) { log };
         };
-
-        {
-          day;
-          wins = dailyLog.wins;
-          losses = dailyLog.losses;
-        };
+        { day; wins = dailyLog.wins; losses = dailyLog.losses };
       }
     );
-
     daysWithLogs.sort(DayWithLog.compareByDay);
   };
 
@@ -392,55 +343,45 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can record login time");
     };
-
     loginRecords.add(caller, Time.now());
   };
 
   public shared ({ caller }) func deleteUser(userToDelete : Principal) : async () {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admins can delete users");
+    if (caller != userToDelete and not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can delete other users");
     };
-
     userProfiles.remove(userToDelete);
     userStats.remove(userToDelete);
+    allTimeStats.remove(userToDelete);
     loginRecords.remove(userToDelete);
 
     let keysToRemove = availabilities.entries().filter(
       func((key, _)) { key.0 == userToDelete }
     ).toArray();
-
-    for ((key, _) in keysToRemove.values()) {
-      availabilities.remove(key);
-    };
+    for ((key, _) in keysToRemove.values()) { availabilities.remove(key) };
   };
 
   public shared ({ caller }) func deleteAllDayAvailabilities(day : Int) : async () {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can delete days");
     };
-
     let keysToRemove = availabilities.entries().filter(
       func((key, _)) { key.1 == day }
     ).toArray();
-
-    for ((key, _) in keysToRemove.values()) {
-      availabilities.remove(key);
-    };
+    for ((key, _) in keysToRemove.values()) { availabilities.remove(key) };
   };
 
   public shared ({ caller }) func deleteCallerDayAvailability(day : Int) : async () {
-    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can delete their own availability");
     };
-
     availabilities.remove((caller, day));
   };
 
   public shared ({ caller }) func deleteUserDayAvailability(user : Principal, day : Int) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can delete specific user-day availability");
     };
-
     let key = (user, day);
     if (not availabilities.containsKey(key)) {
       Runtime.trap("Availability entry not found for given user and day");
@@ -452,7 +393,6 @@ actor {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can view login timestamps");
     };
-
     loginRecords.toArray();
   };
 
@@ -460,33 +400,26 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view stats");
     };
-
     let sortedLeaderboard = userStats.entries().toArray().sort(UserStats.compareByScore);
-
     Array.tabulate(
       Nat.min(sortedLeaderboard.size(), limit),
       func(i) { sortedLeaderboard[i] },
     );
   };
 
-  public query ({ caller }) func getScoreLeaderboardWithStats() : async [
-    (Principal, UserStats.T, Int)
-  ] {
+  public query ({ caller }) func getScoreLeaderboardWithStats() : async [(Principal, UserStats.T, Int)] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view stats");
     };
-
     let leaderboardArray = userStats.entries().toArray();
     let leaderboardWithStats = leaderboardArray.map(
       func((id, stats)) {
         (id, stats, calculateScore(stats.wins, stats.losses));
       }
     );
-
     let sortedLeaderboard = leaderboardWithStats.sort(
       func(a, b) { Int.compare(b.2, a.2) }
     );
-
     sortedLeaderboard;
   };
 
@@ -494,7 +427,6 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view profiles");
     };
-
     switch (userProfiles.get(caller)) {
       case (null) { null };
       case (?entry) { ?entry.profile };
@@ -505,7 +437,6 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view profiles");
     };
-
     switch (userProfiles.get(user)) {
       case (null) { null };
       case (?entry) { ?entry.profile };
@@ -516,9 +447,7 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
-
     ensureUserStatsInitialized(caller);
-
     let userEntry : UserEntry = {
       principal = caller;
       profile;
@@ -531,23 +460,17 @@ actor {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can view all registered users");
     };
-
     userProfiles.entries().toArray().map(
       func((principal, entry)) { (principal, entry.profile, entry.createdAt) }
     );
   };
 
-  public query ({ caller }) func getAllAvailabilities() : async [
-    (Principal, Int, Text)
-  ] {
+  public query ({ caller }) func getAllAvailabilities() : async [(Principal, Int, Text)] {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can view all availabilities");
     };
-
     availabilities.entries().toArray().map(
-      func(((principal, day), availability)) {
-        (principal, day, availability.time);
-      }
+      func(((principal, day), availability)) { (principal, day, availability.time) }
     );
   };
 
@@ -571,7 +494,6 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view stats");
     };
-
     userStats.get(caller);
   };
 
@@ -579,7 +501,6 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view stats");
     };
-
     userStats.get(user);
   };
 
@@ -587,7 +508,6 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can update stats");
     };
-
     userStats.add(caller, stats);
   };
 
@@ -595,7 +515,6 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view leaderboard");
     };
-
     userStats.entries().toArray().sort(UserStats.compareByScore);
   };
 
@@ -603,11 +522,9 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can record daily wins");
     };
-
     if (not hasAvailabilityInternal(caller, day)) {
       Runtime.trap("You can only record wins on days you have marked as available");
     };
-
     updateDailyLog(caller, day, true);
   };
 
@@ -615,11 +532,9 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can record daily losses");
     };
-
     if (not hasAvailabilityInternal(caller, day)) {
       Runtime.trap("You can only record losses on days you have marked as available");
     };
-
     updateDailyLog(caller, day, false);
   };
 
@@ -627,27 +542,17 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can modify daily logs");
     };
-
     let currentLog = switch (dailyLogs.get((caller, day))) {
       case (null) { { wins = 0; losses = 0 } };
       case (?log) { log };
     };
-
     let updatedLog = {
-      wins = if (isWin) {
-        if (currentLog.wins > 0) { currentLog.wins - 1 : Nat } else {
-          0;
-        };
-      } else { currentLog.wins };
-      losses = if (isWin) {
-        currentLog.losses;
-      } else if (currentLog.losses > 0) {
+      wins = if (isWin) { if (currentLog.wins > 0) { currentLog.wins - 1 : Nat } else { 0 } } else { currentLog.wins };
+      losses = if (isWin) { currentLog.losses } else if (currentLog.losses > 0) {
         currentLog.losses - 1 : Nat;
       } else { 0 };
     };
-
     dailyLogs.add((caller, day), updatedLog);
-
     updateOverallStats(caller);
   };
 
@@ -656,34 +561,24 @@ actor {
       case (null) { { wins = 0; losses = 0 } };
       case (?log) { log };
     };
-
     let updatedLog = {
-      wins = if (isWin) { currentLog.wins + 1 } else {
-        currentLog.wins;
-      };
-      losses = if (isWin) { currentLog.losses } else {
-        currentLog.losses + 1;
-      };
+      wins = if (isWin) { currentLog.wins + 1 } else { currentLog.wins };
+      losses = if (isWin) { currentLog.losses } else { currentLog.losses + 1 };
     };
-
     dailyLogs.add((user, day), updatedLog);
-
     updateOverallStats(user);
   };
 
   func updateOverallStats(user : Principal) {
     var totalWins = 0;
     var totalLosses = 0;
-
     for (((principal, _), log) in dailyLogs.entries()) {
       if (principal == user) {
         totalWins += log.wins;
         totalLosses += log.losses;
       };
     };
-
     let totalGames = totalWins + totalLosses;
-
     let stats = {
       wins = totalWins;
       losses = totalLosses;
@@ -692,25 +587,39 @@ actor {
       bestStreak = calculateBestStreak(user);
     };
     userStats.add(user, stats);
-
     evaluateAndAwardBadges(user, stats);
+
+    // Update all-time stats — recompute from dailyLogs, never reset
+    ensureAllTimeStatsInitialized(user);
+    let existingAllTime = switch (allTimeStats.get(user)) {
+      case (null) { { wins = 0; losses = 0; totalGames = 0; bestStreakEver = 0 } };
+      case (?s) { s };
+    };
+    let newBestStreakEver = if (stats.bestStreak > existingAllTime.bestStreakEver) {
+      stats.bestStreak;
+    } else { existingAllTime.bestStreakEver };
+    allTimeStats.add(
+      user,
+      {
+        wins = totalWins;
+        losses = totalLosses;
+        totalGames = totalWins + totalLosses;
+        bestStreakEver = newBestStreakEver;
+      },
+    );
   };
 
   func calculateStreak(user : Principal) : Int {
     var streak = 0;
     var foundWin = false;
-
     let dailyLogsArray = dailyLogs.entries().toArray();
-
     for (((principal, _), log) in dailyLogsArray.values()) {
       if (principal == user) {
         if (log.wins > 0) {
           if (not foundWin) {
             foundWin := true;
             streak := 1;
-          } else {
-            streak += 1;
-          };
+          } else { streak += 1 };
         } else if (log.losses > 0) { return -1 };
       };
     };
@@ -720,19 +629,14 @@ actor {
   func calculateBestStreak(user : Principal) : Int {
     var currentStreak = 0;
     var bestStreak = 0;
-
     let userLogs = dailyLogs.entries().toArray().filter(
       func((key, _)) { key.0 == user }
     );
-
     let logsWithDay = userLogs;
-
     let compareLogsByDay = func(a : ((Principal, Int), DailyLog), b : ((Principal, Int), DailyLog)) : Order.Order {
       Int.compare(a.0.1, b.0.1);
     };
-
     let sortedLogs = logsWithDay.sort(compareLogsByDay);
-
     for (((_, _), log) in sortedLogs.values()) {
       var i = 0;
       while (i < log.wins) {
@@ -742,14 +646,12 @@ actor {
         };
         i += 1;
       };
-
       var j = 0;
       while (j < log.losses) {
         currentStreak := 0;
         j += 1;
       };
     };
-
     bestStreak;
   };
 
@@ -757,9 +659,7 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can add availability");
     };
-
     ensureUserStatsInitialized(caller);
-
     let availability : Availability = { time; notes };
     availabilities.add((caller, day), availability);
   };
@@ -768,31 +668,22 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view availability");
     };
-
     let filtered = availabilities.entries().toArray().filter(
       func(((principal, d), _)) { d == day }
     );
-
-    filtered.map(
-      func(((principal, _), availability)) {
-        (principal, availability);
-      }
-    );
+    filtered.map(func(((principal, _), availability)) { (principal, availability) });
   };
 
   public query ({ caller }) func hasAvailability(day : Int) : async Bool {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can check availability");
     };
-
     hasAvailabilityInternal(caller, day);
   };
 
   func hasAvailabilityInternal(user : Principal, day : Int) : Bool {
     availabilities.keys().any(
-      func((principal, d)) {
-        principal == user and d == day;
-      }
+      func((principal, d)) { principal == user and d == day }
     );
   };
 
@@ -800,7 +691,6 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view their availability");
     };
-
     availabilities.get((caller, day));
   };
 
@@ -812,7 +702,6 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can post messages");
     };
-
     let post : Post = {
       id = messageCounter;
       author = caller;
@@ -825,7 +714,6 @@ actor {
       edited = false;
       editTimestamp = null;
     };
-
     posts.add(messageCounter, post);
     messageCounter += 1;
     post.id;
@@ -835,25 +723,18 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can edit posts");
     };
-
     let existingPost = switch (posts.get(postId)) {
-      case (null) {
-        Runtime.trap("Post not found");
-      };
+      case (null) { Runtime.trap("Post not found") };
       case (?post) { post };
     };
-
     if (caller != existingPost.author) {
       Runtime.trap("Unauthorized: You can only edit your own posts");
     };
-
     let updatedPost = {
-      existingPost with
-      content = newContent;
+      existingPost with content = newContent;
       edited = true;
       editTimestamp = ?Time.now();
     };
-
     posts.add(postId, updatedPost);
   };
 
@@ -861,18 +742,13 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can delete posts");
     };
-
     let post = switch (posts.get(postId)) {
-      case (null) {
-        Runtime.trap("Post not found");
-      };
+      case (null) { Runtime.trap("Post not found") };
       case (?post) { post };
     };
-
-    if (caller != post.author and (not AccessControl.isAdmin(accessControlState, caller))) {
+    if (caller != post.author and not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: You can only delete your own posts");
     };
-
     posts.remove(postId);
   };
 
@@ -880,11 +756,7 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can add reactions");
     };
-
-    if (not posts.containsKey(postId)) {
-      Runtime.trap("Post not found");
-    };
-
+    if (not posts.containsKey(postId)) { Runtime.trap("Post not found") };
     switch (reactions.get((caller, postId))) {
       case (null) {
         reactions.add((caller, postId), reactionType);
@@ -893,12 +765,10 @@ actor {
       case (?existingReaction) {
         if (existingReaction != reactionType) {
           reactions.add((caller, postId), reactionType);
-
           let (increaseType, decreaseType) = switch (reactionType) {
             case (#like) { (#like, #dislike) };
             case (#dislike) { (#dislike, #like) };
           };
-
           updatePostReactionCount(postId, increaseType, true);
           updatePostReactionCount(postId, decreaseType, false);
         };
@@ -910,15 +780,9 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can remove reactions");
     };
-
-    if (not posts.containsKey(postId)) {
-      Runtime.trap("Post not found");
-    };
-
+    if (not posts.containsKey(postId)) { Runtime.trap("Post not found") };
     switch (reactions.get((caller, postId))) {
-      case (null) {
-        Runtime.trap("No reaction to remove");
-      };
+      case (null) { Runtime.trap("No reaction to remove") };
       case (?reactionType) {
         reactions.remove((caller, postId));
         updatePostReactionCount(postId, reactionType, false);
@@ -928,44 +792,25 @@ actor {
 
   func updatePostReactionCount(postId : Int, reactionType : ReactionType, increase : Bool) {
     if (not posts.containsKey(postId)) { return };
-
     let post = switch (posts.get(postId)) {
-      case (null) {
-        Runtime.trap("Post not found");
-      };
+      case (null) { Runtime.trap("Post not found") };
       case (?post) { post };
     };
-
     let (newLikes, newDislikes) = switch (reactionType) {
       case (#like) {
         let likes = if (increase) { post.likesCount + 1 } else {
-          if (post.likesCount > 0) {
-            post.likesCount - 1 : Nat;
-          } else {
-            0;
-          };
+          if (post.likesCount > 0) { post.likesCount - 1 : Nat } else { 0 };
         };
         (likes, post.dislikesCount);
       };
       case (#dislike) {
-        let dislikes = if (increase) {
-          post.dislikesCount + 1;
-        } else {
-          if (post.dislikesCount > 0) {
-            post.dislikesCount - 1 : Nat;
-          } else {
-            0;
-          };
+        let dislikes = if (increase) { post.dislikesCount + 1 } else {
+          if (post.dislikesCount > 0) { post.dislikesCount - 1 : Nat } else { 0 };
         };
         (post.likesCount, dislikes);
       };
     };
-
-    let updatedPost : Post = {
-      post with
-      likesCount = newLikes;
-      dislikesCount = newDislikes;
-    };
+    let updatedPost : Post = { post with likesCount = newLikes; dislikesCount = newDislikes };
     posts.add(postId, updatedPost);
   };
 
@@ -973,7 +818,6 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view posts");
     };
-
     let topLevelPosts = posts.values().toArray().filter(
       func(post) {
         switch (post.parentId) {
@@ -982,7 +826,6 @@ actor {
         };
       }
     );
-
     topLevelPosts.sort(Post.compareByTimestamp).sliceToArray(
       offset,
       Nat.min(offset + limit, topLevelPosts.size()),
@@ -993,7 +836,6 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view replies");
     };
-
     posts.values().toArray().filter(
       func(post) {
         switch (post.parentId) {
@@ -1008,12 +850,9 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view full post threads");
     };
-
     switch (posts.get(postId)) {
       case (null) { null };
-      case (?post) {
-        ?{ post; replies = buildReplies(postId) };
-      };
+      case (?post) { ?{ post; replies = buildReplies(postId) } };
     };
   };
 
@@ -1026,7 +865,6 @@ actor {
         };
       }
     );
-
     replies.map(func(reply) { { post = reply; replies = buildReplies(reply.id) } });
   };
 
@@ -1035,11 +873,7 @@ actor {
     let winsWeighted = wins * 100;
     let numerator = winsWeighted + 5 * 100;
     let denominator = (games + 10).toInt() : Int;
-
-    if (denominator == 0) {
-      return 0;
-    };
-
+    if (denominator == 0) { return 0 };
     numerator / denominator;
   };
 
@@ -1055,48 +889,33 @@ actor {
   };
 
   public shared ({ caller }) func finalizeCurrentSeason(year : Nat) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admin can finalize season");
     };
-
     if (seasonSnapshots.containsKey(year)) {
       Runtime.trap("Season snapshot for this year already exists");
     };
-
     let currentLeaderboard = userStats.entries().toArray().sort(UserStats.compareByScore);
-
-    let snapshot : SeasonSnapshot = {
-      year;
-      leaderboard = currentLeaderboard;
-    };
-
+    let snapshot : SeasonSnapshot = { year; leaderboard = currentLeaderboard };
     seasonSnapshots.add(year, snapshot);
 
-    // Reset seasonal stats and award Season Champion badge
     let sortedLeaderboard = currentLeaderboard;
     let currentLeader = if (sortedLeaderboard.size() > 0) {
       sortedLeaderboard[0].0;
-    } else {
-      Runtime.trap("No players found to award season champion");
-    };
+    } else { Runtime.trap("No players found to award season champion") };
 
     for ((principal, _) in userStats.entries()) {
       let currentStats = switch (userStats.get(principal)) {
-        case (null) {
-          Runtime.trap("UserStats not found for principal");
-        };
+        case (null) { Runtime.trap("UserStats not found for principal") };
         case (?stats) { stats };
       };
-
       let resetStats = {
-        currentStats with
-        wins = 0;
+        currentStats with wins = 0;
         losses = 0;
         totalGames = 0;
       };
       userStats.add(principal, resetStats);
     };
-
     awardBadgeToUserInternal(currentLeader, "season-champion");
   };
 
@@ -1104,7 +923,6 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view past snapshots");
     };
-
     seasonSnapshots.values().toArray().sort(
       func(a, b) {
         if (a.year > b.year) { #less } else if (a.year < b.year) { #greater } else {
@@ -1118,12 +936,11 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view post count");
     };
-
     var count = 0;
     for ((_, post) in posts.entries()) {
       switch (post.parentId) {
         case (null) { count += 1 };
-        case (?_) { () };
+        case (?_) {};
       };
     };
     count;

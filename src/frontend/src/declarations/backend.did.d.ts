@@ -10,6 +10,12 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface AllTimeStats {
+  'wins' : bigint,
+  'bestStreakEver' : bigint,
+  'losses' : bigint,
+  'totalGames' : bigint,
+}
 export interface Availability { 'time' : string, 'notes' : [] | [string] }
 export type BadgeCriteria = { 'consecutiveWeeksAvailable' : bigint } |
   { 'firstMatchLogged' : bigint } |
@@ -133,6 +139,8 @@ export interface _SERVICE {
     [],
     Array<[Principal, UserProfile, bigint]>
   >,
+  'getAllTimeLeaderboard' : ActorMethod<[], Array<[Principal, AllTimeStats]>>,
+  'getAllTimeStats' : ActorMethod<[Principal], [] | [AllTimeStats]>,
   'getCallerAvailability' : ActorMethod<[bigint], [] | [Availability]>,
   'getCallerAvailableDaysWithLogs' : ActorMethod<[], Array<DayWithLog>>,
   'getCallerStats' : ActorMethod<[], [] | [T]>,
