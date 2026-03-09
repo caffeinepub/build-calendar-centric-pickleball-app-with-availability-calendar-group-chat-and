@@ -157,7 +157,6 @@ export interface _SERVICE {
     Array<[Principal, UserProfile, bigint]>
   >,
   'getAllTimeLeaderboard' : ActorMethod<[], Array<[Principal, AllTimeStats]>>,
-  'getAllTimeStats' : ActorMethod<[Principal], [] | [AllTimeStats]>,
   'getCallerAvailability' : ActorMethod<[bigint], [] | [Availability]>,
   'getCallerAvailableDaysWithLogs' : ActorMethod<[], Array<DayWithLog>>,
   'getCallerStats' : ActorMethod<[], [] | [T]>,
@@ -170,9 +169,11 @@ export interface _SERVICE {
   >,
   'getLeaderboard' : ActorMethod<[], Array<[Principal, T]>>,
   'getMyNotifications' : ActorMethod<[], Array<Notification>>,
+  'getMyRankHistory' : ActorMethod<[], Array<[bigint, bigint]>>,
   'getPastSeasonSnapshots' : ActorMethod<[], Array<SeasonSnapshot>>,
   'getPostWithReplies' : ActorMethod<[bigint], [] | [PostWithReplies]>,
   'getPosts' : ActorMethod<[bigint, bigint], Array<Post>>,
+  'getRankHistory' : ActorMethod<[Principal], Array<[bigint, bigint]>>,
   'getReplies' : ActorMethod<[bigint], Array<Post>>,
   'getScoreLeaderboardWithStats' : ActorMethod<
     [],

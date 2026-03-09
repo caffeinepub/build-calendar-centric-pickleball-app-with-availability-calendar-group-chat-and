@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
+import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import {
   useAddAvailability,
   useGetCallerAvailability,
@@ -37,6 +38,7 @@ import {
 export default function AddAvailabilityPage() {
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as { date?: string };
+  const isOnline = useOnlineStatus();
 
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
     if (search.date) {
@@ -80,7 +82,6 @@ export default function AddAvailabilityPage() {
         setMinute(parsed.minute);
         setPeriod(parsed.period);
       } else {
-        // Fallback to default if parsing fails
         const defaults = getDefaultTimeComponents();
         setHour(defaults.hour);
         setMinute(defaults.minute);
@@ -93,6 +94,11 @@ export default function AddAvailabilityPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!hour || !minute || !period) return;
+
+    if (!isOnline) {
+      toast.error("You are offline. Please reconnect and try again.");
+      return;
+    }
 
     const timeString = formatTimeString(hour, minute, period);
 
@@ -221,21 +227,32 @@ export default function AddAvailabilityPage() {
               />
             </div>
 
-            <div className="flex gap-3">
-              <Button
-                type="submit"
-                disabled={!isFormValid || isPending}
-                className="flex-1"
-              >
-                {isPending
-                  ? "Saving..."
-                  : existingAvailability
-                    ? "Update Availability"
-                    : "Add Availability"}
-              </Button>
-              <Button type="button" variant="outline" onClick={handleBack}>
-                Cancel
-              </Button>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-3">
+                <Button
+                  type="submit"
+                  disabled={!isFormValid || isPending || !isOnline}
+                  className="flex-1"
+                  data-ocid="availability.submit_button"
+                >
+                  {isPending
+                    ? "Saving..."
+                    : existingAvailability
+                      ? "Update Availability"
+                      : "Add Availability"}
+                </Button>
+                <Button type="button" variant="outline" onClick={handleBack}>
+                  Cancel
+                </Button>
+              </div>
+              {!isOnline && (
+                <p
+                  className="text-xs text-destructive"
+                  data-ocid="availability.error_state"
+                >
+                  You are offline
+                </p>
+              )}
             </div>
           </form>
         </CardContent>

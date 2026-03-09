@@ -12,10 +12,12 @@ import {
 import type { DayWithLog } from "../../backend";
 import { dateFromDayId, getDayId } from "../../lib/date";
 
-type TimeRange = "week" | "month" | "year" | "all";
+export type TimeRange = "week" | "month" | "year" | "all";
 
 interface ProfileWinLossChartProps {
   data: DayWithLog[];
+  /** If provided, use this range instead of internal state and hide the range selector */
+  externalRange?: TimeRange;
 }
 
 const RANGE_LABELS: Record<TimeRange, string> = {
@@ -42,15 +44,18 @@ function formatLabel(date: Date, range: TimeRange): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+export { RANGE_LABELS, formatLabel };
+
 export default function ProfileWinLossChart({
   data,
+  externalRange,
 }: ProfileWinLossChartProps) {
-  const [range, setRange] = useState<TimeRange>("month");
+  const [internalRange, setInternalRange] = useState<TimeRange>("month");
+  const range = externalRange ?? internalRange;
 
   const filteredData = useMemo(() => {
     const now = new Date();
 
-    // Compute cutoff dayId based on range, anchored to today
     let cutoffDayId: bigint | null = null;
 
     if (range === "week") {
@@ -66,32 +71,22 @@ export default function ProfileWinLossChart({
       cutoff.setFullYear(now.getFullYear() - 1);
       cutoffDayId = getDayId(cutoff);
     }
-    // 'all' has no cutoff
 
     const todayDayId = getDayId(now);
 
-    return (
-      data
-        .filter((entry) => {
-          // Never show future dates
-          if (entry.day > todayDayId) return false;
-          // Apply range cutoff
-          if (cutoffDayId !== null && entry.day < cutoffDayId) return false;
-          return true;
-        })
-        .map((entry) => ({
-          // Use dateFromDayId which correctly decodes YYYYMMDD format
-          date: formatLabel(dateFromDayId(entry.day), range),
-          wins: Number(entry.wins),
-          losses: Number(entry.losses),
-          // Keep raw dayId for sorting
-          _dayId: entry.day,
-        }))
-        // Sort ascending by date
-        .sort((a, b) =>
-          a._dayId < b._dayId ? -1 : a._dayId > b._dayId ? 1 : 0,
-        )
-    );
+    return data
+      .filter((entry) => {
+        if (entry.day > todayDayId) return false;
+        if (cutoffDayId !== null && entry.day < cutoffDayId) return false;
+        return true;
+      })
+      .map((entry) => ({
+        date: formatLabel(dateFromDayId(entry.day), range),
+        wins: Number(entry.wins),
+        losses: Number(entry.losses),
+        _dayId: entry.day,
+      }))
+      .sort((a, b) => (a._dayId < b._dayId ? -1 : a._dayId > b._dayId ? 1 : 0));
   }, [data, range]);
 
   const isEmpty =
@@ -100,25 +95,26 @@ export default function ProfileWinLossChart({
 
   return (
     <div className="space-y-4">
-      {/* Range selector */}
-      <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
-        {(Object.keys(RANGE_LABELS) as TimeRange[]).map((r) => (
-          <button
-            type="button"
-            key={r}
-            onClick={() => setRange(r)}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-              range === r
-                ? "bg-card text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {RANGE_LABELS[r]}
-          </button>
-        ))}
-      </div>
+      {/* Internal range selector — only shown when no external range is provided */}
+      {!externalRange && (
+        <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
+          {(Object.keys(RANGE_LABELS) as TimeRange[]).map((r) => (
+            <button
+              type="button"
+              key={r}
+              onClick={() => setInternalRange(r)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                range === r
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {RANGE_LABELS[r]}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* Chart */}
       {isEmpty ? (
         <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
           No match data for this time range

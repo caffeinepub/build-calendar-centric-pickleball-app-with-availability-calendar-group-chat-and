@@ -210,11 +210,6 @@ export const idlService = IDL.Service({
       [IDL.Vec(IDL.Tuple(IDL.Principal, AllTimeStats))],
       ['query'],
     ),
-  'getAllTimeStats' : IDL.Func(
-      [IDL.Principal],
-      [IDL.Opt(AllTimeStats)],
-      ['query'],
-    ),
   'getCallerAvailability' : IDL.Func(
       [IDL.Int],
       [IDL.Opt(Availability)],
@@ -244,6 +239,11 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getMyNotifications' : IDL.Func([], [IDL.Vec(Notification)], ['query']),
+  'getMyRankHistory' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(IDL.Int, IDL.Nat))],
+      ['query'],
+    ),
   'getPastSeasonSnapshots' : IDL.Func([], [IDL.Vec(SeasonSnapshot)], ['query']),
   'getPostWithReplies' : IDL.Func(
       [IDL.Int],
@@ -251,6 +251,11 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getPosts' : IDL.Func([IDL.Nat, IDL.Nat], [IDL.Vec(Post)], ['query']),
+  'getRankHistory' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Vec(IDL.Tuple(IDL.Int, IDL.Nat))],
+      ['query'],
+    ),
   'getReplies' : IDL.Func([IDL.Int], [IDL.Vec(Post)], ['query']),
   'getScoreLeaderboardWithStats' : IDL.Func(
       [],
@@ -491,11 +496,6 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Tuple(IDL.Principal, AllTimeStats))],
         ['query'],
       ),
-    'getAllTimeStats' : IDL.Func(
-        [IDL.Principal],
-        [IDL.Opt(AllTimeStats)],
-        ['query'],
-      ),
     'getCallerAvailability' : IDL.Func(
         [IDL.Int],
         [IDL.Opt(Availability)],
@@ -525,6 +525,11 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getMyNotifications' : IDL.Func([], [IDL.Vec(Notification)], ['query']),
+    'getMyRankHistory' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Int, IDL.Nat))],
+        ['query'],
+      ),
     'getPastSeasonSnapshots' : IDL.Func(
         [],
         [IDL.Vec(SeasonSnapshot)],
@@ -536,6 +541,11 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getPosts' : IDL.Func([IDL.Nat, IDL.Nat], [IDL.Vec(Post)], ['query']),
+    'getRankHistory' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Vec(IDL.Tuple(IDL.Int, IDL.Nat))],
+        ['query'],
+      ),
     'getReplies' : IDL.Func([IDL.Int], [IDL.Vec(Post)], ['query']),
     'getScoreLeaderboardWithStats' : IDL.Func(
         [],

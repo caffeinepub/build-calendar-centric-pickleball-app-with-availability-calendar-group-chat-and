@@ -1,4 +1,4 @@
-import { ArrowDown, Loader2, Paperclip, Send, X } from "lucide-react";
+import { ArrowUp, Loader2, Paperclip, Send, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -7,7 +7,8 @@ import { ExternalBlob } from "../../backend";
 import { useActor } from "../../hooks/useActor";
 import { useCreatePost } from "../../hooks/useQueries";
 import { buildThreadTree } from "../../lib/chatThreads";
-import { fileToUint8Array, validateImageFile } from "../../utils/file";
+import { storageService } from "../../services/storageService";
+import { validateImageFile } from "../../utils/file";
 import { ErrorState } from "../common/ErrorState";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -34,7 +35,7 @@ function getDateLabel(timestampNs: bigint): string {
   });
 }
 
-/** Returns the "YYYY-MM-DD" date string from a nanosecond timestamp */
+/** Returns a date key string from a nanosecond timestamp */
 function getDateKey(timestampNs: bigint): string {
   const ms = Number(timestampNs / 1_000_000n);
   const d = new Date(ms);
@@ -63,30 +64,29 @@ export default function ChatPanel() {
   const { mutate: createPost, isPending } = useCreatePost();
 
   // Scroll state
+  // Chat renders newest messages at the TOP, oldest at the bottom.
+  // "Jump to Latest" scrolls to TOP (scrollTop = 0).
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const [_isAtBottom, setIsAtBottom] = useState(true);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
-  const wasAtBottomRef = useRef(true);
-  // Flag to prevent load-older trigger after prepending old messages
+  const wasAtTopRef = useRef(true);
   const prependingRef = useRef(false);
-  // Flag to scroll to bottom on very first load
   const initialScrollDoneRef = useRef(false);
 
   // ── Fetch helpers ────────────────────────────────────────────────────────
 
   const fetchPage = useCallback(
-    async (pageOffset: bigint, prepend: boolean) => {
+    async (pageOffset: bigint, loadOlder: boolean) => {
       if (!actor || actorFetching) return;
       try {
+        // API returns newest-first. Keep that order: posts[0] = newest = shown at top.
         const page = await actor.getPosts(PAGE_SIZE, pageOffset);
-        // API returns newest-first; reverse so we can render oldest-at-top
-        const reversed = [...page].reverse();
-        if (prepend) {
+        if (loadOlder) {
+          // Older messages go to the BOTTOM (end of array)
           prependingRef.current = true;
-          setPosts((prev) => [...reversed, ...prev]);
+          setPosts((prev) => [...prev, ...page]);
         } else {
-          setPosts(reversed);
+          setPosts(page);
         }
         setHasMore(page.length >= Number(PAGE_SIZE));
         setOffset(pageOffset + PAGE_SIZE);
@@ -112,16 +112,15 @@ export default function ChatPanel() {
       if (!actor) return;
       try {
         const latestPage = await actor.getPosts(PAGE_SIZE, 0n);
-        const reversed = [...latestPage].reverse();
         setPosts((prev) => {
-          // Merge: keep all old posts that are older than the oldest in latestPage
-          // and append any new ones from latestPage not already in prev
           const prevIds = new Set(prev.map((p) => p.id.toString()));
-          const newPosts = reversed.filter(
+          // New posts are at the start of latestPage (newest-first)
+          const newPosts = latestPage.filter(
             (p) => !prevIds.has(p.id.toString()),
           );
           if (newPosts.length === 0) return prev;
-          return [...prev, ...newPosts];
+          // Prepend newest to front (top of chat)
+          return [...newPosts, ...prev];
         });
       } catch {
         // silent — polling failure shouldn't flash errors
@@ -132,58 +131,46 @@ export default function ChatPanel() {
 
   // ── Scroll handling ──────────────────────────────────────────────────────
 
-  const scrollToBottom = useCallback((smooth = false) => {
-    // Use a sentinel div at the bottom of the list for reliable scrolling.
-    // scrollIntoView is more dependable than manually computing scrollHeight
-    // because it always targets the actual end of the content after layout.
-    bottomRef.current?.scrollIntoView({
-      behavior: smooth ? "smooth" : "instant",
-    });
+  // Scroll to TOP = show newest messages
+  const scrollToTop = useCallback((smooth = false) => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    el.scrollTo({ top: 0, behavior: smooth ? "smooth" : "instant" });
   }, []);
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!actor || isLoadingOlder || !hasMore) return;
+    setIsLoadingOlder(true);
+    await fetchPage(offset, true);
+    setIsLoadingOlder(false);
+    requestAnimationFrame(() => {
+      prependingRef.current = false;
+    });
+  }, [actor, isLoadingOlder, hasMore, offset, fetchPage]);
 
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current;
     if (!el) return;
 
-    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    const atBottom = distFromBottom < 100;
-    setIsAtBottom(atBottom);
-    wasAtBottomRef.current = atBottom;
-    setShowJumpToLatest(!atBottom);
+    // "Top" = newest messages; show jump button when scrolled away from top
+    const distFromTop = el.scrollTop;
+    const atTop = distFromTop < 100;
+    wasAtTopRef.current = atTop;
+    setShowJumpToLatest(!atTop);
 
-    // Load older messages when near top
+    // Load older messages when near BOTTOM (oldest messages)
+    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     if (
-      el.scrollTop < 200 &&
+      distFromBottom < 200 &&
       hasMore &&
       !isLoadingOlder &&
       !prependingRef.current
     ) {
       loadOlderMessages();
     }
-  }, [hasMore, isLoadingOlder]);
+  }, [hasMore, isLoadingOlder, loadOlderMessages]);
 
-  const loadOlderMessages = useCallback(async () => {
-    if (!actor || isLoadingOlder || !hasMore) return;
-    setIsLoadingOlder(true);
-
-    // Remember scroll position before prepend
-    const el = scrollContainerRef.current;
-    const prevScrollHeight = el?.scrollHeight ?? 0;
-
-    await fetchPage(offset, true);
-
-    setIsLoadingOlder(false);
-
-    // Restore scroll position after DOM updates
-    requestAnimationFrame(() => {
-      if (el) {
-        el.scrollTop = el.scrollHeight - prevScrollHeight;
-        prependingRef.current = false;
-      }
-    });
-  }, [actor, isLoadingOlder, hasMore, offset, fetchPage]);
-
-  // Scroll to bottom on initial load
+  // Scroll to top on initial load (newest messages visible)
   useEffect(() => {
     if (
       !isLoadingInitial &&
@@ -191,24 +178,24 @@ export default function ChatPanel() {
       !initialScrollDoneRef.current
     ) {
       initialScrollDoneRef.current = true;
-      requestAnimationFrame(() => scrollToBottom(false));
+      requestAnimationFrame(() => scrollToTop(false));
     }
-  }, [isLoadingInitial, posts.length, scrollToBottom]);
+  }, [isLoadingInitial, posts.length, scrollToTop]);
 
-  // Auto-scroll when new messages arrive (only if was at bottom)
+  // Auto-scroll to top when new messages arrive (only if was at top)
   const prevPostsLengthRef = useRef(0);
   useEffect(() => {
     const grew = posts.length > prevPostsLengthRef.current;
     prevPostsLengthRef.current = posts.length;
     if (
       grew &&
-      wasAtBottomRef.current &&
+      wasAtTopRef.current &&
       initialScrollDoneRef.current &&
       !prependingRef.current
     ) {
-      requestAnimationFrame(() => scrollToBottom(false));
+      requestAnimationFrame(() => scrollToTop(false));
     }
-  }, [posts.length, scrollToBottom]);
+  }, [posts.length, scrollToTop]);
 
   // ── Image handling ───────────────────────────────────────────────────────
 
@@ -238,10 +225,18 @@ export default function ChatPanel() {
     e.preventDefault();
     if ((!message.trim() && !selectedImage) || isPending) return;
 
+    // Offline guard
+    if (!navigator.onLine) {
+      toast.error("You are offline. Your message cannot be sent right now.");
+      return;
+    }
+
     try {
       let imageBlob: ExternalBlob | null = null;
       if (selectedImage) {
-        const bytes = await fileToUint8Array(selectedImage);
+        // Compress before upload
+        const { bytes } =
+          await storageService.prepareImageForUpload(selectedImage);
         imageBlob = ExternalBlob.fromBytes(
           bytes as Uint8Array<ArrayBuffer>,
         ).withUploadProgress((pct) => setUploadProgress(pct));
@@ -255,8 +250,9 @@ export default function ChatPanel() {
             handleClearImage();
             setUploadProgress(0);
             toast.success("Message sent");
-            // Ensure we scroll to bottom after sending
-            wasAtBottomRef.current = true;
+            // After sending, scroll to top to show the new message
+            wasAtTopRef.current = true;
+            requestAnimationFrame(() => scrollToTop(false));
           },
           onError: (err: any) => {
             toast.error(err?.message || "Failed to send message");
@@ -271,23 +267,14 @@ export default function ChatPanel() {
   };
 
   // ── Handle post deletion ─────────────────────────────────────────────────
-  // Called by ThreadedPostTree after a successful delete mutation.
-  // Removes the deleted post AND any of its replies (parentId === postId)
-  // immediately from local state without waiting for a poll cycle.
   const handlePostDeleted = useCallback((postId: bigint) => {
     setPosts((prev) =>
       prev.filter((p) => p.id !== postId && p.parentId !== postId),
     );
   }, []);
 
-  // ── Build thread tree from top-level posts only ──────────────────────────
-  // All posts (including replies) are stored flat in state; buildThreadTree
-  // groups them into a nested structure.
+  // ── Build thread tree ────────────────────────────────────────────────────
   const threadTree = buildThreadTree(posts);
-
-  // ── Date separators ──────────────────────────────────────────────────────
-  // We need to inject date separators between thread roots that cross a day
-  // boundary. We'll track dates per top-level post.
   const topLevelPosts = posts.filter((p) => !p.parentId);
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -306,32 +293,9 @@ export default function ChatPanel() {
             className="h-full overflow-y-auto pr-1"
             onScroll={handleScroll}
           >
-            {/* Load-older indicator */}
-            {isLoadingOlder && (
-              <div className="flex justify-center py-3">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
-            )}
-
-            {/* Load-older button (when near top but hasMore) */}
-            {!isLoadingOlder && hasMore && posts.length > 0 && (
-              <div className="flex justify-center py-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-muted-foreground h-7"
-                  onClick={loadOlderMessages}
-                  data-ocid="chat.load_older.button"
-                >
-                  Load older messages
-                </Button>
-              </div>
-            )}
-
             <div className="space-y-4 pb-2" data-testid="chat-messages">
               {isLoadingInitial ? (
                 <div className="space-y-3 pt-2" data-ocid="chat.loading_state">
-                  {/* Row 1 — left aligned */}
                   <div className="flex items-start gap-2">
                     <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
                     <div className="space-y-1.5 flex-1 max-w-[65%]">
@@ -339,7 +303,6 @@ export default function ChatPanel() {
                       <Skeleton className="h-10 w-full rounded-xl" />
                     </div>
                   </div>
-                  {/* Row 2 — right aligned */}
                   <div className="flex items-start gap-2 flex-row-reverse">
                     <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
                     <div className="space-y-1.5 flex-1 max-w-[65%] items-end flex flex-col">
@@ -347,7 +310,6 @@ export default function ChatPanel() {
                       <Skeleton className="h-14 w-full rounded-xl" />
                     </div>
                   </div>
-                  {/* Row 3 — left aligned */}
                   <div className="flex items-start gap-2">
                     <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
                     <div className="space-y-1.5 flex-1 max-w-[55%]">
@@ -355,7 +317,6 @@ export default function ChatPanel() {
                       <Skeleton className="h-8 w-full rounded-xl" />
                     </div>
                   </div>
-                  {/* Row 4 — right aligned */}
                   <div className="flex items-start gap-2 flex-row-reverse">
                     <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
                     <div className="space-y-1.5 flex-1 max-w-[70%] items-end flex flex-col">
@@ -363,7 +324,6 @@ export default function ChatPanel() {
                       <Skeleton className="h-12 w-full rounded-xl" />
                     </div>
                   </div>
-                  {/* Row 5 — left aligned */}
                   <div className="flex items-start gap-2">
                     <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
                     <div className="space-y-1.5 flex-1 max-w-[60%]">
@@ -384,35 +344,58 @@ export default function ChatPanel() {
                   }}
                 />
               ) : posts.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8 text-sm">
+                <p
+                  className="text-center text-muted-foreground py-8 text-sm"
+                  data-ocid="chat.empty_state"
+                >
                   No messages yet. Start the conversation!
                 </p>
               ) : (
-                /* Render thread tree with date separators between top-level nodes */
                 renderTreeWithDateSeparators(
                   threadTree,
                   topLevelPosts,
                   handlePostDeleted,
                 )
               )}
-              {/* Bottom sentinel — scrollToBottom targets this element */}
+
+              {/* Load-older indicator / button at bottom (oldest messages) */}
+              {isLoadingOlder && (
+                <div className="flex justify-center py-3">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              )}
+              {!isLoadingOlder && hasMore && posts.length > 0 && (
+                <div className="flex justify-center py-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-muted-foreground h-7"
+                    onClick={loadOlderMessages}
+                    data-ocid="chat.load_older.button"
+                  >
+                    Load older messages
+                  </Button>
+                </div>
+              )}
+
+              {/* Bottom sentinel */}
               <div ref={bottomRef} />
             </div>
           </div>
 
-          {/* Jump to Latest button */}
+          {/* Jump to Latest button — scrolls to TOP where newest messages are */}
           {showJumpToLatest && (
-            <div className="absolute bottom-2 left-0 right-0 flex justify-center pointer-events-none">
+            <div className="absolute top-2 left-0 right-0 flex justify-center pointer-events-none">
               <Button
                 size="sm"
                 className="pointer-events-auto shadow-lg gap-1.5 text-xs h-8 px-3"
                 onClick={() => {
-                  scrollToBottom(true);
+                  scrollToTop(true);
                   setShowJumpToLatest(false);
                 }}
                 data-ocid="chat.jump_to_latest.button"
               >
-                <ArrowDown className="h-3.5 w-3.5" />
+                <ArrowUp className="h-3.5 w-3.5" />
                 Jump to Latest
               </Button>
             </div>
@@ -501,7 +484,6 @@ function renderTreeWithDateSeparators(
 ) {
   if (nodes.length === 0) return null;
 
-  // Map postId → date key for quick lookup
   const postDateMap = new Map<string, string>();
   for (const p of topLevelPosts) {
     postDateMap.set(p.id.toString(), getDateKey(p.timestamp));

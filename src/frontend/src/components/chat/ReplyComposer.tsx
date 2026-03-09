@@ -3,8 +3,8 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { ExternalBlob } from "../../backend";
 import { useCreatePost } from "../../hooks/useQueries";
+import { storageService } from "../../services/storageService";
 import { validateImageFile } from "../../utils/file";
-import { fileToUint8Array } from "../../utils/file";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 
@@ -53,11 +53,19 @@ export default function ReplyComposer({
     e.preventDefault();
     if ((!content.trim() && !selectedImage) || isPending) return;
 
+    // Offline guard
+    if (!navigator.onLine) {
+      toast.error("You are offline. Please reconnect to send replies.");
+      return;
+    }
+
     try {
       let imageBlob: ExternalBlob | null = null;
 
       if (selectedImage) {
-        const bytes = await fileToUint8Array(selectedImage);
+        // Compress before upload via storage service
+        const { bytes } =
+          await storageService.prepareImageForUpload(selectedImage);
         imageBlob = ExternalBlob.fromBytes(
           bytes as Uint8Array<ArrayBuffer>,
         ).withUploadProgress((percentage) => {

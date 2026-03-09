@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Calendar, ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { WeatherIcon } from "../components/calendar/WeatherIcon";
 import ChatPanel from "../components/chat/ChatPanel";
 import { Page, PageHeader } from "../components/layout/PageLayout";
 import { Button } from "../components/ui/button";
@@ -17,6 +18,10 @@ import {
   getMonthGridDays,
   isToday,
 } from "../lib/date";
+import {
+  type DayWeather,
+  fetchWeatherForecast,
+} from "../services/weatherService";
 
 export default function CalendarMonthPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -26,6 +31,21 @@ export default function CalendarMonthPage() {
   const gridDays = getMonthGridDays(year, month);
 
   const { data: countsMap } = useGetAllDayAvailabilityCounts();
+
+  // Weather forecast (5 days)
+  const [weatherByDate, setWeatherByDate] = useState<Map<string, DayWeather>>(
+    new Map(),
+  );
+
+  useEffect(() => {
+    fetchWeatherForecast().then((days) => {
+      const map = new Map<string, DayWeather>();
+      for (const d of days) {
+        map.set(d.date, d);
+      }
+      setWeatherByDate(map);
+    });
+  }, []);
 
   const goToPreviousMonth = () => {
     setCurrentDate(new Date(year, month - 1, 1));
@@ -76,6 +96,12 @@ export default function CalendarMonthPage() {
               const isCurrentMonth = date.getMonth() === month;
               const dayId = getDayId(date);
               const count = countsMap?.get(dayId.toString()) ?? 0;
+              // Build "YYYY-MM-DD" for weather lookup
+              const yyyy = date.getFullYear();
+              const mm = String(date.getMonth() + 1).padStart(2, "0");
+              const dd = String(date.getDate()).padStart(2, "0");
+              const weatherKey = `${yyyy}-${mm}-${dd}`;
+              const weather = weatherByDate.get(weatherKey);
 
               return (
                 <DayCell
@@ -84,6 +110,7 @@ export default function CalendarMonthPage() {
                   dayId={dayId}
                   isCurrentMonth={isCurrentMonth}
                   count={count}
+                  weather={weather}
                 />
               );
             })}
@@ -110,7 +137,14 @@ function DayCell({
   dayId,
   isCurrentMonth,
   count,
-}: { date: Date; dayId: bigint; isCurrentMonth: boolean; count: number }) {
+  weather,
+}: {
+  date: Date;
+  dayId: bigint;
+  isCurrentMonth: boolean;
+  count: number;
+  weather?: DayWeather;
+}) {
   const today = isToday(date);
 
   return (
@@ -126,6 +160,13 @@ function DayCell({
           ${today ? "border-primary border-2" : ""}
         `}
       >
+        {/* Weather icon — top-right corner, absolutely positioned, won't displace content */}
+        {weather && (
+          <div className="absolute top-1 right-1">
+            <WeatherIcon condition={weather.condition} size={11} />
+          </div>
+        )}
+
         <div
           className={`text-sm sm:text-base font-medium ${isCurrentMonth ? "text-foreground" : "text-muted-foreground"}`}
         >

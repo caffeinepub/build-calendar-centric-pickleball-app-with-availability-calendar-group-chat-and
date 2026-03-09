@@ -7,8 +7,9 @@ import {
   StickyNote,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { WeatherIcon } from "../components/calendar/WeatherIcon";
 import { InlineLoading } from "../components/common/LoadingState";
 import { Page, PageHeader } from "../components/layout/PageLayout";
 import {
@@ -37,6 +38,10 @@ import {
 } from "../hooks/useQueries";
 import { useUserDirectoryWithAvatars } from "../hooks/useUserDirectory";
 import { formatDate } from "../lib/date";
+import {
+  type DayWeather,
+  fetchWeatherForecast,
+} from "../services/weatherService";
 
 export default function DayDetailPage() {
   const { date } = useParams({ strict: false }) as { date: string };
@@ -50,6 +55,7 @@ export default function DayDetailPage() {
   const { mutate: deleteAvailability, isPending: isDeleting } =
     useDeleteCallerDayAvailability();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [weather, setWeather] = useState<DayWeather | null>(null);
 
   const callerPrincipal = identity?.getPrincipal().toString();
 
@@ -58,6 +64,18 @@ export default function DayDetailPage() {
     Number(date.slice(4, 6)) - 1,
     Number(date.slice(6, 8)),
   );
+
+  // Load weather for this specific date
+  useEffect(() => {
+    fetchWeatherForecast().then((days) => {
+      const yyyy = date.slice(0, 4);
+      const mm = date.slice(4, 6);
+      const dd = date.slice(6, 8);
+      const weatherKey = `${yyyy}-${mm}-${dd}`;
+      const found = days.find((d) => d.date === weatherKey);
+      setWeather(found ?? null);
+    });
+  }, [date]);
 
   const handleDelete = () => {
     deleteAvailability(dayId, {
@@ -114,6 +132,28 @@ export default function DayDetailPage() {
         />
         <Card>
           <CardContent className="py-6 space-y-4">
+            {/* Weather detail card */}
+            {weather && (
+              <div
+                className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/40"
+                data-ocid="calendar.weather_card"
+              >
+                <WeatherIcon condition={weather.condition} size={24} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium capitalize">
+                    {weather.description}
+                  </p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
+                    <span>
+                      {weather.tempHigh}° / {weather.tempLow}°F
+                    </span>
+                    {weather.precipChance > 0 && (
+                      <span>💧 {weather.precipChance}% precip</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             <Link to="/add-availability" search={{ date }}>
               <Button className="w-full gap-2">
                 <Plus className="h-4 w-4" />
@@ -149,6 +189,29 @@ export default function DayDetailPage() {
           <CardTitle>Available Players</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Weather detail card — above availability list */}
+          {weather && (
+            <div
+              className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/40"
+              data-ocid="calendar.weather_card"
+            >
+              <WeatherIcon condition={weather.condition} size={24} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium capitalize">
+                  {weather.description}
+                </p>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
+                  <span>
+                    {weather.tempHigh}° / {weather.tempLow}°F
+                  </span>
+                  {weather.precipChance > 0 && (
+                    <span>💧 {weather.precipChance}% precip</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <Link to="/add-availability" search={{ date }}>
             <Button className="w-full gap-2">
               <Plus className="h-4 w-4" />
@@ -187,6 +250,7 @@ export default function DayDetailPage() {
                           className="gap-2 text-destructive hover:text-destructive"
                           onClick={() => setShowDeleteDialog(true)}
                           disabled={isDeleting}
+                          data-ocid="availability.delete_button"
                         >
                           <Trash2 className="h-4 w-4" />
                           Delete
@@ -225,8 +289,14 @@ export default function DayDetailPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
+            <AlertDialogCancel data-ocid="availability.cancel_button">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              data-ocid="availability.confirm_button"
+            >
               {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -173,7 +173,6 @@ export interface backendInterface {
     getAllLoginTimestamps(): Promise<Array<[Principal, bigint]>>;
     getAllRegisteredUsers(): Promise<Array<[Principal, UserProfile, bigint]>>;
     getAllTimeLeaderboard(): Promise<Array<[Principal, AllTimeStats]>>;
-    getAllTimeStats(user: Principal): Promise<AllTimeStats | null>;
     getCallerAvailability(day: bigint): Promise<Availability | null>;
     getCallerAvailableDaysWithLogs(): Promise<Array<DayWithLog>>;
     getCallerStats(): Promise<T | null>;
@@ -183,9 +182,11 @@ export interface backendInterface {
     getDayAvailability(day: bigint): Promise<Array<[Principal, Availability]>>;
     getLeaderboard(): Promise<Array<[Principal, T]>>;
     getMyNotifications(): Promise<Array<Notification>>;
+    getMyRankHistory(): Promise<Array<[bigint, bigint]>>;
     getPastSeasonSnapshots(): Promise<Array<SeasonSnapshot>>;
     getPostWithReplies(postId: bigint): Promise<PostWithReplies | null>;
     getPosts(limit: bigint, offset: bigint): Promise<Array<Post>>;
+    getRankHistory(user: Principal): Promise<Array<[bigint, bigint]>>;
     getReplies(postId: bigint): Promise<Array<Post>>;
     getScoreLeaderboardWithStats(): Promise<Array<[Principal, T, bigint]>>;
     getTopPlayersByScore(limit: bigint): Promise<Array<[Principal, T]>>;

@@ -785,3 +785,18 @@ export function useMarkAllNotificationsRead() {
     },
   });
 }
+
+// ─── Rank history queries ──────────────────────────────────────────────────────
+
+export function useGetMyRankHistory() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Array<[bigint, bigint]>>({
+    queryKey: ["myRankHistory"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getMyRankHistory();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}

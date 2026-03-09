@@ -17,7 +17,6 @@ import Set "mo:core/Set";
 
 import Option "mo:core/Option";
 
-
 actor {
   let accessControlState = AccessControl.initState();
   include MixinStorage();
@@ -168,6 +167,8 @@ actor {
   var notifications : Map.Map<(Principal, Int), Notification> = Map.empty<(Principal, Int), Notification>();
   var rankSnapshot : Map.Map<Principal, Nat> = Map.empty<Principal, Nat>();
 
+  let rankHistory : Map.Map<(Principal, Int), Nat> = Map.empty<(Principal, Int), Nat>();
+
   public query ({ caller }) func getAllTimeLeaderboard() : async [(Principal, AllTimeStats)] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view all-time leaderboard");
@@ -182,13 +183,6 @@ actor {
       };
     };
     allTimeStats.entries().toArray().sort(compareByAllTimeScore);
-  };
-
-  public query ({ caller }) func getAllTimeStats(user : Principal) : async ?AllTimeStats {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view all-time stats");
-    };
-    allTimeStats.get(user);
   };
 
   public shared ({ caller }) func createBadgeDefinition(definition : BadgeDefinition) : async () {
@@ -1129,6 +1123,33 @@ actor {
         };
       };
       rankSnapshot.add(entry.0, rank);
+      rankHistory.add((entry.0, Time.now()), rank);
     };
+  };
+
+  public query ({ caller }) func getRankHistory(user : Principal) : async [(Int, Nat)] {
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own rank history");
+    };
+    let entries = rankHistory.entries().toArray();
+    let filteredEntries = entries.filter(
+      func((key, _)) { key.0 == user }
+    );
+    filteredEntries.map(
+      func((key, value)) { (key.1, value) }
+    );
+  };
+
+  public query ({ caller }) func getMyRankHistory() : async [(Int, Nat)] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view rank history");
+    };
+    let entries = rankHistory.entries().toArray();
+    let filteredEntries = entries.filter(
+      func((key, _)) { key.0 == caller }
+    );
+    filteredEntries.map(
+      func((key, value)) { (key.1, value) }
+    );
   };
 };

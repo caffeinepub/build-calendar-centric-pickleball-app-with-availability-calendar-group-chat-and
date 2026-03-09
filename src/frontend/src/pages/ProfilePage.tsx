@@ -1,11 +1,24 @@
-import { Award, Flame, Star, TrendingUp, User } from "lucide-react";
+import {
+  Award,
+  BarChart2,
+  Flame,
+  LineChart,
+  Star,
+  TrendingUp,
+  User,
+} from "lucide-react";
+import { useState } from "react";
 import type { DayWithLog } from "../backend";
 import { Page, PageHeader } from "../components/layout/PageLayout";
 import ProfileBadges from "../components/profile/ProfileBadges";
 import ProfileCard from "../components/profile/ProfileCard";
 import ProfileLeaderboardRanks from "../components/profile/ProfileLeaderboardRanks";
 import ProfileMatchHistory from "../components/profile/ProfileMatchHistory";
-import ProfileWinLossChart from "../components/profile/ProfileWinLossChart";
+import ProfileRankHistoryChart from "../components/profile/ProfileRankHistoryChart";
+import ProfileWinLossChart, {
+  type TimeRange,
+  RANGE_LABELS,
+} from "../components/profile/ProfileWinLossChart";
 import {
   Card,
   CardContent,
@@ -18,6 +31,7 @@ import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useGetCallerMatchHistory,
   useGetCallerStats,
+  useGetMyRankHistory,
 } from "../hooks/useQueries";
 
 /**
@@ -101,7 +115,7 @@ function StreakStats() {
             Current Streak
           </p>
           <p className="text-2xl font-bold leading-tight">
-            {currentStreak > 0 ? `+${currentStreak}` : "—"}
+            {currentStreak > 0 ? `+${currentStreak}` : "\u2014"}
           </p>
           <p className="text-xs text-muted-foreground">
             {currentStreak > 0 ? "win streak" : "no active streak"}
@@ -118,11 +132,79 @@ function StreakStats() {
             Best Streak
           </p>
           <p className="text-2xl font-bold leading-tight">
-            {bestStreak > 0 ? `+${bestStreak}` : "—"}
+            {bestStreak > 0 ? `+${bestStreak}` : "\u2014"}
           </p>
           <p className="text-xs text-muted-foreground">all-time record</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+type ChartView = "winloss" | "rankhistory";
+
+function PerformanceCharts({ matchHistory }: { matchHistory: DayWithLog[] }) {
+  const [chartView, setChartView] = useState<ChartView>("winloss");
+  const [range, setRange] = useState<TimeRange>("month");
+  const { data: rankHistory = [] } = useGetMyRankHistory();
+
+  return (
+    <div className="space-y-4">
+      {/* Chart type toggle */}
+      <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
+        <button
+          type="button"
+          data-ocid="profile.winloss.toggle"
+          onClick={() => setChartView("winloss")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+            chartView === "winloss"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <BarChart2 className="h-3.5 w-3.5" />
+          Win / Loss
+        </button>
+        <button
+          type="button"
+          data-ocid="profile.rankhistory.toggle"
+          onClick={() => setChartView("rankhistory")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+            chartView === "rankhistory"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <LineChart className="h-3.5 w-3.5" />
+          Rank History
+        </button>
+      </div>
+
+      {/* Shared time range selector */}
+      <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
+        {(Object.keys(RANGE_LABELS) as TimeRange[]).map((r) => (
+          <button
+            type="button"
+            key={r}
+            data-ocid={`profile.range.${r}.toggle`}
+            onClick={() => setRange(r)}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              range === r
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {RANGE_LABELS[r]}
+          </button>
+        ))}
+      </div>
+
+      {/* Chart content */}
+      {chartView === "winloss" ? (
+        <ProfileWinLossChart data={matchHistory} externalRange={range} />
+      ) : (
+        <ProfileRankHistoryChart data={rankHistory} range={range} />
+      )}
     </div>
   );
 }
@@ -171,12 +253,14 @@ export default function ProfilePage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            Win / Loss Chart
+            Performance
           </CardTitle>
-          <CardDescription>Your performance over time</CardDescription>
+          <CardDescription>
+            Win/Loss history and rank changes over time
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <ProfileWinLossChart data={matchHistory} />
+          <PerformanceCharts matchHistory={matchHistory} />
         </CardContent>
       </Card>
 
@@ -187,7 +271,7 @@ export default function ProfilePage() {
             Badges & Achievements
           </CardTitle>
           <CardDescription>
-            All available badges — earned and in progress
+            All available badges \u2014 earned and in progress
           </CardDescription>
         </CardHeader>
         <CardContent>
