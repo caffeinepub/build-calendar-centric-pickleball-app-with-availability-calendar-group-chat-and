@@ -73,10 +73,9 @@ import {
   useRemoveDailyWin,
 } from "../hooks/useQueries";
 import { useUserDirectoryWithAvatars } from "../hooks/useUserDirectory";
-import { formatDayId } from "../lib/date";
+import { formatDayId, getDayId } from "../lib/date";
 
 // ─── LeaderboardPlayerCell ────────────────────────────────────────────────────
-// Fetches badge data per player so hooks rules stay clean inside .map()
 
 interface LeaderboardPlayerCellProps {
   principal: Principal;
@@ -141,7 +140,7 @@ function computeCurrentStreak(history: DayWithLog[]): number {
 /** Returns days remaining until Dec 31 of current year */
 function getDaysRemainingInSeason(): number {
   const today = new Date();
-  const yearEnd = new Date(today.getFullYear(), 11, 31); // Dec 31
+  const yearEnd = new Date(today.getFullYear(), 11, 31);
   const msPerDay = 1000 * 60 * 60 * 24;
   return Math.max(
     0,
@@ -349,6 +348,7 @@ function LeaderboardTable({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function LeaderboardPage() {
+  // ── All hooks must be called unconditionally at the top level ─────────────
   const { data: leaderboard = [] } = useGetLeaderboard();
   const {
     data: currentSeasonLeaderboard = [],
@@ -382,8 +382,6 @@ export default function LeaderboardPage() {
   const [rankChanges, setRankChanges] = useState<
     Map<string, "up" | "down" | "same">
   >(new Map());
-
-  // Past season expand state
   const [expandedSeasons, setExpandedSeasons] = useState<Set<string>>(
     new Set(),
   );
@@ -392,14 +390,11 @@ export default function LeaderboardPage() {
   const currentYear = new Date().getFullYear();
   const daysRemaining = getDaysRemainingInSeason();
 
-  // Notification-based rank change toasts
   const { data: notifications = [] } = useGetMyNotifications();
   const { mutate: markNotifRead } = useMarkNotificationRead();
   const shownNotifIdsRef = useRef<Set<string>>(new Set());
 
-  // Map AllTimeStats to UserStats shape for the leaderboard table.
-  // bestStreakEver is placed in both streak and bestStreak so the Streak column
-  // shows the all-time best streak for every player.
+  // Map AllTimeStats to UserStats shape
   const allTimeLeaderboard: Array<[Principal, UserStats]> =
     allTimeLeaderboardRaw.map(([principal, ats]) => [
       principal,
@@ -412,9 +407,13 @@ export default function LeaderboardPage() {
       } as UserStats,
     ]);
 
-  // Sort match history in descending order (newest first) for the dropdown
+  // Sort match history newest-first, then filter to past dates only
   const sortedMatchHistory = [...matchHistory].sort((a, b) =>
     a.day > b.day ? -1 : a.day < b.day ? 1 : 0,
+  );
+  const today = getDayId(new Date());
+  const pastMatchHistory = sortedMatchHistory.filter(
+    (entry) => entry.day <= today,
   );
 
   // Notification-based rank change toasts
@@ -446,13 +445,11 @@ export default function LeaderboardPage() {
     }
   }, [notifications, markNotifRead]);
 
-  // Compute rank change visual indicators from current leaderboard order
+  // Rank change visual indicators
   useEffect(() => {
     if (leaderboard.length === 0) return;
 
     const changes = new Map<string, "up" | "down" | "same">();
-
-    // Build direction map from rankChange notifications for current user's neighbors
     const rankNotifMap = new Map<string, "up" | "down">();
     for (const notif of notifications) {
       if (notif.category !== NotificationCategory.rankChange) continue;
@@ -473,12 +470,14 @@ export default function LeaderboardPage() {
     setRankChanges(changes);
   }, [leaderboard, notifications, callerPrincipal]);
 
-  // Auto-select the most recent day when match history loads
+  // Auto-select the most recent past day when match history loads
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pastMatchHistory[0] used but length tracks list changes
   useEffect(() => {
-    if (isDaysFetched && sortedMatchHistory.length > 0 && !selectedDay) {
-      setSelectedDay(sortedMatchHistory[0].day.toString());
+    if (isDaysFetched && pastMatchHistory.length > 0 && !selectedDay) {
+      setSelectedDay(pastMatchHistory[0].day.toString());
     }
-  }, [isDaysFetched, sortedMatchHistory, selectedDay]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDaysFetched, pastMatchHistory.length, selectedDay]);
 
   const isPending =
     isRecordingWin || isRecordingLoss || isRemovingWin || isRemovingLoss;
@@ -576,7 +575,6 @@ export default function LeaderboardPage() {
     });
   };
 
-  // Table props shared between current-season and all-time tabs
   const sharedTableProps = {
     callerPrincipal,
     currentStreak,
@@ -609,7 +607,7 @@ export default function LeaderboardPage() {
                 <Skeleton className="h-9 w-full" />
               </div>
             </div>
-          ) : sortedMatchHistory.length === 0 ? (
+          ) : pastMatchHistory.length === 0 ? (
             <Alert>
               <AlertDescription>
                 You need to add availability dates before recording match
@@ -633,7 +631,7 @@ export default function LeaderboardPage() {
                     <SelectValue placeholder="Choose a date..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {sortedMatchHistory.map((entry) => (
+                    {pastMatchHistory.map((entry) => (
                       <SelectItem
                         key={entry.day.toString()}
                         value={entry.day.toString()}

@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { useGetCallerMatchHistory } from "../../hooks/useQueries";
-import { formatDayId } from "../../lib/date";
+import { formatDayId, getDayId } from "../../lib/date";
 import { ErrorState } from "../common/ErrorState";
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
@@ -39,21 +39,29 @@ export default function ProfileMatchHistory() {
     );
   }
 
-  if (!matchHistory || matchHistory.length === 0) {
+  // Filter: only past dates with at least one recorded result
+  const today = getDayId(new Date());
+  const filtered = [...(matchHistory || [])]
+    .filter((entry) => {
+      // Exclude future dates (strictly after today)
+      if (entry.day > today) return false;
+      // Exclude entries with no results
+      if (entry.wins === 0n && entry.losses === 0n) return false;
+      return true;
+    })
+    .sort((a, b) => (a.day > b.day ? -1 : a.day < b.day ? 1 : 0));
+
+  if (filtered.length === 0) {
     return (
       <p className="text-center text-muted-foreground py-4">
-        No match history yet. Record wins and losses on the Leaderboard page.
+        No completed match history yet. Record wins and losses on the
+        Leaderboard page.
       </p>
     );
   }
 
-  // Sort newest first for display
-  const sorted = [...matchHistory].sort((a, b) =>
-    a.day > b.day ? -1 : a.day < b.day ? 1 : 0,
-  );
-
-  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
-  const pageItems = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageItems = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
     <div className="space-y-3">
@@ -109,7 +117,7 @@ export default function ProfileMatchHistory() {
       )}
 
       <p className="text-xs text-muted-foreground text-right">
-        {sorted.length} total {sorted.length === 1 ? "entry" : "entries"}
+        {filtered.length} total {filtered.length === 1 ? "entry" : "entries"}
       </p>
     </div>
   );

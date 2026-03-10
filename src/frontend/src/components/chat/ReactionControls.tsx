@@ -38,16 +38,31 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
   const { mutate: removeReaction, isPending: isRemovingReaction } =
     useRemoveReaction();
 
+  const postIdStr = post.id.toString();
+
   // Track optimistic counts
   const [optimisticLikes, setOptimisticLikes] = useState<number | null>(null);
   const [optimisticDislikes, setOptimisticDislikes] = useState<number | null>(
     null,
   );
+
   // Track which emoji the user has selected (null = no reaction).
-  // Initialise from module-level store so selections survive remounts.
-  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(
-    () => emojiSelectionStore.get(post.id.toString()) ?? null,
-  );
+  // Initialise from module-level store first, then fall back to localStorage.
+  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(() => {
+    const stored = emojiSelectionStore.get(postIdStr);
+    if (stored) return stored;
+    try {
+      const ls = localStorage.getItem(`emoji_sel_${postIdStr}`);
+      if (ls) {
+        emojiSelectionStore.set(postIdStr, ls); // sync to memory store
+        return ls;
+      }
+    } catch {
+      // localStorage may be unavailable in some environments
+    }
+    return null;
+  });
+
   // Controls visibility of the emoji picker (opened via smiley button)
   const [showPicker, setShowPicker] = useState(false);
 
@@ -88,7 +103,10 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
       const prevEmojiDef = EMOJI_REACTIONS.find((e) => e.emoji === prevEmoji);
       const prevType = prevEmojiDef?.type ?? ReactionType.like;
 
-      emojiSelectionStore.delete(post.id.toString());
+      emojiSelectionStore.delete(postIdStr);
+      try {
+        localStorage.removeItem(`emoji_sel_${postIdStr}`);
+      } catch {}
       setSelectedEmoji(null);
       if (prevType === ReactionType.like) {
         setOptimisticLikes(likesCount - 1);
@@ -104,7 +122,10 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
         onError: (error: any) => {
           setOptimisticLikes(null);
           setOptimisticDislikes(null);
-          emojiSelectionStore.set(post.id.toString(), prevEmoji);
+          emojiSelectionStore.set(postIdStr, prevEmoji);
+          try {
+            localStorage.setItem(`emoji_sel_${postIdStr}`, prevEmoji);
+          } catch {}
           setSelectedEmoji(prevEmoji);
           toast.error(error?.message || "Failed to remove reaction");
         },
@@ -117,7 +138,10 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
         : null;
       const prevType = prevEmojiDef?.type ?? null;
 
-      emojiSelectionStore.set(post.id.toString(), emoji);
+      emojiSelectionStore.set(postIdStr, emoji);
+      try {
+        localStorage.setItem(`emoji_sel_${postIdStr}`, emoji);
+      } catch {}
       setSelectedEmoji(emoji);
 
       // Adjust counts optimistically
@@ -147,9 +171,15 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
             setOptimisticLikes(null);
             setOptimisticDislikes(null);
             if (prevEmoji) {
-              emojiSelectionStore.set(post.id.toString(), prevEmoji);
+              emojiSelectionStore.set(postIdStr, prevEmoji);
+              try {
+                localStorage.setItem(`emoji_sel_${postIdStr}`, prevEmoji);
+              } catch {}
             } else {
-              emojiSelectionStore.delete(post.id.toString());
+              emojiSelectionStore.delete(postIdStr);
+              try {
+                localStorage.removeItem(`emoji_sel_${postIdStr}`);
+              } catch {}
             }
             setSelectedEmoji(prevEmoji);
             toast.error(error?.message || "Failed to add reaction");
@@ -160,9 +190,6 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
   };
 
   // Build the list of reaction pills to always show (count > 0 or selected by user)
-  // The backend only tracks a single likesCount for all like-mapped emojis (👍 😂 ❤️ 🔥 😮).
-  // We attribute that total count to whichever like-mapped emoji the current user selected,
-  // so we never show the 👍 pill just because another emoji bumped likesCount.
   const selectedLikeEmoji = selectedEmoji
     ? EMOJI_REACTIONS.find(
         (e) => e.emoji === selectedEmoji && e.type === ReactionType.like,
@@ -175,14 +202,10 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
     if (emojiDef.emoji === "👎") {
       count = dislikesCount;
     } else if (emojiDef.type === ReactionType.like) {
-      // Only show likesCount on the emoji the user actually picked.
-      // If the user hasn't picked any like-mapped emoji, show likesCount on 👍
-      // only if it is genuinely > 0 AND no other like-mapped emoji is selected.
       if (selectedLikeEmoji) {
         count = emojiDef.emoji === selectedLikeEmoji.emoji ? likesCount : 0;
       } else {
-        // No like-mapped emoji selected by this user — show total on 👍 as a fallback
-        // but only if likesCount > 0 and this is the 👍 slot.
+        // No like-mapped emoji selected by this user — show total on 👍 only
         count = emojiDef.emoji === "👍" ? likesCount : 0;
       }
     }

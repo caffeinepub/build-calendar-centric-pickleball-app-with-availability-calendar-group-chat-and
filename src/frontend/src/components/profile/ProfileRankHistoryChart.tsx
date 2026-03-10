@@ -8,11 +8,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { dateFromDayId } from "../../lib/date";
 
 type TimeRange = "week" | "month" | "year" | "all";
 
 interface ProfileRankHistoryChartProps {
-  data: Array<[bigint, bigint]>; // [timestamp_nanoseconds, rank]
+  data: Array<[bigint, bigint]>; // [timestamp_nanoseconds_or_dayId, rank]
   range: TimeRange;
 }
 
@@ -51,7 +52,12 @@ export default function ProfileRankHistoryChart({
 
     return data
       .map(([tsNanos, rank]) => {
-        const ms = Number(tsNanos / 1_000_000n);
+        // Day IDs are compact integers like 20260310 (< 100_000_000)
+        // Nanosecond timestamps are huge numbers (> 1_000_000_000_000_000_000)
+        const isDayId = tsNanos < 100_000_000n;
+        const ms = isDayId
+          ? dateFromDayId(tsNanos).getTime()
+          : Number(tsNanos / 1_000_000n);
         return {
           ms,
           rank: Number(rank),
@@ -70,7 +76,6 @@ export default function ProfileRankHistoryChart({
   const ranks = filteredData.map((d) => d.rank);
   const maxRank = ranks.length > 0 ? Math.max(...ranks) : 10;
   const minRank = ranks.length > 0 ? Math.min(...ranks) : 1;
-  // Add padding so the line doesn't clip the top/bottom
   const domainMax = Math.max(maxRank + 1, minRank + 3);
   const domainMin = Math.max(1, minRank - 1);
 

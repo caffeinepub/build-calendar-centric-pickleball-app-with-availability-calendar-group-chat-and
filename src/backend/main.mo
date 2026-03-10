@@ -14,7 +14,6 @@ import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import Set "mo:core/Set";
-
 import Option "mo:core/Option";
 
 actor {
@@ -590,7 +589,7 @@ actor {
       } else { 0 };
     };
     dailyLogs.add((caller, day), updatedLog);
-    updateOverallStats(caller);
+    updateOverallStats(caller, day);
   };
 
   func updateDailyLog(user : Principal, day : Int, isWin : Bool) {
@@ -603,10 +602,10 @@ actor {
       losses = if (isWin) { currentLog.losses } else { currentLog.losses + 1 };
     };
     dailyLogs.add((user, day), updatedLog);
-    updateOverallStats(user);
+    updateOverallStats(user, day);
   };
 
-  func updateOverallStats(user : Principal) {
+  func updateOverallStats(user : Principal, gameDay : Int) {
     var totalWins = 0;
     var totalLosses = 0;
     for (((principal, _), log) in dailyLogs.entries()) {
@@ -626,7 +625,6 @@ actor {
     userStats.add(user, stats);
     evaluateAndAwardBadges(user, stats);
 
-    // Update all-time stats - recompute from dailyLogs, never reset
     ensureAllTimeStatsInitialized(user);
     let existingAllTime = switch (allTimeStats.get(user)) {
       case (null) { { wins = 0; losses = 0; totalGames = 0; bestStreakEver = 0 } };
@@ -644,7 +642,7 @@ actor {
         bestStreakEver = newBestStreakEver;
       },
     );
-    updateRankSnapshots();
+    updateRankSnapshots(gameDay);
   };
 
   func calculateStreak(user : Principal) : Int {
@@ -1094,7 +1092,7 @@ actor {
     };
   };
 
-  func updateRankSnapshots() {
+  func updateRankSnapshots(gameDay : Int) {
     let sortedLeaderboard = userStats.entries().toArray().sort(
       func(a, b) {
         Int.compare(
@@ -1123,7 +1121,7 @@ actor {
         };
       };
       rankSnapshot.add(entry.0, rank);
-      rankHistory.add((entry.0, Time.now()), rank);
+      rankHistory.add((entry.0, gameDay), rank);
     };
   };
 

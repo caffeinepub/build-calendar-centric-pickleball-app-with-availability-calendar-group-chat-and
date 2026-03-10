@@ -18,10 +18,7 @@ import {
   getMonthGridDays,
   isToday,
 } from "../lib/date";
-import {
-  type DayWeather,
-  fetchWeatherForecast,
-} from "../services/weatherService";
+import { type DayWeather, fetchAllWeather } from "../services/weatherService";
 
 export default function CalendarMonthPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -32,19 +29,13 @@ export default function CalendarMonthPage() {
 
   const { data: countsMap } = useGetAllDayAvailabilityCounts();
 
-  // Weather forecast (5 days)
+  // Weather: today (current API) + 5-day forecast
   const [weatherByDate, setWeatherByDate] = useState<Map<string, DayWeather>>(
     new Map(),
   );
 
   useEffect(() => {
-    fetchWeatherForecast().then((days) => {
-      const map = new Map<string, DayWeather>();
-      for (const d of days) {
-        map.set(d.date, d);
-      }
-      setWeatherByDate(map);
-    });
+    fetchAllWeather().then(setWeatherByDate);
   }, []);
 
   const goToPreviousMonth = () => {
@@ -96,7 +87,6 @@ export default function CalendarMonthPage() {
               const isCurrentMonth = date.getMonth() === month;
               const dayId = getDayId(date);
               const count = countsMap?.get(dayId.toString()) ?? 0;
-              // Build "YYYY-MM-DD" for weather lookup
               const yyyy = date.getFullYear();
               const mm = String(date.getMonth() + 1).padStart(2, "0");
               const dd = String(date.getDate()).padStart(2, "0");
@@ -160,7 +150,7 @@ function DayCell({
           ${today ? "border-primary border-2" : ""}
         `}
       >
-        {/* Weather icon — top-right corner, absolutely positioned, won't displace content */}
+        {/* Weather icon — top-right corner, absolutely positioned */}
         {weather && (
           <div className="absolute top-1 right-1">
             <WeatherIcon condition={weather.condition} size={11} />

@@ -55,6 +55,9 @@ export default function ChatPanel() {
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // refreshFlag: increment to trigger a full re-fetch (e.g. after posting a reply)
+  const [refreshFlag, setRefreshFlag] = useState(0);
+
   // Compose state
   const [message, setMessage] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -64,8 +67,6 @@ export default function ChatPanel() {
   const { mutate: createPost, isPending } = useCreatePost();
 
   // Scroll state
-  // Chat renders newest messages at the TOP, oldest at the bottom.
-  // "Jump to Latest" scrolls to TOP (scrollTop = 0).
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
@@ -75,18 +76,49 @@ export default function ChatPanel() {
 
   // ── Fetch helpers ────────────────────────────────────────────────────────
 
+  /**
+   * Fetches replies for all top-level posts and merges them into a flat array.
+   * This ensures replies are included in the thread tree.
+   */
+  const fetchRepliesForPosts = useCallback(
+    async (topLevelPosts: Post[]): Promise<Post[]> => {
+      if (!actor || topLevelPosts.length === 0) return topLevelPosts;
+      try {
+        const replyArrays = await Promise.all(
+          topLevelPosts.map((p) => actor.getReplies(p.id)),
+        );
+        const allReplies = replyArrays.flat();
+        // Merge: top-level posts + their replies (deduplicated)
+        const seen = new Set(topLevelPosts.map((p) => p.id.toString()));
+        const newReplies = allReplies.filter((r) => !seen.has(r.id.toString()));
+        return [...topLevelPosts, ...newReplies];
+      } catch {
+        return topLevelPosts;
+      }
+    },
+    [actor],
+  );
+
   const fetchPage = useCallback(
     async (pageOffset: bigint, loadOlder: boolean) => {
       if (!actor || actorFetching) return;
       try {
-        // API returns newest-first. Keep that order: posts[0] = newest = shown at top.
         const page = await actor.getPosts(PAGE_SIZE, pageOffset);
+        const withReplies = await fetchRepliesForPosts(page);
+
         if (loadOlder) {
           // Older messages go to the BOTTOM (end of array)
           prependingRef.current = true;
-          setPosts((prev) => [...prev, ...page]);
+          setPosts((prev) => {
+            // Deduplicate against existing posts
+            const existingIds = new Set(prev.map((p) => p.id.toString()));
+            const newPosts = withReplies.filter(
+              (p) => !existingIds.has(p.id.toString()),
+            );
+            return [...prev, ...newPosts];
+          });
         } else {
-          setPosts(page);
+          setPosts(withReplies);
         }
         setHasMore(page.length >= Number(PAGE_SIZE));
         setOffset(pageOffset + PAGE_SIZE);
@@ -94,16 +126,18 @@ export default function ChatPanel() {
         setLoadError("Failed to load messages.");
       }
     },
-    [actor, actorFetching],
+    [actor, actorFetching, fetchRepliesForPosts],
   );
 
-  // Initial load
+  // Initial load — also re-fetches when a reply is posted (refreshFlag changes)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshFlag is intentional trigger
   useEffect(() => {
     if (!actor || actorFetching) return;
     setIsLoadingInitial(true);
     setLoadError(null);
     fetchPage(0n, false).finally(() => setIsLoadingInitial(false));
-  }, [actor, actorFetching, fetchPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actor, actorFetching, fetchPage, refreshFlag]);
 
   // Poll for new messages (newest page only)
   useEffect(() => {
@@ -112,26 +146,28 @@ export default function ChatPanel() {
       if (!actor) return;
       try {
         const latestPage = await actor.getPosts(PAGE_SIZE, 0n);
+        // Fetch replies for any new top-level posts
+        const withReplies = await fetchRepliesForPosts(latestPage);
         setPosts((prev) => {
           const prevIds = new Set(prev.map((p) => p.id.toString()));
-          // New posts are at the start of latestPage (newest-first)
-          const newPosts = latestPage.filter(
+          const newItems = withReplies.filter(
             (p) => !prevIds.has(p.id.toString()),
           );
-          if (newPosts.length === 0) return prev;
-          // Prepend newest to front (top of chat)
-          return [...newPosts, ...prev];
+          if (newItems.length === 0) return prev;
+          // Prepend new top-level posts to front; replies go wherever thread tree needs them
+          const newTopLevel = newItems.filter((p) => !p.parentId);
+          const newReplies = newItems.filter((p) => p.parentId);
+          return [...newTopLevel, ...newReplies, ...prev];
         });
       } catch {
         // silent — polling failure shouldn't flash errors
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [actor, actorFetching, isLoadingInitial]);
+  }, [actor, actorFetching, isLoadingInitial, fetchRepliesForPosts]);
 
   // ── Scroll handling ──────────────────────────────────────────────────────
 
-  // Scroll to TOP = show newest messages
   const scrollToTop = useCallback((smooth = false) => {
     const el = scrollContainerRef.current;
     if (!el) return;
@@ -152,13 +188,11 @@ export default function ChatPanel() {
     const el = scrollContainerRef.current;
     if (!el) return;
 
-    // "Top" = newest messages; show jump button when scrolled away from top
     const distFromTop = el.scrollTop;
     const atTop = distFromTop < 100;
     wasAtTopRef.current = atTop;
     setShowJumpToLatest(!atTop);
 
-    // Load older messages when near BOTTOM (oldest messages)
     const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     if (
       distFromBottom < 200 &&
@@ -170,7 +204,7 @@ export default function ChatPanel() {
     }
   }, [hasMore, isLoadingOlder, loadOlderMessages]);
 
-  // Scroll to top on initial load (newest messages visible)
+  // Scroll to top on initial load
   useEffect(() => {
     if (
       !isLoadingInitial &&
@@ -225,7 +259,6 @@ export default function ChatPanel() {
     e.preventDefault();
     if ((!message.trim() && !selectedImage) || isPending) return;
 
-    // Offline guard
     if (!navigator.onLine) {
       toast.error("You are offline. Your message cannot be sent right now.");
       return;
@@ -234,7 +267,6 @@ export default function ChatPanel() {
     try {
       let imageBlob: ExternalBlob | null = null;
       if (selectedImage) {
-        // Compress before upload
         const { bytes } =
           await storageService.prepareImageForUpload(selectedImage);
         imageBlob = ExternalBlob.fromBytes(
@@ -250,7 +282,6 @@ export default function ChatPanel() {
             handleClearImage();
             setUploadProgress(0);
             toast.success("Message sent");
-            // After sending, scroll to top to show the new message
             wasAtTopRef.current = true;
             requestAnimationFrame(() => scrollToTop(false));
           },
@@ -271,6 +302,11 @@ export default function ChatPanel() {
     setPosts((prev) =>
       prev.filter((p) => p.id !== postId && p.parentId !== postId),
     );
+  }, []);
+
+  // ── Handle reply posted — trigger refresh to fetch new replies ────────────
+  const handleReplyPosted = useCallback(() => {
+    setRefreshFlag((f) => f + 1);
   }, []);
 
   // ── Build thread tree ────────────────────────────────────────────────────
@@ -355,6 +391,7 @@ export default function ChatPanel() {
                   threadTree,
                   topLevelPosts,
                   handlePostDeleted,
+                  handleReplyPosted,
                 )
               )}
 
@@ -481,6 +518,7 @@ function renderTreeWithDateSeparators(
   nodes: ReturnType<typeof buildThreadTree>,
   topLevelPosts: Post[],
   onPostDeleted?: (postId: bigint) => void,
+  onReplyPosted?: () => void,
 ) {
   if (nodes.length === 0) return null;
 
@@ -509,6 +547,7 @@ function renderTreeWithDateSeparators(
         nodes={[node]}
         depth={0}
         onPostDeleted={onPostDeleted}
+        onReplyPosted={onReplyPosted}
       />,
     );
   }

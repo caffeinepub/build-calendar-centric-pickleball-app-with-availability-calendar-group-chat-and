@@ -35,12 +35,14 @@ interface ThreadedPostTreeProps {
   nodes: ThreadNode[];
   depth?: number;
   onPostDeleted?: (postId: bigint) => void;
+  onReplyPosted?: () => void;
 }
 
 export default function ThreadedPostTree({
   nodes,
   depth = 0,
   onPostDeleted,
+  onReplyPosted,
 }: ThreadedPostTreeProps) {
   const principals = nodes.flatMap((node) => [
     node.post.author,
@@ -59,6 +61,7 @@ export default function ThreadedPostTree({
           userDirectory={userDirectory}
           isLoadingDirectory={isLoadingDirectory}
           onPostDeleted={onPostDeleted}
+          onReplyPosted={onReplyPosted}
         />
       ))}
     </div>
@@ -80,6 +83,7 @@ interface PostItemProps {
     | undefined;
   isLoadingDirectory: boolean;
   onPostDeleted?: (postId: bigint) => void;
+  onReplyPosted?: () => void;
 }
 
 function PostItem({
@@ -88,6 +92,7 @@ function PostItem({
   userDirectory,
   isLoadingDirectory,
   onPostDeleted,
+  onReplyPosted,
 }: PostItemProps) {
   const [showReplyComposer, setShowReplyComposer] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -277,7 +282,10 @@ function PostItem({
         {showReplyComposer && !isEditing && (
           <ReplyComposer
             parentId={post.id}
-            onSuccess={() => setShowReplyComposer(false)}
+            onSuccess={() => {
+              setShowReplyComposer(false);
+              onReplyPosted?.();
+            }}
             onCancel={() => setShowReplyComposer(false)}
           />
         )}
@@ -289,6 +297,7 @@ function PostItem({
             nodes={replies}
             depth={depth + 1}
             onPostDeleted={onPostDeleted}
+            onReplyPosted={onReplyPosted}
           />
         </div>
       )}

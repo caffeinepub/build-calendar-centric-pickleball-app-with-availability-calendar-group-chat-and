@@ -38,10 +38,7 @@ import {
 } from "../hooks/useQueries";
 import { useUserDirectoryWithAvatars } from "../hooks/useUserDirectory";
 import { formatDate } from "../lib/date";
-import {
-  type DayWeather,
-  fetchWeatherForecast,
-} from "../services/weatherService";
+import { type DayWeather, fetchAllWeather } from "../services/weatherService";
 
 export default function DayDetailPage() {
   const { date } = useParams({ strict: false }) as { date: string };
@@ -65,15 +62,16 @@ export default function DayDetailPage() {
     Number(date.slice(6, 8)),
   );
 
-  // Load weather for this specific date
+  // Load weather for this specific date — uses current weather API for today,
+  // forecast API for upcoming days
   useEffect(() => {
-    fetchWeatherForecast().then((days) => {
-      const yyyy = date.slice(0, 4);
-      const mm = date.slice(4, 6);
-      const dd = date.slice(6, 8);
-      const weatherKey = `${yyyy}-${mm}-${dd}`;
-      const found = days.find((d) => d.date === weatherKey);
-      setWeather(found ?? null);
+    const yyyy = date.slice(0, 4);
+    const mm = date.slice(4, 6);
+    const dd = date.slice(6, 8);
+    const weatherKey = `${yyyy}-${mm}-${dd}`;
+
+    fetchAllWeather().then((map) => {
+      setWeather(map.get(weatherKey) ?? null);
     });
   }, [date]);
 
@@ -90,6 +88,25 @@ export default function DayDetailPage() {
       },
     });
   };
+
+  const renderWeatherCard = (w: DayWeather) => (
+    <div
+      className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/40"
+      data-ocid="calendar.weather_card"
+    >
+      <WeatherIcon condition={w.condition} size={24} />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium capitalize">{w.description}</p>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
+          <span>
+            {w.tempHigh}° / {w.tempLow}°F
+          </span>
+          {w.precipChance > 0 && <span>💧 {w.precipChance}% precip</span>}
+          {w.windSpeed > 0 && <span>💨 {w.windSpeed} mph</span>}
+        </div>
+      </div>
+    </div>
+  );
 
   if (isLoading) {
     return (
@@ -132,28 +149,7 @@ export default function DayDetailPage() {
         />
         <Card>
           <CardContent className="py-6 space-y-4">
-            {/* Weather detail card */}
-            {weather && (
-              <div
-                className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/40"
-                data-ocid="calendar.weather_card"
-              >
-                <WeatherIcon condition={weather.condition} size={24} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium capitalize">
-                    {weather.description}
-                  </p>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
-                    <span>
-                      {weather.tempHigh}° / {weather.tempLow}°F
-                    </span>
-                    {weather.precipChance > 0 && (
-                      <span>💧 {weather.precipChance}% precip</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
+            {weather && renderWeatherCard(weather)}
             <Link to="/add-availability" search={{ date }}>
               <Button className="w-full gap-2">
                 <Plus className="h-4 w-4" />
@@ -189,28 +185,7 @@ export default function DayDetailPage() {
           <CardTitle>Available Players</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Weather detail card — above availability list */}
-          {weather && (
-            <div
-              className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/40"
-              data-ocid="calendar.weather_card"
-            >
-              <WeatherIcon condition={weather.condition} size={24} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium capitalize">
-                  {weather.description}
-                </p>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
-                  <span>
-                    {weather.tempHigh}° / {weather.tempLow}°F
-                  </span>
-                  {weather.precipChance > 0 && (
-                    <span>💧 {weather.precipChance}% precip</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          {weather && renderWeatherCard(weather)}
 
           <Link to="/add-availability" search={{ date }}>
             <Button className="w-full gap-2">
