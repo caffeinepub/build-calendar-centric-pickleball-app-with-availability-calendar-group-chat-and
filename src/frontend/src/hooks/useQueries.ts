@@ -736,7 +736,7 @@ export function useGetMyNotifications() {
       return actor.getMyNotifications();
     },
     enabled: !!actor && !isFetching,
-    refetchInterval: 30000,
+    refetchInterval: 10000,
   });
 }
 
@@ -750,7 +750,7 @@ export function useGetUnreadNotificationCount() {
       return actor.getUnreadNotificationCount();
     },
     enabled: !!actor && !isFetching,
-    refetchInterval: 30000,
+    refetchInterval: 10000,
   });
 }
 

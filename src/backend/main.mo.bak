@@ -698,21 +698,18 @@ actor {
     ensureUserStatsInitialized(caller);
     let availability : Availability = { time; notes };
     availabilities.add((caller, day), availability);
-    // Determine the caller's display name for notifications
-    let callerName = switch (userProfiles.get(caller)) {
-      case (null) { "Someone" };
-      case (?entry) { entry.profile.name };
-    };
-    // Notify each OTHER user who already has availability on this same day
-    for (((p, availDay), _) in availabilities.entries()) {
-      if (availDay == day and p != caller) {
-        createNotification(
-          p,
-          #availabilityOverlap,
-          callerName # " is also available on this day!",
-          null, null, null, null,
-        );
-      };
+    let count = availabilities.entries().toArray().filter(
+      func(((p, availDay), _)) {
+        availDay == day and p != caller;
+      }
+    ).size();
+    if (count > 0) {
+      createNotification(
+        caller,
+        #availabilityOverlap,
+        "Awesome! " # count.toText() # " others are available on this day.",
+        null, null, null, null,
+      );
     };
   };
 
@@ -768,28 +765,8 @@ actor {
     };
     posts.add(messageCounter, post);
     messageCounter += 1;
-    // Determine the caller's display name for notifications
-    let posterName = switch (userProfiles.get(caller)) {
-      case (null) { "Someone" };
-      case (?entry) { entry.profile.name };
-    };
     switch (parentId) {
-      case (null) {
-        // New top-level message: notify all other registered users
-        for ((p, _) in userProfiles.entries()) {
-          if (p != caller) {
-            createNotification(
-              p,
-              #mention,
-              posterName # " posted a new chat message.",
-              ?post.id,
-              null,
-              null,
-              null,
-            );
-          };
-        };
-      };
+      case (null) { () };
       case (?parentId) {
         let parent = switch (posts.get(parentId)) {
           case (null) { return messageCounter - 1 };
@@ -799,7 +776,7 @@ actor {
           createNotification(
             parent.author,
             #reply,
-            posterName # " replied to your post.",
+            "Your post received a new reply!",
             ?parentId,
             null,
             null,
