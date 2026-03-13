@@ -36,23 +36,25 @@ import {
 
 /**
  * Computes the longest consecutive winning streak from match history.
+ * Each date counts as a single unit — a date with any losses resets the streak,
+ * a date with wins (and no losses) extends it by 1 regardless of win count.
  */
 function computeBestStreak(history: DayWithLog[]): number {
   if (history.length === 0) return 0;
-  const sorted = [...history].sort((a, b) =>
-    a.day < b.day ? -1 : a.day > b.day ? 1 : 0,
-  );
+  // Only consider dates that have at least one recorded result
+  const withResults = history
+    .filter((e) => Number(e.wins) > 0 || Number(e.losses) > 0)
+    .sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));
   let best = 0;
   let current = 0;
-  for (const entry of sorted) {
-    const wins = Number(entry.wins);
-    const losses = Number(entry.losses);
-    for (let i = 0; i < wins; i++) {
+  for (const entry of withResults) {
+    if (Number(entry.losses) > 0) {
+      // Any loss on this date breaks the streak
+      current = 0;
+    } else if (Number(entry.wins) > 0) {
+      // Win-only date: counts as one consecutive win
       current += 1;
       if (current > best) best = current;
-    }
-    for (let i = 0; i < losses; i++) {
-      current = 0;
     }
   }
   return best;
@@ -60,24 +62,20 @@ function computeBestStreak(history: DayWithLog[]): number {
 
 /**
  * Computes the current win streak from match history.
+ * Each date counts as a single unit — trailing win-only dates form the streak.
  */
 function computeCurrentStreak(history: DayWithLog[]): number {
   if (history.length === 0) return 0;
-  const sorted = [...history].sort((a, b) =>
-    a.day < b.day ? -1 : a.day > b.day ? 1 : 0,
-  );
-  const results: boolean[] = [];
-  for (const entry of sorted) {
-    const wins = Number(entry.wins);
-    const losses = Number(entry.losses);
-    for (let i = 0; i < wins; i++) results.push(true);
-    for (let i = 0; i < losses; i++) results.push(false);
-  }
-  if (results.length === 0) return 0;
+  // Only consider dates that have at least one recorded result, sorted oldest-first
+  const withResults = history
+    .filter((e) => Number(e.wins) > 0 || Number(e.losses) > 0)
+    .sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));
+  if (withResults.length === 0) return 0;
   let streak = 0;
-  for (let i = results.length - 1; i >= 0; i--) {
-    if (results[i] === true) streak += 1;
-    else break;
+  for (let i = withResults.length - 1; i >= 0; i--) {
+    const entry = withResults[i];
+    if (Number(entry.losses) > 0) break; // any loss ends the streak
+    if (Number(entry.wins) > 0) streak += 1;
   }
   return streak;
 }

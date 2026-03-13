@@ -151,6 +151,8 @@ function getDaysRemainingInSeason(): number {
 // ─── Leaderboard table shared component ──────────────────────────────────────
 
 interface LeaderboardTableProps {
+  /** When true, always use stats.streak for all players (for All Time tab where streak = bestStreakEver) */
+  useStatsStreak?: boolean;
   leaderboard: Array<[Principal, UserStats]>;
   isLoading: boolean;
   callerPrincipal?: string;
@@ -167,6 +169,7 @@ function LeaderboardTable({
   isLoading,
   callerPrincipal,
   currentStreak = 0,
+  useStatsStreak = false,
   rankChanges,
   onPlayerClick,
   userDirectory,
@@ -275,9 +278,10 @@ function LeaderboardTable({
           const rank = index + 1;
           const isCurrentUser = principal.toString() === callerPrincipal;
           const entry = userDirectory?.get(principal.toString());
-          const displayStreak = isCurrentUser
-            ? currentStreak
-            : Number(stats.streak);
+          const displayStreak =
+            !useStatsStreak && isCurrentUser
+              ? currentStreak
+              : Number(stats.streak);
           const gamesPlayed = Number(stats.wins) + Number(stats.losses);
 
           return (
@@ -823,6 +827,7 @@ export default function LeaderboardPage() {
               <LeaderboardTable
                 leaderboard={allTimeLeaderboard}
                 isLoading={isLoadingAllTime}
+                useStatsStreak={true}
                 {...sharedTableProps}
               />
             </CardContent>
