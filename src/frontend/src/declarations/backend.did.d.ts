@@ -45,6 +45,13 @@ export interface DayWithLog {
   'losses' : bigint,
 }
 export type ExternalBlob = Uint8Array;
+export interface IndividualMatchResult {
+  'result' : { 'win' : null } |
+    { 'loss' : null },
+  'dayInt' : bigint,
+  'player' : Principal,
+  'timestamp' : bigint,
+}
 export interface MonthCriteria {
   'month' : bigint,
   'matchesThreshold' : bigint,
@@ -167,6 +174,10 @@ export interface _SERVICE {
     [bigint],
     Array<[Principal, Availability]>
   >,
+  'getIndividualResults' : ActorMethod<
+    [Principal],
+    Array<IndividualMatchResult>
+  >,
   'getLeaderboard' : ActorMethod<[], Array<[Principal, T]>>,
   'getMyNotifications' : ActorMethod<[], Array<Notification>>,
   'getMyRankHistory' : ActorMethod<[], Array<[bigint, bigint]>>,
@@ -189,6 +200,7 @@ export interface _SERVICE {
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'markAllNotificationsRead' : ActorMethod<[], undefined>,
   'markNotificationRead' : ActorMethod<[bigint], undefined>,
+  'recalculateAllUserStats' : ActorMethod<[], undefined>,
   'recordDailyLoss' : ActorMethod<[bigint], undefined>,
   'recordDailyWin' : ActorMethod<[bigint], undefined>,
   'recordLoginTime' : ActorMethod<[], undefined>,

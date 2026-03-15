@@ -88,6 +88,12 @@ export const T = IDL.Record({
   'totalGames' : IDL.Nat,
   'bestStreak' : IDL.Int,
 });
+export const IndividualMatchResult = IDL.Record({
+  'result' : IDL.Variant({ 'win' : IDL.Null, 'loss' : IDL.Null }),
+  'dayInt' : IDL.Int,
+  'player' : IDL.Principal,
+  'timestamp' : IDL.Int,
+});
 export const NotificationCategory = IDL.Variant({
   'availabilityOverlap' : IDL.Null,
   'rankChange' : IDL.Null,
@@ -233,6 +239,11 @@ export const idlService = IDL.Service({
       [IDL.Vec(IDL.Tuple(IDL.Principal, Availability))],
       ['query'],
     ),
+  'getIndividualResults' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Vec(IndividualMatchResult)],
+      ['query'],
+    ),
   'getLeaderboard' : IDL.Func(
       [],
       [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
@@ -280,6 +291,7 @@ export const idlService = IDL.Service({
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'markAllNotificationsRead' : IDL.Func([], [], []),
   'markNotificationRead' : IDL.Func([IDL.Int], [], []),
+  'recalculateAllUserStats' : IDL.Func([], [], []),
   'recordDailyLoss' : IDL.Func([IDL.Int], [], []),
   'recordDailyWin' : IDL.Func([IDL.Int], [], []),
   'recordLoginTime' : IDL.Func([], [], []),
@@ -369,6 +381,12 @@ export const idlFactory = ({ IDL }) => {
     'losses' : IDL.Nat,
     'totalGames' : IDL.Nat,
     'bestStreak' : IDL.Int,
+  });
+  const IndividualMatchResult = IDL.Record({
+    'result' : IDL.Variant({ 'win' : IDL.Null, 'loss' : IDL.Null }),
+    'dayInt' : IDL.Int,
+    'player' : IDL.Principal,
+    'timestamp' : IDL.Int,
   });
   const NotificationCategory = IDL.Variant({
     'availabilityOverlap' : IDL.Null,
@@ -519,6 +537,11 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Tuple(IDL.Principal, Availability))],
         ['query'],
       ),
+    'getIndividualResults' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Vec(IndividualMatchResult)],
+        ['query'],
+      ),
     'getLeaderboard' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Principal, T))],
@@ -570,6 +593,7 @@ export const idlFactory = ({ IDL }) => {
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'markAllNotificationsRead' : IDL.Func([], [], []),
     'markNotificationRead' : IDL.Func([IDL.Int], [], []),
+    'recalculateAllUserStats' : IDL.Func([], [], []),
     'recordDailyLoss' : IDL.Func([IDL.Int], [], []),
     'recordDailyWin' : IDL.Func([IDL.Int], [], []),
     'recordLoginTime' : IDL.Func([], [], []),

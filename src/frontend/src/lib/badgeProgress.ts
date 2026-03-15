@@ -7,50 +7,6 @@ export interface BadgeProgress {
 }
 
 /**
- * Computes the best (all-time) win streak from match history.
- */
-function computeBestWinStreak(matchHistory: DayWithLog[]): number {
-  if (matchHistory.length === 0) return 0;
-  const sorted = [...matchHistory].sort((a, b) =>
-    a.day < b.day ? -1 : a.day > b.day ? 1 : 0,
-  );
-  let best = 0;
-  let current = 0;
-  for (const entry of sorted) {
-    for (let i = 0; i < Number(entry.wins); i++) {
-      current += 1;
-      if (current > best) best = current;
-    }
-    for (let i = 0; i < Number(entry.losses); i++) {
-      current = 0;
-    }
-  }
-  return best;
-}
-
-/**
- * Computes the current win streak from match history.
- */
-function computeCurrentWinStreak(matchHistory: DayWithLog[]): number {
-  if (matchHistory.length === 0) return 0;
-  const sorted = [...matchHistory].sort((a, b) =>
-    a.day < b.day ? -1 : a.day > b.day ? 1 : 0,
-  );
-  const results: boolean[] = [];
-  for (const entry of sorted) {
-    for (let i = 0; i < Number(entry.wins); i++) results.push(true);
-    for (let i = 0; i < Number(entry.losses); i++) results.push(false);
-  }
-  if (results.length === 0) return 0;
-  let streak = 0;
-  for (let i = results.length - 1; i >= 0; i--) {
-    if (results[i]) streak += 1;
-    else break;
-  }
-  return streak;
-}
-
-/**
  * Computes progress toward a badge's criteria given the user's stats and match history.
  */
 export function computeBadgeProgress(
@@ -89,7 +45,7 @@ export function computeBadgeProgress(
     }
     case "winsStreak": {
       const required = Number(criteria.winsStreak);
-      const current = computeCurrentWinStreak(matchHistory);
+      const current = Number(safeStats.streak);
       return {
         current,
         required,
@@ -125,7 +81,7 @@ export function computeBadgeProgress(
     }
     case "bestWinStreak": {
       const required = Number(criteria.bestWinStreak);
-      const current = computeBestWinStreak(matchHistory);
+      const current = Number(safeStats.bestStreak);
       return {
         current,
         required,

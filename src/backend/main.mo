@@ -1,22 +1,31 @@
-import Map "mo:core/Map";
-import Text "mo:core/Text";
 import Array "mo:core/Array";
-import List "mo:core/List";
-import Time "mo:core/Time";
+import Iter "mo:core/Iter";
 import Int "mo:core/Int";
+import Map "mo:core/Map";
+import List "mo:core/List";
+import Principal "mo:core/Principal";
+import Time "mo:core/Time";
 import Order "mo:core/Order";
 import Nat "mo:core/Nat";
-import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
-import Iter "mo:core/Iter";
+import Text "mo:core/Text";
 import AccessControl "authorization/access-control";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import Set "mo:core/Set";
 import Option "mo:core/Option";
+import Migration "migration";
 
+(with migration = Migration.run)
 actor {
+  type IndividualMatchResult = {
+    player : Principal;
+    result : { #win; #loss };
+    timestamp : Int; // Time.now() nanoseconds
+    dayInt : Int;
+  };
+
   let accessControlState = AccessControl.initState();
   include MixinStorage();
   include MixinAuthorization(accessControlState);
@@ -44,9 +53,8 @@ actor {
     public func compareByScore(a : (Principal, T), b : (Principal, T)) : Order.Order {
       let aScore = calculateScore(a.1.wins, a.1.losses);
       let bScore = calculateScore(b.1.wins, b.1.losses);
-
       switch (Int.compare(bScore, aScore)) {
-        case (#equal) { Int.compare(b.1.wins, a.1.wins) };
+        case (#equal) { if (b.1.wins > a.1.wins) { #less } else { #greater } };
         case (order) { order };
       };
     };
@@ -161,6 +169,7 @@ actor {
   let seasonSnapshots = Map.empty<Nat, SeasonSnapshot>();
   var messageCounter : Int = 0;
   let allTimeStats = Map.empty<Principal, AllTimeStats>();
+  let individualResults = Map.empty<Int, IndividualMatchResult>();
 
   var notificationCounter : Int = 0;
   var notifications : Map.Map<(Principal, Int), Notification> = Map.empty<(Principal, Int), Notification>();
@@ -175,9 +184,8 @@ actor {
     let compareByAllTimeScore = func(a : (Principal, AllTimeStats), b : (Principal, AllTimeStats)) : Order.Order {
       let aScore = calculateScore(a.1.wins, a.1.losses);
       let bScore = calculateScore(b.1.wins, b.1.losses);
-
       switch (Int.compare(bScore, aScore)) {
-        case (#equal) { Int.compare(b.1.wins, a.1.wins) };
+        case (#equal) { if (b.1.wins > a.1.wins) { #less } else { #greater } };
         case (order) { order };
       };
     };
@@ -561,6 +569,7 @@ actor {
     if (not hasAvailabilityInternal(caller, day)) {
       Runtime.trap("You can only record wins on days you have marked as available");
     };
+    recordIndividualMatch(caller, #win, day);
     updateDailyLog(caller, day, true);
   };
 
@@ -571,6 +580,7 @@ actor {
     if (not hasAvailabilityInternal(caller, day)) {
       Runtime.trap("You can only record losses on days you have marked as available");
     };
+    recordIndividualMatch(caller, #loss, day);
     updateDailyLog(caller, day, false);
   };
 
@@ -578,6 +588,7 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can modify daily logs");
     };
+    removeMostRecentIndividualResult(caller, if isWin { #win } else { #loss }, day);
     let currentLog = switch (dailyLogs.get((caller, day))) {
       case (null) { { wins = 0; losses = 0 } };
       case (?log) { log };
@@ -645,50 +656,135 @@ actor {
     updateRankSnapshots(gameDay);
   };
 
+  public query ({ caller }) func getIndividualResults(player : Principal) : async [IndividualMatchResult] {
+    if (caller != player and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own match results");
+    };
+    let allResults = individualResults.values().toArray();
+    let filteredResults = allResults.filter(
+      func(result) { result.player == player }
+    );
+    filteredResults.sort(
+      func(a, b) { Int.compare(b.timestamp, a.timestamp) }
+    );
+  };
+
+  func recordIndividualMatch(player : Principal, result : { #win; #loss }, dayInt : Int) {
+    let matchResult : IndividualMatchResult = {
+      player;
+      result;
+      timestamp = Time.now();
+      dayInt;
+    };
+    individualResults.add(matchResult.timestamp, matchResult);
+  };
+
+  func removeMostRecentIndividualResult(player : Principal, result : { #win; #loss }, dayInt : Int) {
+    let allResults = individualResults.values().toArray();
+    let filteredResults = allResults.filter(
+      func(r) { r.player == player and r.result == result and r.dayInt == dayInt }
+    );
+    if (filteredResults.size() > 0) {
+      let sortedResults = filteredResults.sort(
+        func(a, b) { Int.compare(b.timestamp, a.timestamp) }
+      );
+      let toRemove = sortedResults[0];
+      let entries = individualResults.entries();
+      for ((key, value) in entries) {
+        if (value.timestamp == toRemove.timestamp) {
+          individualResults.remove(key);
+        };
+      };
+    };
+  };
+
   func calculateStreak(user : Principal) : Int {
+    let allResults = individualResults.values().toArray();
+    let userResults = allResults.filter(
+      func(result) { result.player == user }
+    );
+    let sortedResults = userResults.sort(
+      func(a, b) { Int.compare(b.timestamp, a.timestamp) }
+    );
     var streak = 0;
-    var foundWin = false;
-    let dailyLogsArray = dailyLogs.entries().toArray();
-    for (((principal, _), log) in dailyLogsArray.values()) {
-      if (principal == user) {
-        if (log.wins > 0) {
-          if (not foundWin) {
-            foundWin := true;
-            streak := 1;
-          } else { streak += 1 };
-        } else if (log.losses > 0) { return -1 };
+    for (result in sortedResults.values()) {
+      switch (result.result) {
+        case (#win) { streak += 1 };
+        case (#loss) { return streak };
       };
     };
     streak;
   };
 
   func calculateBestStreak(user : Principal) : Int {
+    let allResults = individualResults.values().toArray();
+    let userResults = allResults.filter(
+      func(result) { result.player == user }
+    );
+    let sortedResults = userResults.sort(
+      func(a, b) { Int.compare(a.timestamp, b.timestamp) }
+    );
     var currentStreak = 0;
     var bestStreak = 0;
-    let userLogs = dailyLogs.entries().toArray().filter(
-      func((key, _)) { key.0 == user }
-    );
-    let logsWithDay = userLogs;
-    let compareLogsByDay = func(a : ((Principal, Int), DailyLog), b : ((Principal, Int), DailyLog)) : Order.Order {
-      Int.compare(a.0.1, b.0.1);
-    };
-    let sortedLogs = logsWithDay.sort(compareLogsByDay);
-    for (((_, _), log) in sortedLogs.values()) {
-      var i = 0;
-      while (i < log.wins) {
-        currentStreak += 1;
-        if (currentStreak > bestStreak) {
-          bestStreak := currentStreak;
+    for (result in sortedResults.values()) {
+      switch (result.result) {
+        case (#win) {
+          currentStreak += 1;
+          if (currentStreak > bestStreak) {
+            bestStreak := currentStreak;
+          };
         };
-        i += 1;
-      };
-      var j = 0;
-      while (j < log.losses) {
-        currentStreak := 0;
-        j += 1;
+        case (#loss) { currentStreak := 0 };
       };
     };
     bestStreak;
+  };
+
+  public shared ({ caller }) func recalculateAllUserStats() : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can recalculate all user stats");
+    };
+    let seen = Set.empty<Principal>();
+    for ((_, result) in individualResults.entries()) {
+      if (not seen.contains(result.player)) {
+        seen.add(result.player);
+      };
+    };
+    for (user in seen.values()) {
+      var totalWins = 0;
+      var totalLosses = 0;
+      for ((_, result) in individualResults.entries()) {
+        if (result.player == user) {
+          switch (result.result) {
+            case (#win) { totalWins += 1 };
+            case (#loss) { totalLosses += 1 };
+          };
+        };
+      };
+      let totalGames = totalWins + totalLosses;
+      let streak = calculateStreak(user);
+      let bestStreak = calculateBestStreak(user);
+      userStats.add(user, {
+        wins = totalWins;
+        losses = totalLosses;
+        totalGames;
+        streak;
+        bestStreak;
+      });
+      let existingAllTime = switch (allTimeStats.get(user)) {
+        case (null) { { wins = 0; losses = 0; totalGames = 0; bestStreakEver = 0 } };
+        case (?s) { s };
+      };
+      let newBestStreakEver = if (bestStreak > existingAllTime.bestStreakEver) {
+        bestStreak;
+      } else { existingAllTime.bestStreakEver };
+      allTimeStats.add(user, {
+        wins = totalWins;
+        losses = totalLosses;
+        totalGames;
+        bestStreakEver = newBestStreakEver;
+      });
+    };
   };
 
   public shared ({ caller }) func addAvailability(day : Int, time : Text, notes : ?Text) : async () {
@@ -698,21 +794,18 @@ actor {
     ensureUserStatsInitialized(caller);
     let availability : Availability = { time; notes };
     availabilities.add((caller, day), availability);
-    // Determine the caller's display name for notifications
-    let callerName = switch (userProfiles.get(caller)) {
-      case (null) { "Someone" };
-      case (?entry) { entry.profile.name };
-    };
-    // Notify each OTHER user who already has availability on this same day
-    for (((p, availDay), _) in availabilities.entries()) {
-      if (availDay == day and p != caller) {
-        createNotification(
-          p,
-          #availabilityOverlap,
-          callerName # " is also available on this day!",
-          null, null, null, null,
-        );
-      };
+    let count = availabilities.entries().toArray().filter(
+      func(((p, availDay), _)) {
+        availDay == day and p != caller;
+      }
+    ).size();
+    if (count > 0) {
+      createNotification(
+        caller,
+        #availabilityOverlap,
+        "Awesome! " # count.toText() # " others are available on this day.",
+        null, null, null, null,
+      );
     };
   };
 
@@ -768,28 +861,8 @@ actor {
     };
     posts.add(messageCounter, post);
     messageCounter += 1;
-    // Determine the caller's display name for notifications
-    let posterName = switch (userProfiles.get(caller)) {
-      case (null) { "Someone" };
-      case (?entry) { entry.profile.name };
-    };
     switch (parentId) {
-      case (null) {
-        // New top-level message: notify all other registered users
-        for ((p, _) in userProfiles.entries()) {
-          if (p != caller) {
-            createNotification(
-              p,
-              #mention,
-              posterName # " posted a new chat message.",
-              ?post.id,
-              null,
-              null,
-              null,
-            );
-          };
-        };
-      };
+      case (null) { () };
       case (?parentId) {
         let parent = switch (posts.get(parentId)) {
           case (null) { return messageCounter - 1 };
@@ -799,7 +872,7 @@ actor {
           createNotification(
             parent.author,
             #reply,
-            posterName # " replied to your post.",
+            "Your post received a new reply!",
             ?parentId,
             null,
             null,
@@ -990,12 +1063,10 @@ actor {
     let currentLeaderboard = userStats.entries().toArray().sort(UserStats.compareByScore);
     let snapshot : SeasonSnapshot = { year; leaderboard = currentLeaderboard };
     seasonSnapshots.add(year, snapshot);
-
     let sortedLeaderboard = currentLeaderboard;
     let currentLeader = if (sortedLeaderboard.size() > 0) {
       sortedLeaderboard[0].0;
     } else { Runtime.trap("No players found to award season champion") };
-
     for ((principal, _) in userStats.entries()) {
       let currentStats = switch (userStats.get(principal)) {
         case (null) { Runtime.trap("UserStats not found for principal") };

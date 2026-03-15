@@ -34,57 +34,10 @@ import {
   useGetMyRankHistory,
 } from "../hooks/useQueries";
 
-/**
- * Computes the longest consecutive winning streak from match history.
- * Each date counts as a single unit — a date with any losses resets the streak,
- * a date with wins (and no losses) extends it by 1 regardless of win count.
- */
-function computeBestStreak(history: DayWithLog[]): number {
-  if (history.length === 0) return 0;
-  // Only consider dates that have at least one recorded result
-  const withResults = history
-    .filter((e) => Number(e.wins) > 0 || Number(e.losses) > 0)
-    .sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));
-  let best = 0;
-  let current = 0;
-  for (const entry of withResults) {
-    if (Number(entry.losses) > 0) {
-      // Any loss on this date breaks the streak
-      current = 0;
-    } else if (Number(entry.wins) > 0) {
-      // Win-only date: counts as one consecutive win
-      current += 1;
-      if (current > best) best = current;
-    }
-  }
-  return best;
-}
-
-/**
- * Computes the current win streak from match history.
- * Each date counts as a single unit — trailing win-only dates form the streak.
- */
-function computeCurrentStreak(history: DayWithLog[]): number {
-  if (history.length === 0) return 0;
-  // Only consider dates that have at least one recorded result, sorted oldest-first
-  const withResults = history
-    .filter((e) => Number(e.wins) > 0 || Number(e.losses) > 0)
-    .sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));
-  if (withResults.length === 0) return 0;
-  let streak = 0;
-  for (let i = withResults.length - 1; i >= 0; i--) {
-    const entry = withResults[i];
-    if (Number(entry.losses) > 0) break; // any loss ends the streak
-    if (Number(entry.wins) > 0) streak += 1;
-  }
-  return streak;
-}
-
 function StreakStats() {
-  const { data: matchHistory = [], isLoading: historyLoading } =
-    useGetCallerMatchHistory();
+  const { data: stats, isLoading: statsLoading } = useGetCallerStats();
 
-  if (historyLoading) {
+  if (statsLoading) {
     return (
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
@@ -99,8 +52,8 @@ function StreakStats() {
     );
   }
 
-  const currentStreak = computeCurrentStreak(matchHistory);
-  const bestStreak = computeBestStreak(matchHistory);
+  const currentStreak = Number(stats?.streak ?? 0n);
+  const bestStreak = Number(stats?.bestStreak ?? 0n);
 
   return (
     <div className="grid grid-cols-2 gap-4">

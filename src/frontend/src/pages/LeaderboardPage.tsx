@@ -55,18 +55,21 @@ import {
   TabsTrigger,
 } from "../components/ui/tabs";
 import AvatarName from "../components/user/AvatarName";
+import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useGetAllBadgeDefinitions,
   useGetAllTimeLeaderboard,
   useGetCallerAvailableDays,
   useGetCallerMatchHistory,
+  useGetCallerStats,
   useGetCurrentSeasonLeaderboard,
   useGetLeaderboard,
   useGetMyNotifications,
   useGetPastSeasonSnapshots,
   useGetUserBadges,
   useMarkNotificationRead,
+  useRecalculateAllUserStats,
   useRecordDailyLoss,
   useRecordDailyWin,
   useRemoveDailyLoss,
@@ -113,30 +116,6 @@ function LeaderboardPlayerCell({
   );
 }
 
-/**
- * Computes the current win streak from a user's match history.
- */
-function computeCurrentStreak(history: DayWithLog[]): number {
-  if (history.length === 0) return 0;
-  const sorted = [...history].sort((a, b) =>
-    a.day < b.day ? -1 : a.day > b.day ? 1 : 0,
-  );
-  const results: boolean[] = [];
-  for (const entry of sorted) {
-    const wins = Number(entry.wins);
-    const losses = Number(entry.losses);
-    for (let i = 0; i < wins; i++) results.push(true);
-    for (let i = 0; i < losses; i++) results.push(false);
-  }
-  if (results.length === 0) return 0;
-  let streak = 0;
-  for (let i = results.length - 1; i >= 0; i--) {
-    if (results[i] === true) streak += 1;
-    else break;
-  }
-  return streak;
-}
-
 /** Returns days remaining until Dec 31 of current year */
 function getDaysRemainingInSeason(): number {
   const today = new Date();
@@ -151,8 +130,6 @@ function getDaysRemainingInSeason(): number {
 // ─── Leaderboard table shared component ──────────────────────────────────────
 
 interface LeaderboardTableProps {
-  /** When true, always use stats.streak for all players (for All Time tab where streak = bestStreakEver) */
-  useStatsStreak?: boolean;
   leaderboard: Array<[Principal, UserStats]>;
   isLoading: boolean;
   callerPrincipal?: string;
@@ -169,7 +146,6 @@ function LeaderboardTable({
   isLoading,
   callerPrincipal,
   currentStreak = 0,
-  useStatsStreak = false,
   rankChanges,
   onPlayerClick,
   userDirectory,
@@ -278,10 +254,9 @@ function LeaderboardTable({
           const rank = index + 1;
           const isCurrentUser = principal.toString() === callerPrincipal;
           const entry = userDirectory?.get(principal.toString());
-          const displayStreak =
-            !useStatsStreak && isCurrentUser
-              ? currentStreak
-              : Number(stats.streak);
+          const displayStreak = isCurrentUser
+            ? currentStreak
+            : Number(stats.streak);
           const gamesPlayed = Number(stats.wins) + Number(stats.losses);
 
           return (
@@ -371,7 +346,18 @@ export default function LeaderboardPage() {
   const { identity } = useInternetIdentity();
   const { isLoading: isLoadingDays, isFetched: isDaysFetched } =
     useGetCallerAvailableDays();
+  const { mutate: recalculateStats } = useRecalculateAllUserStats();
+  const hasRecalculated = useRef(false);
+
+  useEffect(() => {
+    if (!hasRecalculated.current) {
+      hasRecalculated.current = true;
+      recalculateStats();
+    }
+  }, [recalculateStats]);
+
   const { data: matchHistory = [] } = useGetCallerMatchHistory();
+  const { data: callerStats } = useGetCallerStats();
   const { mutate: recordWin, isPending: isRecordingWin } = useRecordDailyWin();
   const { mutate: recordLoss, isPending: isRecordingLoss } =
     useRecordDailyLoss();
@@ -565,7 +551,7 @@ export default function LeaderboardPage() {
     ? matchHistory.find((entry) => entry.day.toString() === selectedDay)
     : null;
 
-  const currentStreak = computeCurrentStreak(matchHistory);
+  const currentStreak = Number(callerStats?.streak ?? 0n);
 
   const selectedPlayerMatchHistory: DayWithLog[] =
     selectedPlayerPrincipal?.toString() === callerPrincipal ? matchHistory : [];
@@ -827,7 +813,6 @@ export default function LeaderboardPage() {
               <LeaderboardTable
                 leaderboard={allTimeLeaderboard}
                 isLoading={isLoadingAllTime}
-                useStatsStreak={true}
                 {...sharedTableProps}
               />
             </CardContent>

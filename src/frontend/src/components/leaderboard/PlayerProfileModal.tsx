@@ -23,44 +23,6 @@ interface PlayerProfileModalProps {
   matchHistory?: DayWithLog[];
 }
 
-function computeBestStreak(history: DayWithLog[]): number {
-  if (history.length === 0) return 0;
-  const sorted = [...history].sort((a, b) =>
-    a.day < b.day ? -1 : a.day > b.day ? 1 : 0,
-  );
-  let best = 0;
-  let current = 0;
-  for (const entry of sorted) {
-    for (let i = 0; i < Number(entry.wins); i++) {
-      current += 1;
-      if (current > best) best = current;
-    }
-    for (let i = 0; i < Number(entry.losses); i++) {
-      current = 0;
-    }
-  }
-  return best;
-}
-
-function computeCurrentStreak(history: DayWithLog[]): number {
-  if (history.length === 0) return 0;
-  const sorted = [...history].sort((a, b) =>
-    a.day < b.day ? -1 : a.day > b.day ? 1 : 0,
-  );
-  const results: boolean[] = [];
-  for (const entry of sorted) {
-    for (let i = 0; i < Number(entry.wins); i++) results.push(true);
-    for (let i = 0; i < Number(entry.losses); i++) results.push(false);
-  }
-  if (results.length === 0) return 0;
-  let streak = 0;
-  for (let i = results.length - 1; i >= 0; i--) {
-    if (results[i]) streak += 1;
-    else break;
-  }
-  return streak;
-}
-
 export default function PlayerProfileModal({
   principal,
   open,
@@ -83,14 +45,8 @@ export default function PlayerProfileModal({
     (principal ? `${principal.toString().slice(0, 8)}...` : "Player");
   const avatarUrl = entry?.avatarUrl;
 
-  const currentStreak = useMemo(
-    () => computeCurrentStreak(matchHistory),
-    [matchHistory],
-  );
-  const bestStreak = useMemo(
-    () => computeBestStreak(matchHistory),
-    [matchHistory],
-  );
+  const currentStreak = Number(stats?.streak ?? 0n);
+  const bestStreak = Number(stats?.bestStreak ?? 0n);
 
   const earnedSet = new Set(earnedBadgeIds);
   const earnedDefinitions = allDefinitions.filter((d) => earnedSet.has(d.id));

@@ -6,6 +6,7 @@ import type {
   BadgeDefinition,
   DayAvailabilityCount,
   DayWithLog,
+  IndividualMatchResult,
   Notification,
   Post,
   ReactionType,
@@ -185,6 +186,19 @@ export function useGetUserStats(user: Principal | null) {
     queryFn: async () => {
       if (!actor || !user) return null;
       return actor.getUserStats(user);
+    },
+    enabled: !!actor && !isFetching && !!user,
+  });
+}
+
+export function useGetIndividualResults(user: Principal | null) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<IndividualMatchResult[]>({
+    queryKey: ["individualResults", user?.toString()],
+    queryFn: async () => {
+      if (!actor || !user) return [];
+      return actor.getIndividualResults(user);
     },
     enabled: !!actor && !isFetching && !!user,
   });
@@ -798,5 +812,24 @@ export function useGetMyRankHistory() {
       return actor.getMyRankHistory();
     },
     enabled: !!actor && !isFetching,
+  });
+}
+
+export function useRecalculateAllUserStats() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Actor not available");
+      return (actor as any).recalculateAllUserStats();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["callerStats"] });
+      queryClient.invalidateQueries({ queryKey: ["callerMatchHistory"] });
+    },
   });
 }

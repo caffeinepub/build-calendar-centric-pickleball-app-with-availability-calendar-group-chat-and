@@ -31,6 +31,12 @@ export interface MonthCriteria {
     matchesThreshold: bigint;
     year: bigint;
 }
+export interface IndividualMatchResult {
+    result: Variant_win_loss;
+    dayInt: bigint;
+    player: Principal;
+    timestamp: bigint;
+}
 export interface BadgeDefinition {
     id: string;
     name: string;
@@ -149,6 +155,10 @@ export enum UserRole {
     user = "user",
     guest = "guest"
 }
+export enum Variant_win_loss {
+    win = "win",
+    loss = "loss"
+}
 export interface backendInterface {
     addAvailability(day: bigint, time: string, notes: string | null): Promise<void>;
     addPost(content: string, parentId: bigint | null, image: ExternalBlob | null): Promise<bigint>;
@@ -180,6 +190,7 @@ export interface backendInterface {
     getCallerUserRole(): Promise<UserRole>;
     getCurrentSeasonLeaderboard(): Promise<Array<[Principal, T]>>;
     getDayAvailability(day: bigint): Promise<Array<[Principal, Availability]>>;
+    getIndividualResults(player: Principal): Promise<Array<IndividualMatchResult>>;
     getLeaderboard(): Promise<Array<[Principal, T]>>;
     getMyNotifications(): Promise<Array<Notification>>;
     getMyRankHistory(): Promise<Array<[bigint, bigint]>>;
@@ -199,6 +210,7 @@ export interface backendInterface {
     isCallerAdmin(): Promise<boolean>;
     markAllNotificationsRead(): Promise<void>;
     markNotificationRead(notifId: bigint): Promise<void>;
+    recalculateAllUserStats(): Promise<void>;
     recordDailyLoss(day: bigint): Promise<void>;
     recordDailyWin(day: bigint): Promise<void>;
     recordLoginTime(): Promise<void>;
