@@ -78,6 +78,9 @@ export default function ProfileWinLossChart({
       .filter((entry) => {
         if (entry.day > todayDayId) return false;
         if (cutoffDayId !== null && entry.day < cutoffDayId) return false;
+        // Exclude dates with no recorded results
+        if (Number(entry.wins) === 0 && Number(entry.losses) === 0)
+          return false;
         return true;
       })
       .map((entry) => ({
@@ -89,9 +92,7 @@ export default function ProfileWinLossChart({
       .sort((a, b) => (a._dayId < b._dayId ? -1 : a._dayId > b._dayId ? 1 : 0));
   }, [data, range]);
 
-  const isEmpty =
-    filteredData.length === 0 ||
-    filteredData.every((d) => d.wins === 0 && d.losses === 0);
+  const isEmpty = filteredData.length === 0;
 
   return (
     <div className="space-y-4">

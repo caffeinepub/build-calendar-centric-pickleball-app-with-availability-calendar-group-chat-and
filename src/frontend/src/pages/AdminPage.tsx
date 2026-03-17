@@ -1,5 +1,15 @@
 import type { Principal } from "@dfinity/principal";
-import { Award, Clock, Loader2, Shield, Trash2, Trophy } from "lucide-react";
+import {
+  Award,
+  Clock,
+  Flame,
+  Loader2,
+  RefreshCw,
+  Shield,
+  Star,
+  Trash2,
+  Trophy,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import AdminBadgeAwardPanel from "../components/admin/AdminBadgeAwardPanel";
@@ -26,6 +36,13 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -44,6 +61,8 @@ import {
   useGetAllLoginTimestamps,
   useGetAllRegisteredUsers,
   useGetCurrentSeasonLeaderboard,
+  useResetUserBestStreak,
+  useResetUserCurrentStreak,
 } from "../hooks/useQueries";
 import { formatDateTime, formatDayId } from "../lib/date";
 
@@ -74,6 +93,10 @@ export default function AdminPage() {
     useFinalizeCurrentSeason();
   const { mutateAsync: createBadgeDefinition, isPending: isCreatingBadge } =
     useCreateBadgeDefinition();
+  const { mutateAsync: resetCurrentStreak, isPending: isResettingCurrent } =
+    useResetUserCurrentStreak();
+  const { mutateAsync: resetBestStreak, isPending: isResettingBest } =
+    useResetUserBestStreak();
 
   const [userToDelete, setUserToDelete] = useState<Principal | null>(null);
   const [availabilityToDelete, setAvailabilityToDelete] = useState<{
@@ -81,6 +104,12 @@ export default function AdminPage() {
     day: bigint;
   } | null>(null);
   const [finalizeDialogOpen, setFinalizeDialogOpen] = useState(false);
+
+  // Streak reset state
+  const [streakResetUser, setStreakResetUser] = useState<string>("");
+  const [streakResetType, setStreakResetType] = useState<
+    "current" | "best" | null
+  >(null);
 
   const currentYear = new Date().getFullYear();
   const daysRemaining = getDaysRemainingInSeason();
@@ -99,7 +128,6 @@ export default function AdminPage() {
 
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
-
     try {
       await deleteUserMutation.mutateAsync(userToDelete);
       toast.success("User deleted successfully");
@@ -111,7 +139,6 @@ export default function AdminPage() {
 
   const handleDeleteAvailability = async () => {
     if (!availabilityToDelete) return;
-
     try {
       await deleteAvailabilityMutation.mutateAsync(availabilityToDelete);
       toast.success("Availability deleted successfully");
@@ -123,7 +150,6 @@ export default function AdminPage() {
 
   const handleConfirmFinalizeSeason = async () => {
     try {
-      // Ensure Season Champion badge exists before finalizing
       const hasSeasonChampionBadge = badgeDefinitions.some(
         (b) => b.id === "season-champion",
       );
@@ -139,7 +165,6 @@ export default function AdminPage() {
           },
         });
       }
-
       finalizeSeasonMutate(BigInt(currentYear), {
         onSuccess: () => {
           setFinalizeDialogOpen(false);
@@ -151,6 +176,33 @@ export default function AdminPage() {
       });
     } catch (error: any) {
       toast.error(error?.message || "Failed to create Season Champion badge");
+    }
+  };
+
+  const selectedUser = users.find(([p]) => p.toString() === streakResetUser);
+  const selectedUserName =
+    selectedUser?.[1]?.name ?? streakResetUser.slice(0, 8);
+
+  const handleConfirmStreakReset = async () => {
+    if (!streakResetUser || !streakResetType) return;
+    const userPrincipal = users.find(
+      ([p]) => p.toString() === streakResetUser,
+    )?.[0];
+    if (!userPrincipal) return;
+    try {
+      if (streakResetType === "current") {
+        await resetCurrentStreak(userPrincipal);
+        toast.success(`${selectedUserName}'s current streak has been reset.`);
+      } else {
+        await resetBestStreak(userPrincipal);
+        toast.success(
+          `${selectedUserName}'s all-time best streak has been reset.`,
+        );
+      }
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to reset streak");
+    } finally {
+      setStreakResetType(null);
     }
   };
 
@@ -308,6 +360,71 @@ export default function AdminPage() {
         </CardContent>
       </Card>
 
+      {/* Streak Management */}
+      <Card className="border-orange-500/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Flame className="h-5 w-5 text-orange-500" />
+            Streak Management
+          </CardTitle>
+          <CardDescription>
+            Reset a player’s current streak or all-time best streak. These
+            actions are irreversible.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Select Player</p>
+            <Select value={streakResetUser} onValueChange={setStreakResetUser}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Choose a player..." />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map(([principal, profile]) => (
+                  <SelectItem
+                    key={principal.toString()}
+                    value={principal.toString()}
+                  >
+                    {profile.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 border-orange-500/40 hover:bg-orange-500/10 text-orange-600"
+              disabled={
+                !streakResetUser || isResettingCurrent || isResettingBest
+              }
+              onClick={() => setStreakResetType("current")}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Reset Current Streak
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 border-red-500/40 hover:bg-red-500/10 text-red-600"
+              disabled={
+                !streakResetUser || isResettingCurrent || isResettingBest
+              }
+              onClick={() => setStreakResetType("best")}
+            >
+              <Star className="h-4 w-4 mr-2" />
+              Reset All-Time Best Streak
+            </Button>
+          </div>
+
+          {!streakResetUser && (
+            <p className="text-xs text-muted-foreground">
+              Select a player above to enable the reset buttons.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Finalize Season */}
       <Card className="border-amber-500/30">
         <CardHeader>
@@ -367,6 +484,52 @@ export default function AdminPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Streak Reset Confirmation */}
+      <AlertDialog
+        open={!!streakResetType}
+        onOpenChange={(open) => !open && setStreakResetType(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Reset{" "}
+              {streakResetType === "current" ? "Current" : "All-Time Best"}{" "}
+              Streak?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to reset <strong>{selectedUserName}</strong>
+              ’s{" "}
+              {streakResetType === "current"
+                ? "current streak"
+                : "all-time best streak"}{" "}
+              to zero? This cannot be undone.
+              {streakResetType === "current"
+                ? " A new streak will begin counting from their next recorded results."
+                : " Their best streak will rebuild from future results."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isResettingCurrent || isResettingBest}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmStreakReset}
+              disabled={isResettingCurrent || isResettingBest}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isResettingCurrent || isResettingBest ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Resetting...
+                </span>
+              ) : (
+                "Yes, Reset"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Finalize Season confirmation dialog */}
       <AlertDialog

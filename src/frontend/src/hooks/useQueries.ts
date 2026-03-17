@@ -55,6 +55,24 @@ export function useGetLeaderboard() {
   });
 }
 
+export function useGetLosingStreaks() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Map<string, number>>({
+    queryKey: ["losingStreaks"],
+    queryFn: async () => {
+      if (!actor) return new Map();
+      const results = await (actor as any).getLosingStreaks();
+      const map = new Map<string, number>();
+      for (const [principal, streak] of results) {
+        map.set(principal.toString(), Number(streak));
+      }
+      return map;
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
 export function useGetDayAvailability(day: bigint | null) {
   const { actor, isFetching } = useActor();
 
@@ -186,6 +204,26 @@ export function useGetUserStats(user: Principal | null) {
     queryFn: async () => {
       if (!actor || !user) return null;
       return actor.getUserStats(user);
+    },
+    enabled: !!actor && !isFetching && !!user,
+  });
+}
+
+/**
+ * Returns the AllTimeStats for a specific user by finding their entry in the
+ * all-time leaderboard. This is the correct source for all-time best streak.
+ */
+export function useGetUserAllTimeStats(user: Principal | null) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<AllTimeStats | null>({
+    queryKey: ["userAllTimeStats", user?.toString()],
+    queryFn: async () => {
+      if (!actor || !user) return null;
+      const allTime = await actor.getAllTimeLeaderboard();
+      const userStr = user.toString();
+      const entry = allTime.find(([p]) => p.toString() === userStr);
+      return entry ? entry[1] : null;
     },
     enabled: !!actor && !isFetching && !!user,
   });
@@ -473,6 +511,7 @@ export function useRecordDailyWin() {
       queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["callerStats"] });
       queryClient.invalidateQueries({ queryKey: ["userBadges"] });
+      queryClient.invalidateQueries({ queryKey: ["userAllTimeStats"] });
     },
   });
 }
@@ -493,6 +532,7 @@ export function useRecordDailyLoss() {
       queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["callerStats"] });
       queryClient.invalidateQueries({ queryKey: ["userBadges"] });
+      queryClient.invalidateQueries({ queryKey: ["userAllTimeStats"] });
     },
   });
 }
@@ -512,6 +552,7 @@ export function useDecrementDailyLog() {
       queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["callerStats"] });
+      queryClient.invalidateQueries({ queryKey: ["userAllTimeStats"] });
     },
   });
 }
@@ -531,6 +572,7 @@ export function useRemoveDailyWin() {
       queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["callerStats"] });
+      queryClient.invalidateQueries({ queryKey: ["userAllTimeStats"] });
     },
   });
 }
@@ -550,6 +592,7 @@ export function useRemoveDailyLoss() {
       queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["callerStats"] });
+      queryClient.invalidateQueries({ queryKey: ["userAllTimeStats"] });
     },
   });
 }
@@ -830,6 +873,71 @@ export function useRecalculateAllUserStats() {
       queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["callerStats"] });
       queryClient.invalidateQueries({ queryKey: ["callerMatchHistory"] });
+      queryClient.invalidateQueries({ queryKey: ["userAllTimeStats"] });
+    },
+  });
+}
+
+export function useGetUserDaysWithLogs(user: Principal | null) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<DayWithLog[]>({
+    queryKey: ["userDaysWithLogs", user?.toString()],
+    queryFn: async () => {
+      if (!actor || !user) return [];
+      return (actor as any).getUserDaysWithLogs(user);
+    },
+    enabled: !!actor && !isFetching && !!user,
+  });
+}
+
+export function useGetPublicRankHistory(user: Principal | null) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Array<[bigint, bigint]>>({
+    queryKey: ["publicRankHistory", user?.toString()],
+    queryFn: async () => {
+      if (!actor || !user) return [];
+      return (actor as any).getPublicRankHistory(user);
+    },
+    enabled: !!actor && !isFetching && !!user,
+  });
+}
+
+export function useResetUserCurrentStreak() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (user: Principal) => {
+      if (!actor) throw new Error("Actor not available");
+      return (actor as any).resetUserCurrentStreak(user);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["callerStats"] });
+      queryClient.invalidateQueries({ queryKey: ["userStats"] });
+    },
+  });
+}
+
+export function useResetUserBestStreak() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (user: Principal) => {
+      if (!actor) throw new Error("Actor not available");
+      return (actor as any).resetUserBestStreak(user);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["callerStats"] });
+      queryClient.invalidateQueries({ queryKey: ["userStats"] });
+      queryClient.invalidateQueries({ queryKey: ["userAllTimeStats"] });
     },
   });
 }

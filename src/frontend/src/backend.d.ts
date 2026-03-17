@@ -192,6 +192,7 @@ export interface backendInterface {
     getDayAvailability(day: bigint): Promise<Array<[Principal, Availability]>>;
     getIndividualResults(player: Principal): Promise<Array<IndividualMatchResult>>;
     getLeaderboard(): Promise<Array<[Principal, T]>>;
+    getLosingStreaks(): Promise<Array<[Principal, bigint]>>;
     getMyNotifications(): Promise<Array<Notification>>;
     getMyRankHistory(): Promise<Array<[bigint, bigint]>>;
     getPastSeasonSnapshots(): Promise<Array<SeasonSnapshot>>;
@@ -211,6 +212,8 @@ export interface backendInterface {
     markAllNotificationsRead(): Promise<void>;
     markNotificationRead(notifId: bigint): Promise<void>;
     recalculateAllUserStats(): Promise<void>;
+    resetUserCurrentStreak(user: Principal): Promise<void>;
+    resetUserBestStreak(user: Principal): Promise<void>;
     recordDailyLoss(day: bigint): Promise<void>;
     recordDailyWin(day: bigint): Promise<void>;
     recordLoginTime(): Promise<void>;
