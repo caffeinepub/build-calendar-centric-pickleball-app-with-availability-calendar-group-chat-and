@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import type { BadgeDefinition } from "../backend";
+import type { BadgeDefinition, DayWithLog } from "../backend";
 import { NotificationCategory } from "../backend";
 import type { T as UserStats } from "../backend";
 import SeasonChampionBadge from "../components/badges/SeasonChampionBadge";
@@ -64,7 +64,6 @@ import {
   useGetCallerMatchHistory,
   useGetCurrentSeasonLeaderboard,
   useGetLeaderboard,
-  useGetLosingStreaks,
   useGetMyNotifications,
   useGetPastSeasonSnapshots,
   useGetUserBadges,
@@ -138,8 +137,6 @@ interface LeaderboardTableProps {
   userDirectory?: Map<string, { displayName: string; avatarUrl?: string }>;
   isLoadingDirectory?: boolean;
   allBadgeDefinitions?: BadgeDefinition[];
-  showLosingStreak?: boolean;
-  losingStreaksMap?: Map<string, number>;
 }
 
 function LeaderboardTable({
@@ -151,8 +148,6 @@ function LeaderboardTable({
   userDirectory,
   isLoadingDirectory,
   allBadgeDefinitions = [],
-  showLosingStreak = false,
-  losingStreaksMap,
 }: LeaderboardTableProps) {
   const getRankBadge = (rank: number) => {
     if (rank === 1)
@@ -259,16 +254,7 @@ function LeaderboardTable({
           // Always use the streak value from stats directly.
           // For All Time, this will be bestStreakEver (mapped at the call site).
           // For Current Season, this is the current active streak.
-          const winStreak = Number(stats.streak);
-          const losingStreak = showLosingStreak
-            ? (losingStreaksMap?.get(principal.toString()) ?? 0)
-            : 0;
-          const displayStreak =
-            winStreak > 0
-              ? winStreak
-              : showLosingStreak && losingStreak > 0
-                ? -losingStreak
-                : 0;
+          const displayStreak = Number(stats.streak);
           const gamesPlayed = Number(stats.wins) + Number(stats.losses);
 
           return (
@@ -324,10 +310,6 @@ function LeaderboardTable({
                   <span className="text-orange-500 font-medium">
                     🔥 {displayStreak}
                   </span>
-                ) : displayStreak < 0 ? (
-                  <span className="text-blue-400 font-medium">
-                    ❄️ {Math.abs(displayStreak)}
-                  </span>
                 ) : (
                   <span className="text-muted-foreground">—</span>
                 )}
@@ -345,7 +327,6 @@ function LeaderboardTable({
 export default function LeaderboardPage() {
   // ── All hooks must be called unconditionally at the top level ─────────────
   const { data: leaderboard = [] } = useGetLeaderboard();
-  const { data: losingStreaksMap } = useGetLosingStreaks();
   const {
     data: currentSeasonLeaderboard = [],
     isLoading: isLoadingCurrentSeason,
@@ -568,6 +549,9 @@ export default function LeaderboardPage() {
   const selectedDayLog = selectedDay
     ? matchHistory.find((entry) => entry.day.toString() === selectedDay)
     : null;
+
+  const selectedPlayerMatchHistory: DayWithLog[] =
+    selectedPlayerPrincipal?.toString() === callerPrincipal ? matchHistory : [];
 
   const toggleSeason = (year: string) => {
     setExpandedSeasons((prev) => {
@@ -805,8 +789,6 @@ export default function LeaderboardPage() {
               <LeaderboardTable
                 leaderboard={currentSeasonLeaderboard}
                 isLoading={isLoadingCurrentSeason}
-                showLosingStreak={true}
-                losingStreaksMap={losingStreaksMap}
                 {...sharedTableProps}
               />
             </CardContent>
@@ -930,6 +912,7 @@ export default function LeaderboardPage() {
         principal={selectedPlayerPrincipal}
         open={modalOpen}
         onClose={() => setModalOpen(false)}
+        matchHistory={selectedPlayerMatchHistory}
       />
     </Page>
   );

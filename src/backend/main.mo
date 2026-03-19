@@ -716,25 +716,6 @@ actor {
     streak;
   };
 
-
-  func calculateLosingStreak(user : Principal) : Int {
-    let allResults = individualResults.values().toArray();
-    let userResults = allResults.filter(
-      func(result) { result.player == user }
-    );
-    let sortedResults = userResults.sort(
-      func(a, b) { Int.compare(b.timestamp, a.timestamp) }
-    );
-    var streak = 0;
-    for (result in sortedResults.values()) {
-      switch (result.result) {
-        case (#loss) { streak += 1 };
-        case (#win) { return streak };
-      };
-    };
-    streak;
-  };
-
   func calculateBestStreak(user : Principal) : Int {
     let allResults = individualResults.values().toArray();
     let userResults = allResults.filter(
@@ -1263,87 +1244,4 @@ actor {
       func((key, value)) { (key.1, value) }
     );
   };
-
-  // Public rank history accessible to all authenticated users
-  public query ({ caller }) func getPublicRankHistory(user : Principal) : async [(Int, Nat)] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view rank history");
-    };
-    let entries = rankHistory.entries().toArray();
-    let filteredEntries = entries.filter(
-      func((key, _)) { key.0 == user }
-    );
-    filteredEntries.map(
-      func((key, value)) { (key.1, value) }
-    );
-  };
-
-  // Public daily logs accessible to all authenticated users
-  public query ({ caller }) func getUserDaysWithLogs(user : Principal) : async [DayWithLog] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view player data");
-    };
-    let entries = availabilities.entries().toArray();
-    let filteredAvailabilities = entries.filter(
-      func(entry) { entry.0.0 == user }
-    );
-    let daysWithLogs = filteredAvailabilities.map(
-      func((key, _)) {
-        let day = key.1;
-        let dailyLog = switch (dailyLogs.get((user, day))) {
-          case (null) { { wins = 0; losses = 0 } };
-          case (?log) { log };
-        };
-        { day; wins = dailyLog.wins; losses = dailyLog.losses };
-      }
-    );
-    daysWithLogs.sort(DayWithLog.compareByDay);
-  };
-
-
-  // Returns losing streak (consecutive losses from most recent) for all users
-  public query func getLosingStreaks() : async [(Principal, Int)] {
-    let seen = Set.empty<Principal>();
-    for ((_, result) in individualResults.entries()) {
-      if (not seen.contains(result.player)) {
-        seen.add(result.player);
-      };
-    };
-    seen.values().toArray().map(func(user) {
-      (user, calculateLosingStreak(user))
-    });
-  };
-
-  // Admin: reset a user's current streak to zero
-  public shared ({ caller }) func resetUserCurrentStreak(user : Principal) : async () {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admins can reset streaks");
-    };
-    switch (userStats.get(user)) {
-      case (null) { Runtime.trap("User stats not found") };
-      case (?stats) {
-        userStats.add(user, { stats with streak = 0 });
-      };
-    };
-  };
-
-  // Admin: reset a user's best streak to zero
-  public shared ({ caller }) func resetUserBestStreak(user : Principal) : async () {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admins can reset streaks");
-    };
-    switch (userStats.get(user)) {
-      case (null) { Runtime.trap("User stats not found") };
-      case (?stats) {
-        userStats.add(user, { stats with bestStreak = 0 });
-      };
-    };
-    switch (allTimeStats.get(user)) {
-      case (null) {};
-      case (?ats) {
-        allTimeStats.add(user, { ats with bestStreakEver = 0 });
-      };
-    };
-  };
-
 };

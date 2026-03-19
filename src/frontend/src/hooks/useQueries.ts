@@ -55,24 +55,6 @@ export function useGetLeaderboard() {
   });
 }
 
-export function useGetLosingStreaks() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Map<string, number>>({
-    queryKey: ["losingStreaks"],
-    queryFn: async () => {
-      if (!actor) return new Map();
-      const results = await (actor as any).getLosingStreaks();
-      const map = new Map<string, number>();
-      for (const [principal, streak] of results) {
-        map.set(principal.toString(), Number(streak));
-      }
-      return map;
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
 export function useGetDayAvailability(day: bigint | null) {
   const { actor, isFetching } = useActor();
 
@@ -873,70 +855,6 @@ export function useRecalculateAllUserStats() {
       queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["callerStats"] });
       queryClient.invalidateQueries({ queryKey: ["callerMatchHistory"] });
-      queryClient.invalidateQueries({ queryKey: ["userAllTimeStats"] });
-    },
-  });
-}
-
-export function useGetUserDaysWithLogs(user: Principal | null) {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<DayWithLog[]>({
-    queryKey: ["userDaysWithLogs", user?.toString()],
-    queryFn: async () => {
-      if (!actor || !user) return [];
-      return (actor as any).getUserDaysWithLogs(user);
-    },
-    enabled: !!actor && !isFetching && !!user,
-  });
-}
-
-export function useGetPublicRankHistory(user: Principal | null) {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Array<[bigint, bigint]>>({
-    queryKey: ["publicRankHistory", user?.toString()],
-    queryFn: async () => {
-      if (!actor || !user) return [];
-      return (actor as any).getPublicRankHistory(user);
-    },
-    enabled: !!actor && !isFetching && !!user,
-  });
-}
-
-export function useResetUserCurrentStreak() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (user: Principal) => {
-      if (!actor) throw new Error("Actor not available");
-      return (actor as any).resetUserCurrentStreak(user);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
-      queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
-      queryClient.invalidateQueries({ queryKey: ["callerStats"] });
-      queryClient.invalidateQueries({ queryKey: ["userStats"] });
-    },
-  });
-}
-
-export function useResetUserBestStreak() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (user: Principal) => {
-      if (!actor) throw new Error("Actor not available");
-      return (actor as any).resetUserBestStreak(user);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
-      queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
-      queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
-      queryClient.invalidateQueries({ queryKey: ["callerStats"] });
-      queryClient.invalidateQueries({ queryKey: ["userStats"] });
       queryClient.invalidateQueries({ queryKey: ["userAllTimeStats"] });
     },
   });
