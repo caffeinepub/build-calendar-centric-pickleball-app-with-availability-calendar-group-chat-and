@@ -29,6 +29,7 @@ import {
 import { Skeleton } from "../components/ui/skeleton";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
+  useGetCallerAllTimeColdStreak,
   useGetCallerMatchHistory,
   useGetCallerStats,
   useGetMyRankHistory,
@@ -36,10 +37,15 @@ import {
 
 function StreakStats() {
   const { data: stats, isLoading: statsLoading } = useGetCallerStats();
+  const { data: allTimeColdStreakRaw } = useGetCallerAllTimeColdStreak();
 
   if (statsLoading) {
     return (
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-1">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-8 w-16" />
+        </div>
         <div className="space-y-1">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-8 w-16" />
@@ -54,27 +60,48 @@ function StreakStats() {
 
   const currentStreak = Number(stats?.streak ?? 0n);
   const bestStreak = Number(stats?.bestStreak ?? 0n);
+  const allTimeColdStreak = Number(allTimeColdStreakRaw ?? 0n);
 
   return (
-    <div className="grid grid-cols-2 gap-4">
-      <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-        <div className="p-2 rounded-md bg-orange-500/10 text-orange-500 flex-shrink-0">
-          <Flame className="h-4 w-4" />
+    <div className="grid grid-cols-3 gap-3">
+      <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+        <div
+          className={`p-2 rounded-md flex-shrink-0 ${
+            currentStreak > 0
+              ? "bg-orange-500/10 text-orange-500"
+              : currentStreak < 0
+                ? "bg-blue-500/10 text-blue-500"
+                : "bg-muted text-muted-foreground"
+          }`}
+        >
+          {currentStreak < 0 ? (
+            <span className="text-sm">❄️</span>
+          ) : (
+            <Flame className="h-4 w-4" />
+          )}
         </div>
         <div>
           <p className="text-xs text-muted-foreground font-medium">
             Current Streak
           </p>
           <p className="text-2xl font-bold leading-tight">
-            {currentStreak > 0 ? `+${currentStreak}` : "\u2014"}
+            {currentStreak > 0
+              ? `+${currentStreak}`
+              : currentStreak < 0
+                ? Math.abs(currentStreak)
+                : "—"}
           </p>
           <p className="text-xs text-muted-foreground">
-            {currentStreak > 0 ? "win streak" : "no active streak"}
+            {currentStreak > 0
+              ? "win streak"
+              : currentStreak < 0
+                ? "losing streak"
+                : "no active streak"}
           </p>
         </div>
       </div>
 
-      <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+      <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
         <div className="p-2 rounded-md bg-yellow-500/10 text-yellow-500 flex-shrink-0">
           <Star className="h-4 w-4" />
         </div>
@@ -83,9 +110,26 @@ function StreakStats() {
             Best Streak
           </p>
           <p className="text-2xl font-bold leading-tight">
-            {bestStreak > 0 ? `+${bestStreak}` : "\u2014"}
+            {bestStreak > 0 ? `+${bestStreak}` : "—"}
           </p>
           <p className="text-xs text-muted-foreground">all-time record</p>
+        </div>
+      </div>
+
+      <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+        <div className="p-2 rounded-md bg-blue-500/10 text-blue-500 flex-shrink-0 text-sm">
+          ❄️
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground font-medium">
+            Cold Streak
+          </p>
+          <p className="text-2xl font-bold leading-tight">
+            {allTimeColdStreak > 0 ? allTimeColdStreak : "—"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            all-time longest losing
+          </p>
         </div>
       </div>
     </div>

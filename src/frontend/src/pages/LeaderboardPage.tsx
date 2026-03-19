@@ -310,6 +310,10 @@ function LeaderboardTable({
                   <span className="text-orange-500 font-medium">
                     🔥 {displayStreak}
                   </span>
+                ) : displayStreak < 0 ? (
+                  <span className="text-blue-500 font-medium">
+                    ❄️ {Math.abs(displayStreak)}
+                  </span>
                 ) : (
                   <span className="text-muted-foreground">—</span>
                 )}

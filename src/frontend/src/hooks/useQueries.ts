@@ -859,3 +859,62 @@ export function useRecalculateAllUserStats() {
     },
   });
 }
+
+// ─── Streak management (admin) ─────────────────────────────────────────────────
+
+export function useResetUserCurrentStreak() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: Principal) => {
+      if (!actor) throw new Error("Actor not available");
+      return (actor as any).resetUserCurrentStreak(userId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["currentSeasonLeaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["callerStats"] });
+    },
+  });
+}
+
+export function useResetUserBestStreak() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: Principal) => {
+      if (!actor) throw new Error("Actor not available");
+      return (actor as any).resetUserBestStreak(userId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["getAllTimeLeaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["callerStats"] });
+      queryClient.invalidateQueries({ queryKey: ["userAllTimeStats"] });
+    },
+  });
+}
+
+export function useGetCallerAllTimeColdStreak() {
+  const { actor, isFetching } = useActor();
+  return useQuery<bigint>({
+    queryKey: ["callerAllTimeColdStreak"],
+    queryFn: async () => {
+      if (!actor) return 0n;
+      return (actor as any).getCallerAllTimeColdStreak();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetUserAllTimeColdStreak(user: Principal | null) {
+  const { actor, isFetching } = useActor();
+  return useQuery<bigint>({
+    queryKey: ["userAllTimeColdStreak", user?.toString()],
+    queryFn: async () => {
+      if (!actor || !user) return 0n;
+      return (actor as any).getUserAllTimeColdStreak(user);
+    },
+    enabled: !!actor && !isFetching && !!user,
+  });
+}

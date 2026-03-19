@@ -177,6 +177,10 @@ actor {
 
   let rankHistory : Map.Map<(Principal, Int), Nat> = Map.empty<(Principal, Int), Nat>();
 
+  // Streak reset timestamps — when set, only results AFTER this timestamp count toward the streak
+  let currentStreakResetAt = Map.empty<Principal, Int>();
+  let bestStreakResetAt = Map.empty<Principal, Int>();
+
   public query ({ caller }) func getAllTimeLeaderboard() : async [(Principal, AllTimeStats)] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view all-time leaderboard");
@@ -626,12 +630,14 @@ actor {
       };
     };
     let totalGames = totalWins + totalLosses;
+    let newStreak = calculateStreak(user);
+    let newBestStreak = calculateBestStreak(user);
     let stats = {
       wins = totalWins;
       losses = totalLosses;
       totalGames;
-      streak = calculateStreak(user);
-      bestStreak = calculateBestStreak(user);
+      streak = newStreak;
+      bestStreak = newBestStreak;
     };
     userStats.add(user, stats);
     evaluateAndAwardBadges(user, stats);
@@ -641,8 +647,8 @@ actor {
       case (null) { { wins = 0; losses = 0; totalGames = 0; bestStreakEver = 0 } };
       case (?s) { s };
     };
-    let newBestStreakEver = if (stats.bestStreak > existingAllTime.bestStreakEver) {
-      stats.bestStreak;
+    let newBestStreakEver = if (newBestStreak > existingAllTime.bestStreakEver) {
+      newBestStreak;
     } else { existingAllTime.bestStreakEver };
     allTimeStats.add(
       user,
@@ -698,19 +704,47 @@ actor {
     };
   };
 
+  // Calculate current streak:
+  // - Positive value = win streak (most recent consecutive wins)
+  // - Negative value = cold streak (most recent consecutive losses)
+  // - Respects currentStreakResetAt timestamp cutoff
   func calculateStreak(user : Principal) : Int {
     let allResults = individualResults.values().toArray();
     let userResults = allResults.filter(
       func(result) { result.player == user }
     );
-    let sortedResults = userResults.sort(
-      func(a, b) { Int.compare(b.timestamp, a.timestamp) }
+    // Apply reset cutoff if set
+    let cutoff = currentStreakResetAt.get(user);
+    let filteredResults = switch (cutoff) {
+      case (null) { userResults };
+      case (?c) { userResults.filter(func(r) { r.timestamp > c }) };
+    };
+    let sortedResults = filteredResults.sort(
+      func(a, b) { Int.compare(b.timestamp, a.timestamp) } // newest first
     );
-    var streak = 0;
+    if (sortedResults.size() == 0) { return 0 };
+    var streak : Int = 0;
+    var directionSet = false;
+    var isWinStreak = true;
     for (result in sortedResults.values()) {
-      switch (result.result) {
-        case (#win) { streak += 1 };
-        case (#loss) { return streak };
+      if (not directionSet) {
+        // First result determines direction
+        switch (result.result) {
+          case (#win) { isWinStreak := true; streak := 1; directionSet := true };
+          case (#loss) { isWinStreak := false; streak := -1; directionSet := true };
+        };
+      } else {
+        if (isWinStreak) {
+          switch (result.result) {
+            case (#win) { streak += 1 };
+            case (#loss) { return streak };
+          };
+        } else {
+          switch (result.result) {
+            case (#loss) { streak -= 1 };
+            case (#win) { return streak };
+          };
+        };
       };
     };
     streak;
@@ -721,8 +755,14 @@ actor {
     let userResults = allResults.filter(
       func(result) { result.player == user }
     );
-    let sortedResults = userResults.sort(
-      func(a, b) { Int.compare(a.timestamp, b.timestamp) }
+    // Apply reset cutoff if set
+    let cutoff = bestStreakResetAt.get(user);
+    let filteredResults = switch (cutoff) {
+      case (null) { userResults };
+      case (?c) { userResults.filter(func(r) { r.timestamp > c }) };
+    };
+    let sortedResults = filteredResults.sort(
+      func(a, b) { Int.compare(a.timestamp, b.timestamp) } // oldest first
     );
     var currentStreak = 0;
     var bestStreak = 0;
@@ -738,6 +778,81 @@ actor {
       };
     };
     bestStreak;
+  };
+
+  // Calculate all-time cold streak (longest consecutive loss streak ever)
+  func calculateAllTimeColdStreak(user : Principal) : Int {
+    let allResults = individualResults.values().toArray();
+    let userResults = allResults.filter(
+      func(result) { result.player == user }
+    );
+    let sortedResults = userResults.sort(
+      func(a, b) { Int.compare(a.timestamp, b.timestamp) } // oldest first
+    );
+    var currentLossStreak = 0;
+    var worstLossStreak = 0;
+    for (result in sortedResults.values()) {
+      switch (result.result) {
+        case (#loss) {
+          currentLossStreak += 1;
+          if (currentLossStreak > worstLossStreak) {
+            worstLossStreak := currentLossStreak;
+          };
+        };
+        case (#win) { currentLossStreak := 0 };
+      };
+    };
+    worstLossStreak;
+  };
+
+  public query ({ caller }) func getCallerAllTimeColdStreak() : async Int {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view stats");
+    };
+    calculateAllTimeColdStreak(caller);
+  };
+
+  public query ({ caller }) func getUserAllTimeColdStreak(user : Principal) : async Int {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view stats");
+    };
+    calculateAllTimeColdStreak(user);
+  };
+
+  // Admin: Reset a user's current streak by setting a timestamp cutoff
+  public shared ({ caller }) func resetUserCurrentStreak(userId : Principal) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can reset streaks");
+    };
+    currentStreakResetAt.add(userId, Time.now());
+    // Immediately update userStats to reflect streak = 0
+    switch (userStats.get(userId)) {
+      case (null) {};
+      case (?s) {
+        userStats.add(userId, { s with streak = 0 });
+      };
+    };
+  };
+
+  // Admin: Reset a user's all-time best streak by setting a timestamp cutoff
+  public shared ({ caller }) func resetUserBestStreak(userId : Principal) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can reset streaks");
+    };
+    bestStreakResetAt.add(userId, Time.now());
+    // Immediately update userStats.bestStreak and allTimeStats.bestStreakEver to 0
+    switch (userStats.get(userId)) {
+      case (null) {};
+      case (?s) {
+        userStats.add(userId, { s with bestStreak = 0 });
+      };
+    };
+    switch (allTimeStats.get(userId)) {
+      case (null) {};
+      case (?s) {
+        allTimeStats.add(userId, { s with bestStreakEver = 0 });
+      };
+    };
   };
 
   public shared ({ caller }) func recalculateAllUserStats() : async () {

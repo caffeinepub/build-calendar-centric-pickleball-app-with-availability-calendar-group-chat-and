@@ -78,6 +78,8 @@ export default function ProfileWinLossChart({
       .filter((entry) => {
         if (entry.day > todayDayId) return false;
         if (cutoffDayId !== null && entry.day < cutoffDayId) return false;
+        if (Number(entry.wins) === 0 && Number(entry.losses) === 0)
+          return false;
         return true;
       })
       .map((entry) => ({
