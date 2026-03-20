@@ -155,6 +155,8 @@ export interface _SERVICE {
   'deleteUserDayAvailability' : ActorMethod<[Principal, bigint], undefined>,
   'editPost' : ActorMethod<[bigint, string], undefined>,
   'finalizeCurrentSeason' : ActorMethod<[bigint], undefined>,
+  'resetUserBestStreak' : ActorMethod<[Principal], undefined>,
+  'resetUserCurrentStreak' : ActorMethod<[Principal], undefined>,
   'getAllAvailabilities' : ActorMethod<[], Array<[Principal, bigint, string]>>,
   'getAllBadgeDefinitions' : ActorMethod<[], Array<BadgeDefinition>>,
   'getAllDayAvailabilityCounts' : ActorMethod<[], Array<DayAvailabilityCount>>,
@@ -164,6 +166,8 @@ export interface _SERVICE {
     Array<[Principal, UserProfile, bigint]>
   >,
   'getAllTimeLeaderboard' : ActorMethod<[], Array<[Principal, AllTimeStats]>>,
+  'getCallerAllTimeColdStreak' : ActorMethod<[], bigint>,
+  'getUserAllTimeColdStreak' : ActorMethod<[Principal], bigint>,
   'getCallerAvailability' : ActorMethod<[bigint], [] | [Availability]>,
   'getCallerAvailableDaysWithLogs' : ActorMethod<[], Array<DayWithLog>>,
   'getCallerStats' : ActorMethod<[], [] | [T]>,

@@ -177,12 +177,16 @@ export interface backendInterface {
     deleteUserDayAvailability(user: Principal, day: bigint): Promise<void>;
     editPost(postId: bigint, newContent: string): Promise<void>;
     finalizeCurrentSeason(year: bigint): Promise<void>;
+    resetUserBestStreak(userId: Principal): Promise<void>;
+    resetUserCurrentStreak(userId: Principal): Promise<void>;
     getAllAvailabilities(): Promise<Array<[Principal, bigint, string]>>;
     getAllBadgeDefinitions(): Promise<Array<BadgeDefinition>>;
     getAllDayAvailabilityCounts(): Promise<Array<DayAvailabilityCount>>;
     getAllLoginTimestamps(): Promise<Array<[Principal, bigint]>>;
     getAllRegisteredUsers(): Promise<Array<[Principal, UserProfile, bigint]>>;
     getAllTimeLeaderboard(): Promise<Array<[Principal, AllTimeStats]>>;
+    getCallerAllTimeColdStreak(): Promise<bigint>;
+    getUserAllTimeColdStreak(user: Principal): Promise<bigint>;
     getCallerAvailability(day: bigint): Promise<Availability | null>;
     getCallerAvailableDaysWithLogs(): Promise<Array<DayWithLog>>;
     getCallerStats(): Promise<T | null>;

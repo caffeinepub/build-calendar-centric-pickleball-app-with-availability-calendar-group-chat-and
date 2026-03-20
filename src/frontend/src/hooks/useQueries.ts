@@ -868,7 +868,7 @@ export function useResetUserCurrentStreak() {
   return useMutation({
     mutationFn: async (userId: Principal) => {
       if (!actor) throw new Error("Actor not available");
-      return (actor as any).resetUserCurrentStreak(userId);
+      return actor.resetUserCurrentStreak(userId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
@@ -884,7 +884,7 @@ export function useResetUserBestStreak() {
   return useMutation({
     mutationFn: async (userId: Principal) => {
       if (!actor) throw new Error("Actor not available");
-      return (actor as any).resetUserBestStreak(userId);
+      return actor.resetUserBestStreak(userId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
@@ -901,7 +901,7 @@ export function useGetCallerAllTimeColdStreak() {
     queryKey: ["callerAllTimeColdStreak"],
     queryFn: async () => {
       if (!actor) return 0n;
-      return (actor as any).getCallerAllTimeColdStreak();
+      return actor.getCallerAllTimeColdStreak();
     },
     enabled: !!actor && !isFetching,
   });
@@ -913,7 +913,7 @@ export function useGetUserAllTimeColdStreak(user: Principal | null) {
     queryKey: ["userAllTimeColdStreak", user?.toString()],
     queryFn: async () => {
       if (!actor || !user) return 0n;
-      return (actor as any).getUserAllTimeColdStreak(user);
+      return actor.getUserAllTimeColdStreak(user);
     },
     enabled: !!actor && !isFetching && !!user,
   });

@@ -186,6 +186,8 @@ export const idlService = IDL.Service({
   'deleteUserDayAvailability' : IDL.Func([IDL.Principal, IDL.Int], [], []),
   'editPost' : IDL.Func([IDL.Int, IDL.Text], [], []),
   'finalizeCurrentSeason' : IDL.Func([IDL.Nat], [], []),
+  'resetUserBestStreak' : IDL.Func([IDL.Principal], [], []),
+  'resetUserCurrentStreak' : IDL.Func([IDL.Principal], [], []),
   'getAllAvailabilities' : IDL.Func(
       [],
       [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Int, IDL.Text))],
@@ -216,6 +218,8 @@ export const idlService = IDL.Service({
       [IDL.Vec(IDL.Tuple(IDL.Principal, AllTimeStats))],
       ['query'],
     ),
+  'getCallerAllTimeColdStreak' : IDL.Func([], [IDL.Int], ['query']),
+  'getUserAllTimeColdStreak' : IDL.Func([IDL.Principal], [IDL.Int], ['query']),
   'getCallerAvailability' : IDL.Func(
       [IDL.Int],
       [IDL.Opt(Availability)],
@@ -484,6 +488,8 @@ export const idlFactory = ({ IDL }) => {
     'deleteUserDayAvailability' : IDL.Func([IDL.Principal, IDL.Int], [], []),
     'editPost' : IDL.Func([IDL.Int, IDL.Text], [], []),
     'finalizeCurrentSeason' : IDL.Func([IDL.Nat], [], []),
+  'resetUserBestStreak' : IDL.Func([IDL.Principal], [], []),
+  'resetUserCurrentStreak' : IDL.Func([IDL.Principal], [], []),
     'getAllAvailabilities' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Int, IDL.Text))],
@@ -514,7 +520,9 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Tuple(IDL.Principal, AllTimeStats))],
         ['query'],
       ),
-    'getCallerAvailability' : IDL.Func(
+    'getCallerAllTimeColdStreak' : IDL.Func([], [IDL.Int], ['query']),
+  'getUserAllTimeColdStreak' : IDL.Func([IDL.Principal], [IDL.Int], ['query']),
+  'getCallerAvailability' : IDL.Func(
         [IDL.Int],
         [IDL.Opt(Availability)],
         ['query'],

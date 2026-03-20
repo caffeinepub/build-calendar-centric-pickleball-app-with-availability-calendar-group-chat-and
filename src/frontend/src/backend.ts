@@ -270,12 +270,16 @@ export interface backendInterface {
     deleteUserDayAvailability(user: Principal, day: bigint): Promise<void>;
     editPost(postId: bigint, newContent: string): Promise<void>;
     finalizeCurrentSeason(year: bigint): Promise<void>;
+    resetUserBestStreak(userId: Principal): Promise<void>;
+    resetUserCurrentStreak(userId: Principal): Promise<void>;
     getAllAvailabilities(): Promise<Array<[Principal, bigint, string]>>;
     getAllBadgeDefinitions(): Promise<Array<BadgeDefinition>>;
     getAllDayAvailabilityCounts(): Promise<Array<DayAvailabilityCount>>;
     getAllLoginTimestamps(): Promise<Array<[Principal, bigint]>>;
     getAllRegisteredUsers(): Promise<Array<[Principal, UserProfile, bigint]>>;
     getAllTimeLeaderboard(): Promise<Array<[Principal, AllTimeStats]>>;
+    getCallerAllTimeColdStreak(): Promise<bigint>;
+    getUserAllTimeColdStreak(user: Principal): Promise<bigint>;
     getCallerAvailability(day: bigint): Promise<Availability | null>;
     getCallerAvailableDaysWithLogs(): Promise<Array<DayWithLog>>;
     getCallerStats(): Promise<T | null>;
@@ -652,6 +656,34 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async resetUserBestStreak(arg0: Principal): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.resetUserBestStreak(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.resetUserBestStreak(arg0);
+            return result;
+        }
+    }
+    async resetUserCurrentStreak(arg0: Principal): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.resetUserCurrentStreak(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.resetUserCurrentStreak(arg0);
+            return result;
+        }
+    }
     async getAllAvailabilities(): Promise<Array<[Principal, bigint, string]>> {
         if (this.processError) {
             try {
@@ -733,6 +765,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getAllTimeLeaderboard();
+            return result;
+        }
+    }
+    async getCallerAllTimeColdStreak(): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCallerAllTimeColdStreak();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCallerAllTimeColdStreak();
+            return result;
+        }
+    }
+    async getUserAllTimeColdStreak(arg0: Principal): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getUserAllTimeColdStreak(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getUserAllTimeColdStreak(arg0);
             return result;
         }
     }

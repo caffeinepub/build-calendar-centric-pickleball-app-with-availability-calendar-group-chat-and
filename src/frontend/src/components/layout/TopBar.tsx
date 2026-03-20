@@ -7,8 +7,6 @@ import {
   Download,
   LogOut,
   MessageSquare,
-  Moon,
-  Sun,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
@@ -24,7 +22,6 @@ import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
 } from "../../hooks/useQueries";
-import { useTheme } from "../../hooks/useTheme";
 import { getInitials } from "../../utils/file";
 import AppLogo from "../branding/AppLogo";
 import InstallInstructionsDialog from "../pwa/InstallInstructionsDialog";
@@ -210,7 +207,6 @@ export default function TopBar() {
   const { clear, identity } = useInternetIdentity();
   const { data: userProfile } = useGetCallerUserProfile();
   const queryClient = useQueryClient();
-  const { theme, toggleTheme } = useTheme();
   const { isInstallAvailable, isStandalone, isIOS, canPrompt, promptInstall } =
     usePWAInstallPrompt();
   const [showInstructions, setShowInstructions] = useState(false);
@@ -260,23 +256,6 @@ export default function TopBar() {
                   Install
                 </Button>
               )}
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleTheme}
-                aria-label={
-                  theme === "dark"
-                    ? "Switch to light mode"
-                    : "Switch to dark mode"
-                }
-              >
-                {theme === "dark" ? (
-                  <Sun className="h-5 w-5" />
-                ) : (
-                  <Moon className="h-5 w-5" />
-                )}
-              </Button>
 
               {/* Bell notification button */}
               <Popover open={notifOpen} onOpenChange={setNotifOpen}>
