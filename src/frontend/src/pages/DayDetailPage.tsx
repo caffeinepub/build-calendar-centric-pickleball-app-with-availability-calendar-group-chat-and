@@ -38,7 +38,12 @@ import {
 } from "../hooks/useQueries";
 import { useUserDirectoryWithAvatars } from "../hooks/useUserDirectory";
 import { formatDate } from "../lib/date";
-import { type DayWeather, fetchAllWeather } from "../services/weatherService";
+import {
+  type DayWeather,
+  type HourlySlot,
+  fetchAllWeather,
+  fetchHourlyForecastForDay,
+} from "../services/weatherService";
 
 export default function DayDetailPage() {
   const { date } = useParams({ strict: false }) as { date: string };
@@ -53,6 +58,7 @@ export default function DayDetailPage() {
     useDeleteCallerDayAvailability();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [weather, setWeather] = useState<DayWeather | null>(null);
+  const [hourlySlots, setHourlySlots] = useState<HourlySlot[]>([]);
 
   const callerPrincipal = identity?.getPrincipal().toString();
 
@@ -70,9 +76,14 @@ export default function DayDetailPage() {
     const dd = date.slice(6, 8);
     const weatherKey = `${yyyy}-${mm}-${dd}`;
 
-    fetchAllWeather().then((map) => {
-      setWeather(map.get(weatherKey) ?? null);
-    });
+    Promise.all([
+      fetchAllWeather().then((map) => {
+        setWeather(map.get(weatherKey) ?? null);
+      }),
+      fetchHourlyForecastForDay(weatherKey).then((slots) => {
+        setHourlySlots(slots);
+      }),
+    ]);
   }, [date]);
 
   const handleDelete = () => {
@@ -150,6 +161,32 @@ export default function DayDetailPage() {
         <Card>
           <CardContent className="py-6 space-y-4">
             {weather && renderWeatherCard(weather)}
+            {hourlySlots.length > 0 && (
+              <div className="overflow-x-auto -mx-1">
+                <div
+                  className="flex gap-2 pb-1 px-1"
+                  style={{ minWidth: "max-content" }}
+                >
+                  {hourlySlots.map((slot) => (
+                    <div
+                      key={slot.time}
+                      className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg bg-muted/30 border border-border/30 text-center min-w-[64px]"
+                    >
+                      <span className="text-[10px] text-muted-foreground font-medium">
+                        {slot.time}
+                      </span>
+                      <WeatherIcon condition={slot.condition} size={18} />
+                      <span className="text-sm font-semibold">
+                        {slot.temp}°
+                      </span>
+                      <span className="text-[10px] text-muted-foreground leading-tight">
+                        {slot.description}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <Link to="/add-availability" search={{ date }}>
               <Button className="w-full gap-2">
                 <Plus className="h-4 w-4" />
@@ -186,6 +223,30 @@ export default function DayDetailPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {weather && renderWeatherCard(weather)}
+          {hourlySlots.length > 0 && (
+            <div className="overflow-x-auto -mx-1">
+              <div
+                className="flex gap-2 pb-1 px-1"
+                style={{ minWidth: "max-content" }}
+              >
+                {hourlySlots.map((slot) => (
+                  <div
+                    key={slot.time}
+                    className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg bg-muted/30 border border-border/30 text-center min-w-[64px]"
+                  >
+                    <span className="text-[10px] text-muted-foreground font-medium">
+                      {slot.time}
+                    </span>
+                    <WeatherIcon condition={slot.condition} size={18} />
+                    <span className="text-sm font-semibold">{slot.temp}°</span>
+                    <span className="text-[10px] text-muted-foreground leading-tight">
+                      {slot.description}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <Link to="/add-availability" search={{ date }}>
             <Button className="w-full gap-2">

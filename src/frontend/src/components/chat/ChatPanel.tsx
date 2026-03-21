@@ -1,4 +1,4 @@
-import { ArrowUp, Loader2, Paperclip, Send, X } from "lucide-react";
+import { ArrowDown, Loader2, Paperclip, Send, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -70,7 +70,7 @@ export default function ChatPanel() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
-  const wasAtTopRef = useRef(true);
+  const wasAtBottomRef = useRef(true);
   const prependingRef = useRef(false);
   const initialScrollDoneRef = useRef(false);
 
@@ -107,7 +107,7 @@ export default function ChatPanel() {
         const withReplies = await fetchRepliesForPosts(page);
 
         if (loadOlder) {
-          // Older messages go to the BOTTOM (end of array)
+          // Older messages go to the BEGINNING (prepend, so they appear above current)
           prependingRef.current = true;
           setPosts((prev) => {
             // Deduplicate against existing posts
@@ -115,10 +115,14 @@ export default function ChatPanel() {
             const newPosts = withReplies.filter(
               (p) => !existingIds.has(p.id.toString()),
             );
-            return [...prev, ...newPosts];
+            return [...newPosts, ...prev];
           });
         } else {
-          setPosts(withReplies);
+          // Initial load: sort oldest-first so newest is at bottom
+          const sorted = [...withReplies].sort((a, b) =>
+            a.timestamp < b.timestamp ? -1 : a.timestamp > b.timestamp ? 1 : 0,
+          );
+          setPosts(sorted);
         }
         setHasMore(page.length >= Number(PAGE_SIZE));
         setOffset(pageOffset + PAGE_SIZE);
@@ -143,7 +147,7 @@ export default function ChatPanel() {
   useEffect(() => {
     if (!actor || actorFetching || isLoadingInitial) return;
     const interval = setInterval(async () => {
-      if (!actor) return;
+      if (!actor || document.hidden) return;
       try {
         const latestPage = await actor.getPosts(PAGE_SIZE, 0n);
         // Fetch replies for any new top-level posts
@@ -154,11 +158,15 @@ export default function ChatPanel() {
             (p) => !prevIds.has(p.id.toString()),
           );
           if (newItems.length === 0) return prev;
-          // Prepend new top-level posts to front; replies go wherever thread tree needs them
+          // Append new messages to END (newest at bottom)
           const newTopLevel = newItems.filter((p) => !p.parentId);
           const newReplies = newItems.filter((p) => p.parentId);
-          return [...newTopLevel, ...newReplies, ...prev];
+          return [...prev, ...newTopLevel, ...newReplies];
         });
+        // Auto-scroll to bottom if user was already at bottom
+        if (wasAtBottomRef.current) {
+          requestAnimationFrame(() => scrollToBottom(false));
+        }
       } catch {
         // silent — polling failure shouldn't flash errors
       }
@@ -168,19 +176,29 @@ export default function ChatPanel() {
 
   // ── Scroll handling ──────────────────────────────────────────────────────
 
-  const scrollToTop = useCallback((smooth = false) => {
+  const scrollToBottom = useCallback((smooth = false) => {
     const el = scrollContainerRef.current;
     if (!el) return;
-    el.scrollTo({ top: 0, behavior: smooth ? "smooth" : "instant" });
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: smooth ? "smooth" : "instant",
+    });
   }, []);
 
   const loadOlderMessages = useCallback(async () => {
     if (!actor || isLoadingOlder || !hasMore) return;
     setIsLoadingOlder(true);
+    const el = scrollContainerRef.current;
+    const prevScrollHeight = el ? el.scrollHeight : 0;
     await fetchPage(offset, true);
     setIsLoadingOlder(false);
     requestAnimationFrame(() => {
       prependingRef.current = false;
+      // Maintain scroll position after prepend
+      if (el) {
+        const newScrollHeight = el.scrollHeight;
+        el.scrollTop += newScrollHeight - prevScrollHeight;
+      }
     });
   }, [actor, isLoadingOlder, hasMore, offset, fetchPage]);
 
@@ -188,14 +206,15 @@ export default function ChatPanel() {
     const el = scrollContainerRef.current;
     if (!el) return;
 
-    const distFromTop = el.scrollTop;
-    const atTop = distFromTop < 100;
-    wasAtTopRef.current = atTop;
-    setShowJumpToLatest(!atTop);
-
     const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const atBottom = distFromBottom < 100;
+    wasAtBottomRef.current = atBottom;
+    setShowJumpToLatest(!atBottom);
+
+    // Load older messages when user scrolls to the top
+    const distFromTop = el.scrollTop;
     if (
-      distFromBottom < 200 &&
+      distFromTop < 200 &&
       hasMore &&
       !isLoadingOlder &&
       !prependingRef.current
@@ -204,7 +223,7 @@ export default function ChatPanel() {
     }
   }, [hasMore, isLoadingOlder, loadOlderMessages]);
 
-  // Scroll to top on initial load
+  // Scroll to bottom on initial load
   useEffect(() => {
     if (
       !isLoadingInitial &&
@@ -212,24 +231,24 @@ export default function ChatPanel() {
       !initialScrollDoneRef.current
     ) {
       initialScrollDoneRef.current = true;
-      requestAnimationFrame(() => scrollToTop(false));
+      requestAnimationFrame(() => scrollToBottom(false));
     }
-  }, [isLoadingInitial, posts.length, scrollToTop]);
+  }, [isLoadingInitial, posts.length, scrollToBottom]);
 
-  // Auto-scroll to top when new messages arrive (only if was at top)
+  // Auto-scroll to bottom when new messages arrive (only if was at bottom)
   const prevPostsLengthRef = useRef(0);
   useEffect(() => {
     const grew = posts.length > prevPostsLengthRef.current;
     prevPostsLengthRef.current = posts.length;
     if (
       grew &&
-      wasAtTopRef.current &&
+      wasAtBottomRef.current &&
       initialScrollDoneRef.current &&
       !prependingRef.current
     ) {
-      requestAnimationFrame(() => scrollToTop(false));
+      requestAnimationFrame(() => scrollToBottom(false));
     }
-  }, [posts.length, scrollToTop]);
+  }, [posts.length, scrollToBottom]);
 
   // ── Image handling ───────────────────────────────────────────────────────
 
@@ -282,8 +301,8 @@ export default function ChatPanel() {
             handleClearImage();
             setUploadProgress(0);
             toast.success("Message sent");
-            wasAtTopRef.current = true;
-            requestAnimationFrame(() => scrollToTop(false));
+            wasAtBottomRef.current = true;
+            requestAnimationFrame(() => scrollToBottom(false));
           },
           onError: (err: any) => {
             toast.error(err?.message || "Failed to send message");
@@ -317,8 +336,14 @@ export default function ChatPanel() {
 
   return (
     <Card className="flex flex-col h-full overflow-hidden">
-      <CardHeader className="flex-shrink-0 pb-2">
-        <CardTitle>Group Chat</CardTitle>
+      <CardHeader
+        className="flex-shrink-0 pb-2"
+        style={{
+          background: "linear-gradient(135deg, #1e3a5f 0%, #2d1b69 100%)",
+          borderRadius: "8px 8px 0 0",
+        }}
+      >
+        <CardTitle className="text-white">Group Chat</CardTitle>
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col min-h-0 space-y-3 overflow-hidden px-3 pb-3">
@@ -327,9 +352,31 @@ export default function ChatPanel() {
           <div
             ref={scrollContainerRef}
             className="h-full overflow-y-auto pr-1"
+            style={{
+              background: "linear-gradient(180deg, #0a0f1e 0%, #050810 100%)",
+            }}
             onScroll={handleScroll}
           >
             <div className="space-y-4 pb-2" data-testid="chat-messages">
+              {/* Load-older indicator / button at top (oldest messages) */}
+              {!isLoadingOlder && hasMore && posts.length > 0 && (
+                <div className="flex justify-center py-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-muted-foreground h-7"
+                    onClick={loadOlderMessages}
+                    data-ocid="chat.load_older.button"
+                  >
+                    Load older messages
+                  </Button>
+                </div>
+              )}
+              {isLoadingOlder && (
+                <div className="flex justify-center py-3">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              )}
               {isLoadingInitial ? (
                 <div className="space-y-3 pt-2" data-ocid="chat.loading_state">
                   <div className="flex items-start gap-2">
@@ -396,43 +443,24 @@ export default function ChatPanel() {
               )}
 
               {/* Load-older indicator / button at bottom (oldest messages) */}
-              {isLoadingOlder && (
-                <div className="flex justify-center py-3">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                </div>
-              )}
-              {!isLoadingOlder && hasMore && posts.length > 0 && (
-                <div className="flex justify-center py-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-muted-foreground h-7"
-                    onClick={loadOlderMessages}
-                    data-ocid="chat.load_older.button"
-                  >
-                    Load older messages
-                  </Button>
-                </div>
-              )}
-
               {/* Bottom sentinel */}
               <div ref={bottomRef} />
             </div>
           </div>
 
-          {/* Jump to Latest button — scrolls to TOP where newest messages are */}
+          {/* Jump to Latest button — scrolls to BOTTOM where newest messages are */}
           {showJumpToLatest && (
-            <div className="absolute top-2 left-0 right-0 flex justify-center pointer-events-none">
+            <div className="absolute bottom-2 left-0 right-0 flex justify-center pointer-events-none">
               <Button
                 size="sm"
                 className="pointer-events-auto shadow-lg gap-1.5 text-xs h-8 px-3"
                 onClick={() => {
-                  scrollToTop(true);
+                  scrollToBottom(true);
                   setShowJumpToLatest(false);
                 }}
                 data-ocid="chat.jump_to_latest.button"
               >
-                <ArrowUp className="h-3.5 w-3.5" />
+                <ArrowDown className="h-3.5 w-3.5" />
                 Jump to Latest
               </Button>
             </div>

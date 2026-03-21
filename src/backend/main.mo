@@ -181,6 +181,8 @@ actor {
   let currentStreakResetAt = Map.empty<Principal, Int>();
   let bestStreakResetAt = Map.empty<Principal, Int>();
   let bestLosingStreakResetAt = Map.empty<Principal, Int>();
+  // Typing indicators — stores last-typed timestamp per user (nanoseconds)
+  let typingIndicators = Map.empty<Principal, Int>();
 
   public query ({ caller }) func getAllTimeLeaderboard() : async [(Principal, AllTimeStats)] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
@@ -1376,4 +1378,26 @@ actor {
       func((key, value)) { (key.1, value) }
     );
   };
+
+  // ─── Typing Indicators ───────────────────────────────────────────────────
+
+  /// Call this whenever the user is actively typing in chat.
+  /// Stores the current timestamp so other clients can poll and show a typing indicator.
+  public shared ({ caller }) func updateTypingIndicator() : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized");
+    };
+    typingIndicators.add(caller, Time.now());
+  };
+
+  /// Returns principals of users who have typed within the last 10 seconds,
+  /// excluding the caller themselves.
+  public query ({ caller }) func getTypingUsers() : async [Principal] {
+    let cutoffNs : Int = Time.now() - 10_000_000_000; // 10 seconds in nanoseconds
+    let result = typingIndicators.entries().toArray()
+      .filter(func((p, t)) { t > cutoffNs and p != caller })
+      .map(func((p, _)) { p });
+    result
+  };
+
 };
