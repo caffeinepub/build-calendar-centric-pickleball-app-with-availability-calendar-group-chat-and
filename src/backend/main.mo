@@ -180,6 +180,7 @@ actor {
   // Streak reset timestamps — when set, only results AFTER this timestamp count toward the streak
   let currentStreakResetAt = Map.empty<Principal, Int>();
   let bestStreakResetAt = Map.empty<Principal, Int>();
+  let bestLosingStreakResetAt = Map.empty<Principal, Int>();
 
   public query ({ caller }) func getAllTimeLeaderboard() : async [(Principal, AllTimeStats)] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
@@ -783,8 +784,16 @@ actor {
   // Calculate all-time cold streak (longest consecutive loss streak ever)
   func calculateAllTimeColdStreak(user : Principal) : Int {
     let allResults = individualResults.values().toArray();
+    // Respect the reset cutoff: only count results after the reset timestamp
+    let cutoff = bestLosingStreakResetAt.get(user);
     let userResults = allResults.filter(
-      func(result) { result.player == user }
+      func(result) {
+        if (result.player != user) return false;
+        switch (cutoff) {
+          case (null) { true };
+          case (?t) { result.timestamp > t };
+        };
+      }
     );
     let sortedResults = userResults.sort(
       func(a, b) { Int.compare(a.timestamp, b.timestamp) } // oldest first
@@ -853,6 +862,14 @@ actor {
         allTimeStats.add(userId, { s with bestStreakEver = 0 });
       };
     };
+  };
+
+  // Admin: Reset a user's all-time best losing streak
+  public shared ({ caller }) func resetUserBestLosingStreak(userId : Principal) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can reset streaks");
+    };
+    bestLosingStreakResetAt.add(userId, Time.now());
   };
 
   public shared ({ caller }) func recalculateAllUserStats() : async () {

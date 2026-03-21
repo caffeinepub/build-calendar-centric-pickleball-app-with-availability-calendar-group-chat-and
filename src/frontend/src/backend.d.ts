@@ -178,6 +178,7 @@ export interface backendInterface {
     editPost(postId: bigint, newContent: string): Promise<void>;
     finalizeCurrentSeason(year: bigint): Promise<void>;
     resetUserBestStreak(userId: Principal): Promise<void>;
+    resetUserBestLosingStreak(userId: Principal): Promise<void>;
     resetUserCurrentStreak(userId: Principal): Promise<void>;
     getAllAvailabilities(): Promise<Array<[Principal, bigint, string]>>;
     getAllBadgeDefinitions(): Promise<Array<BadgeDefinition>>;

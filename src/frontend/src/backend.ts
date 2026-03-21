@@ -271,6 +271,7 @@ export interface backendInterface {
     editPost(postId: bigint, newContent: string): Promise<void>;
     finalizeCurrentSeason(year: bigint): Promise<void>;
     resetUserBestStreak(userId: Principal): Promise<void>;
+    resetUserBestLosingStreak(userId: Principal): Promise<void>;
     resetUserCurrentStreak(userId: Principal): Promise<void>;
     getAllAvailabilities(): Promise<Array<[Principal, bigint, string]>>;
     getAllBadgeDefinitions(): Promise<Array<BadgeDefinition>>;
@@ -667,6 +668,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.resetUserBestStreak(arg0);
+            return result;
+        }
+    }
+    async resetUserBestLosingStreak(arg0: Principal): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.resetUserBestLosingStreak(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.resetUserBestLosingStreak(arg0);
             return result;
         }
     }

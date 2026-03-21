@@ -4,10 +4,6 @@ import App from "./App";
 import { InternetIdentityProvider } from "./hooks/useInternetIdentity";
 import "./index.css";
 
-// Force dark mode always
-document.documentElement.classList.add("dark");
-localStorage.setItem("theme", "dark");
-
 BigInt.prototype.toJSON = function () {
   return this.toString();
 };

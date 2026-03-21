@@ -10,7 +10,7 @@ import {
   TrendingUp,
   Trophy,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { BadgeDefinition, DayWithLog } from "../backend";
 import { NotificationCategory } from "../backend";
@@ -341,7 +341,10 @@ export default function LeaderboardPage() {
     useGetPastSeasonSnapshots();
   const { data: allBadgeDefinitions = [] } = useGetAllBadgeDefinitions();
 
-  const principals = leaderboard.map(([principal]) => principal);
+  const principals = useMemo(
+    () => leaderboard.map(([principal]) => principal),
+    [leaderboard],
+  );
   const { data: userDirectory, isLoading: isLoadingDirectory } =
     useUserDirectoryWithAvatars(principals);
 
@@ -370,9 +373,8 @@ export default function LeaderboardPage() {
   const [selectedPlayerPrincipal, setSelectedPlayerPrincipal] =
     useState<Principal | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [rankChanges, setRankChanges] = useState<
-    Map<string, "up" | "down" | "same">
-  >(new Map());
+  // rankChanges computed synchronously (avoids setState-in-useEffect infinite loop)
+  // This is derived purely from existing query data, so useMemo is correct here.
   const [expandedSeasons, setExpandedSeasons] = useState<Set<string>>(
     new Set(),
   );
@@ -409,7 +411,13 @@ export default function LeaderboardPage() {
     (entry) => entry.day <= today,
   );
 
-  // Notification-based rank change toasts
+  // Stable ref for markNotifRead to avoid dep-array loop
+  const markNotifReadRef = useRef(markNotifRead);
+  useEffect(() => {
+    markNotifReadRef.current = markNotifRead;
+  }, [markNotifRead]);
+
+  // Notification-based rank change toasts — only notifications array is a dep
   useEffect(() => {
     if (notifications.length === 0) return;
     const rankNotifs = notifications.filter(
@@ -433,16 +441,15 @@ export default function LeaderboardPage() {
         toast.error(`Your rank dropped to #${Number(notif.newRank)}.`);
       }
       if (!notif.read) {
-        markNotifRead(notif.id);
+        markNotifReadRef.current(notif.id);
       }
     }
-  }, [notifications, markNotifRead]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notifications]);
 
-  // Rank change visual indicators
-  useEffect(() => {
-    if (leaderboard.length === 0) return;
-
+  const rankChanges = useMemo(() => {
     const changes = new Map<string, "up" | "down" | "same">();
+    if (leaderboard.length === 0) return changes;
     const rankNotifMap = new Map<string, "up" | "down">();
     for (const notif of notifications) {
       if (notif.category !== NotificationCategory.rankChange) continue;
@@ -454,13 +461,12 @@ export default function LeaderboardPage() {
         }
       }
     }
-
     for (const [principal] of leaderboard) {
       const pStr = principal.toString();
       const dir = rankNotifMap.get(pStr);
       changes.set(pStr, dir ?? "same");
     }
-    setRankChanges(changes);
+    return changes;
   }, [leaderboard, notifications, callerPrincipal]);
 
   // Auto-select the most recent past day when match history loads

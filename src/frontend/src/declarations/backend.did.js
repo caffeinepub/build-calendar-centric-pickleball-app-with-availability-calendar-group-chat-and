@@ -187,6 +187,7 @@ export const idlService = IDL.Service({
   'editPost' : IDL.Func([IDL.Int, IDL.Text], [], []),
   'finalizeCurrentSeason' : IDL.Func([IDL.Nat], [], []),
   'resetUserBestStreak' : IDL.Func([IDL.Principal], [], []),
+    'resetUserBestLosingStreak' : IDL.Func([IDL.Principal], [], []),
   'resetUserCurrentStreak' : IDL.Func([IDL.Principal], [], []),
   'getAllAvailabilities' : IDL.Func(
       [],
@@ -489,6 +490,7 @@ export const idlFactory = ({ IDL }) => {
     'editPost' : IDL.Func([IDL.Int, IDL.Text], [], []),
     'finalizeCurrentSeason' : IDL.Func([IDL.Nat], [], []),
   'resetUserBestStreak' : IDL.Func([IDL.Principal], [], []),
+    'resetUserBestLosingStreak' : IDL.Func([IDL.Principal], [], []),
   'resetUserCurrentStreak' : IDL.Func([IDL.Principal], [], []),
     'getAllAvailabilities' : IDL.Func(
         [],

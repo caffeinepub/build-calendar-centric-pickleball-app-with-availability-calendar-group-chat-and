@@ -59,6 +59,7 @@ import {
   useGetAllLoginTimestamps,
   useGetAllRegisteredUsers,
   useGetCurrentSeasonLeaderboard,
+  useResetUserBestLosingStreak,
   useResetUserBestStreak,
   useResetUserCurrentStreak,
 } from "../hooks/useQueries";
@@ -95,6 +96,8 @@ export default function AdminPage() {
     useResetUserCurrentStreak();
   const { mutate: resetBestStreak, isPending: isResettingBest } =
     useResetUserBestStreak();
+  const { mutate: resetBestLosingStreak, isPending: isResettingCold } =
+    useResetUserBestLosingStreak();
 
   const [userToDelete, setUserToDelete] = useState<Principal | null>(null);
   const [availabilityToDelete, setAvailabilityToDelete] = useState<{
@@ -105,7 +108,7 @@ export default function AdminPage() {
   const [selectedUserForStreak, setSelectedUserForStreak] =
     useState<string>("");
   const [streakResetDialog, setStreakResetDialog] = useState<{
-    type: "current" | "best";
+    type: "current" | "best" | "cold";
     open: boolean;
   }>({ type: "current", open: false });
 
@@ -469,6 +472,22 @@ export default function AdminPage() {
                 "Reset All Time Best Streak"
               )}
             </Button>
+            <Button
+              variant="outline"
+              disabled={!selectedUserForStreak || isResettingCold}
+              onClick={() => setStreakResetDialog({ type: "cold", open: true })}
+              data-ocid="admin.streak_management.reset_cold_button"
+              className="flex-1 border-blue-500 text-blue-400 hover:bg-blue-500/10"
+            >
+              {isResettingCold ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Resetting...
+                </span>
+              ) : (
+                "Reset All Time Cold Streak"
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -486,7 +505,9 @@ export default function AdminPage() {
               Reset{" "}
               {streakResetDialog.type === "current"
                 ? "Current Streak"
-                : "All Time Best Streak"}
+                : streakResetDialog.type === "best"
+                  ? "All Time Best Streak"
+                  : "All Time Cold Streak"}
               ?
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -497,9 +518,11 @@ export default function AdminPage() {
                 const name =
                   player?.[1].name ||
                   `${selectedUserForStreak.slice(0, 12)}...`;
-                return streakResetDialog.type === "current"
-                  ? `Are you sure you want to reset ${name}'s current streak to zero? This cannot be undone.`
-                  : `Are you sure you want to reset ${name}'s all-time best streak to zero? This cannot be undone.`;
+                return streakResetDialog.type === "cold"
+                  ? `Are you sure you want to reset ${name}'s all time cold streak? This cannot be undone.`
+                  : streakResetDialog.type === "current"
+                    ? `Are you sure you want to reset ${name}'s current streak to zero? This cannot be undone.`
+                    : `Are you sure you want to reset ${name}'s all-time best streak to zero? This cannot be undone.`;
               })()}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -514,7 +537,17 @@ export default function AdminPage() {
                   "@dfinity/principal"
                 );
                 const userId = PrincipalClass.fromText(selectedUserForStreak);
-                if (streakResetDialog.type === "current") {
+                if (streakResetDialog.type === "cold") {
+                  resetBestLosingStreak(userId, {
+                    onSuccess: () => {
+                      toast.success("All time cold streak reset successfully");
+                      setSelectedUserForStreak("");
+                      setStreakResetDialog({ type: "current", open: false });
+                    },
+                    onError: () =>
+                      toast.error("Failed to reset all time cold streak"),
+                  });
+                } else if (streakResetDialog.type === "current") {
                   resetCurrentStreak(userId, {
                     onSuccess: () => {
                       toast.success("Current streak reset successfully");

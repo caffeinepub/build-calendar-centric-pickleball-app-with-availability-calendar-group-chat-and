@@ -156,6 +156,7 @@ export interface _SERVICE {
   'editPost' : ActorMethod<[bigint, string], undefined>,
   'finalizeCurrentSeason' : ActorMethod<[bigint], undefined>,
   'resetUserBestStreak' : ActorMethod<[Principal], undefined>,
+  'resetUserBestLosingStreak' : ActorMethod<[Principal], undefined>,
   'resetUserCurrentStreak' : ActorMethod<[Principal], undefined>,
   'getAllAvailabilities' : ActorMethod<[], Array<[Principal, bigint, string]>>,
   'getAllBadgeDefinitions' : ActorMethod<[], Array<BadgeDefinition>>,

@@ -918,3 +918,18 @@ export function useGetUserAllTimeColdStreak(user: Principal | null) {
     enabled: !!actor && !isFetching && !!user,
   });
 }
+
+export function useResetUserBestLosingStreak() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: Principal) => {
+      if (!actor) throw new Error("Not authenticated");
+      return actor.resetUserBestLosingStreak(userId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["callerAllTimeColdStreak"] });
+      queryClient.invalidateQueries({ queryKey: ["userAllTimeColdStreak"] });
+    },
+  });
+}
