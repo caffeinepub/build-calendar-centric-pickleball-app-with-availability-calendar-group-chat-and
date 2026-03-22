@@ -1,41 +1,31 @@
 # Somers Scheduler
 
 ## Current State
-- Leaderboard uses notification data to derive rank changes; arrows may show wrong direction
-- Calendar day detail shows weather summary only (no 3-hour interval breakdown)
-- Chat is forum-style (newest at top, flat background, no typing indicator, no per-user colors)
-- No typing indicator in backend or frontend
+- Leaderboard has a rank change indicator derived from backend notifications (newRank/oldRank fields). Bug: when rank number increases (worse), a green up arrow shows instead of red down. Toast may also show wrong rank number.
+- DayDetailPage shows daily weather (high/low, condition, wind, precip) but no 3-hour interval breakdown.
+- ChatPanel has basic polling every 5s but re-fetches full page. No gradient header/bg, no slide-in animations for new messages.
 
 ## Requested Changes (Diff)
 
 ### Add
-- 3-hour interval forecast row in DayDetailPage expanded view (horizontal scrollable, up to 8 slots: time, icon, temp, label)
-- Per-user deterministic accent colors based on username hash (used in chat, leaderboard, profile)
-- Typing indicator: backend `updateTypingIndicator`/`getTypingUsers` functions + frontend animated dots
-- Chat gradient header (deep blue → purple)
-- Chat gradient background (dark navy → near-black)
-- Chat message bubbles: own messages right-aligned in accent color, others left in dark card
-- Fade-in/slide-up animation for new messages
-- Emoji reaction bounce animation
-- Group consecutive messages from same user (no repeated header)
-- Auto-refresh polling every 3-5s, stop when tab inactive
-- Incremental fetch (only messages newer than last known)
+- 3-hour interval forecast row (horizontal scrollable) in DayDetailPage — show time, temp, icon, condition label for each slot of the tapped day
+- Slide-in/fade-in animation for newly arrived chat messages
+- Subtle glowing border on new/unread messages that fades out
+- Gradient chat header (deep blue to purple)
+- Subtle gradient background on chat container (dark navy to near-black)
+- Incremental polling: track last-received message timestamp and only fetch messages newer than that
+- Stop polling when chat tab is not active (document visibility API)
 
 ### Modify
-- Rank change arrows: derive from comparing previous leaderboard snapshot ref to current (no backend needed). Green up = rank number decreased (improved). Red down = rank number increased (worsened).
-- Toast notifications show correct current rank number
-- Chat layout flipped: newest messages at BOTTOM (iMessage/WhatsApp convention)
-- "Jump to Latest" scrolls to BOTTOM, uses ArrowDown icon
-- Load-older trigger at TOP of scroll container
-- weatherService.ts: add `fetchHourlyForecastForDay(dateStr)` returning array of 3-hour slots
+- Rank arrow logic: fix so that newRank < oldRank (closer to #1) = green up arrow, newRank > oldRank (further from #1) = red down arrow. Use snapshot-based comparison (store prev leaderboard in a ref) instead of relying on notification fields to avoid data ordering issues.
+- Rank toast: derive the toast rank number from the player's actual 1-based position in the current leaderboard array, not from notification metadata.
+- weatherService.ts: export raw 3-hour slot data per date (not just daily aggregates) so DayDetailPage can render them.
 
 ### Remove
-- Previous rank-change arrow logic based on notification data only
+- Nothing removed
 
 ## Implementation Plan
-1. Add `updateTypingIndicator(userId, timestamp)` and `getTypingUsers()` to backend main.mo
-2. Add `fetchHourlyForecastForDay(dateStr)` to weatherService.ts using existing forecast API
-3. Update DayDetailPage to show 3-hour slots as horizontal scrollable row
-4. Refactor LeaderboardPage rank change logic to compare prev/current leaderboard snapshots
-5. Refactor ChatPanel: flip to bottom-newest, gradient, per-user colors, typing indicator, grouping, animations
-6. Refactor ThreadedPostTree: bubble layout (own=right, other=left), accent colors, grouping
+1. Fix LeaderboardPage rank indicator: use a `prevLeaderboardRef` to store previous sort order; compare positions to determine up/down; green up = improved (lower number), red down = worsened (higher number). Fix toast to use player's actual index+1 in current sorted leaderboard.
+2. Update weatherService to expose `fetchHourlyForecastByDate(dateStr)` returning raw 3-hour slots for that date.
+3. Update DayDetailPage to call `fetchHourlyForecastByDate` and render a horizontal scrollable strip of 3-hour slots below the existing daily weather card.
+4. Update ChatPanel: add gradient header/bg via Tailwind/inline styles, add CSS keyframe animation for new messages, add glow effect on unread/new, implement incremental polling with lastMessageId ref, pause polling on visibility change.

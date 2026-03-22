@@ -13,6 +13,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { BadgeDefinition, DayWithLog } from "../backend";
+import { NotificationCategory } from "../backend";
 import type { T as UserStats } from "../backend";
 import SeasonChampionBadge from "../components/badges/SeasonChampionBadge";
 import { Page, PageHeader } from "../components/layout/PageLayout";
@@ -63,8 +64,10 @@ import {
   useGetCallerMatchHistory,
   useGetCurrentSeasonLeaderboard,
   useGetLeaderboard,
+  useGetMyNotifications,
   useGetPastSeasonSnapshots,
   useGetUserBadges,
+  useMarkNotificationRead,
   useRecalculateAllUserStats,
   useRecordDailyLoss,
   useRecordDailyWin,
@@ -257,7 +260,9 @@ function LeaderboardTable({
           return (
             <TableRow
               key={principal.toString()}
-              className={`cursor-pointer transition-colors hover:bg-muted/60 ${isCurrentUser ? "bg-primary/5 font-medium" : ""}`}
+              className={`cursor-pointer transition-colors hover:bg-muted/60 ${
+                isCurrentUser ? "bg-primary/5 font-medium" : ""
+              }`}
               onClick={() => onPlayerClick?.(principal)}
               data-ocid={`leaderboard.item.${rank}`}
             >
@@ -370,8 +375,6 @@ export default function LeaderboardPage() {
   const [selectedPlayerPrincipal, setSelectedPlayerPrincipal] =
     useState<Principal | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  // rankChanges computed synchronously (avoids setState-in-useEffect infinite loop)
-  // This is derived purely from existing query data, so useMemo is correct here.
   const [expandedSeasons, setExpandedSeasons] = useState<Set<string>>(
     new Set(),
   );
@@ -380,7 +383,62 @@ export default function LeaderboardPage() {
   const currentYear = new Date().getFullYear();
   const daysRemaining = getDaysRemainingInSeason();
 
-  const shownNotifIdsRef = useRef<Set<string>>(new Set()); // kept for compat
+  const { data: notifications = [] } = useGetMyNotifications();
+  const { mutate: markNotifRead } = useMarkNotificationRead();
+  const shownNotifIdsRef = useRef<Set<string>>(new Set());
+
+  // ── Track previous leaderboard snapshot for rank change arrows ──────────
+  // prevLeaderboardRef holds the last known sorted snapshot of currentSeasonLeaderboard
+  const prevLeaderboardRef = useRef<Array<[Principal, UserStats]>>([]);
+
+  // Compute rank changes by comparing positions in prev vs current snapshot.
+  // lower index = closer to #1 = better = "up" (green arrow)
+  // higher index = further from #1 = worse = "down" (red arrow)
+  const rankChanges = useMemo(() => {
+    const changes = new Map<string, "up" | "down" | "same">();
+    const prev = prevLeaderboardRef.current;
+    if (prev.length === 0 || currentSeasonLeaderboard.length === 0)
+      return changes;
+
+    const prevPositions = new Map<string, number>();
+    for (let i = 0; i < prev.length; i++) {
+      prevPositions.set(prev[i][0].toString(), i);
+    }
+
+    for (let i = 0; i < currentSeasonLeaderboard.length; i++) {
+      const pStr = currentSeasonLeaderboard[i][0].toString();
+      const prevIdx = prevPositions.get(pStr);
+      if (prevIdx === undefined) {
+        changes.set(pStr, "same");
+      } else if (i < prevIdx) {
+        // moved closer to #1 — improved
+        changes.set(pStr, "up");
+      } else if (i > prevIdx) {
+        // moved further from #1 — worsened
+        changes.set(pStr, "down");
+      } else {
+        changes.set(pStr, "same");
+      }
+    }
+    return changes;
+  }, [currentSeasonLeaderboard]);
+
+  // After render, update the previous snapshot ref
+  useEffect(() => {
+    if (currentSeasonLeaderboard.length > 0) {
+      prevLeaderboardRef.current = currentSeasonLeaderboard;
+    }
+  }, [currentSeasonLeaderboard]);
+
+  // Track the caller's current rank for accurate toast messages
+  const callerCurrentRankRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!callerPrincipal || currentSeasonLeaderboard.length === 0) return;
+    const idx = currentSeasonLeaderboard.findIndex(
+      ([p]) => p.toString() === callerPrincipal,
+    );
+    callerCurrentRankRef.current = idx >= 0 ? idx + 1 : null;
+  }, [currentSeasonLeaderboard, callerPrincipal]);
 
   // Map AllTimeStats to UserStats shape — streak column shows bestStreakEver
   const allTimeLeaderboard: Array<[Principal, UserStats]> =
@@ -406,66 +464,51 @@ export default function LeaderboardPage() {
     (entry) => entry.day <= today,
   );
 
-  // Snapshot-based rank change tracking (no backend needed)
-  const prevSnapshotRef = useRef<Map<string, number>>(new Map());
-  const [rankChanges, setRankChanges] = useState<
-    Map<string, "up" | "down" | "same">
-  >(new Map());
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional snapshot comparison
+  // Stable ref for markNotifRead to avoid dep-array loop
+  const markNotifReadRef = useRef(markNotifRead);
   useEffect(() => {
-    if (currentSeasonLeaderboard.length === 0) return;
+    markNotifReadRef.current = markNotifRead;
+  }, [markNotifRead]);
 
-    const prevSnapshot = prevSnapshotRef.current;
-    const newSnapshot = new Map<string, number>();
-    const changes = new Map<string, "up" | "down" | "same">();
+  // Notification-based rank change toasts.
+  // Arrow direction is derived from the leaderboard position comparison (rankChanges).
+  // Toast rank number is derived from the actual current leaderboard position.
+  useEffect(() => {
+    if (notifications.length === 0) return;
+    const rankNotifs = notifications.filter(
+      (n) => n.category === NotificationCategory.rankChange,
+    );
+    for (const notif of rankNotifs) {
+      const idStr = notif.id.toString();
+      if (shownNotifIdsRef.current.has(idStr)) continue;
+      shownNotifIdsRef.current.add(idStr);
 
-    currentSeasonLeaderboard.forEach(([principal], index) => {
-      const rank = index + 1;
-      const pStr = principal.toString();
-      newSnapshot.set(pStr, rank);
+      // Use the actual current rank from the leaderboard array (1-based index)
+      const actualRank = callerCurrentRankRef.current;
+      const rankLabel =
+        actualRank !== null ? `#${actualRank}` : "a new position";
 
-      if (prevSnapshot.size === 0) {
-        changes.set(pStr, "same");
-      } else {
-        const prevRank = prevSnapshot.get(pStr);
-        if (prevRank === undefined) {
-          changes.set(pStr, "same");
-        } else if (rank < prevRank) {
-          changes.set(pStr, "up"); // rank number decreased = improved
-        } else if (rank > prevRank) {
-          changes.set(pStr, "down"); // rank number increased = dropped
-        } else {
-          changes.set(pStr, "same");
-        }
-      }
-    });
-
-    // Fire toast for the current user's rank change
-    if (callerPrincipal && prevSnapshot.size > 0) {
-      const prevRank = prevSnapshot.get(callerPrincipal);
-      const newRank = newSnapshot.get(callerPrincipal);
       if (
-        prevRank !== undefined &&
-        newRank !== undefined &&
-        prevRank !== newRank
+        notif.newRank !== undefined &&
+        notif.oldRank !== undefined &&
+        notif.newRank < notif.oldRank
       ) {
-        const toastKey = `rank-${callerPrincipal}-${newRank}`;
-        if (!shownNotifIdsRef.current.has(toastKey)) {
-          shownNotifIdsRef.current.add(toastKey);
-          if (newRank < prevRank) {
-            toast.success(`Your rank improved to #${newRank}!`);
-          } else {
-            toast.error(`Your rank dropped to #${newRank}.`);
-          }
-        }
+        // Rank number decreased → closer to #1 → improved
+        toast.success(`Your rank improved to ${rankLabel}!`);
+      } else if (
+        notif.newRank !== undefined &&
+        notif.oldRank !== undefined &&
+        notif.newRank > notif.oldRank
+      ) {
+        // Rank number increased → further from #1 → worsened
+        toast.error(`Your rank dropped to ${rankLabel}.`);
+      }
+      if (!notif.read) {
+        markNotifReadRef.current(notif.id);
       }
     }
-
-    prevSnapshotRef.current = newSnapshot;
-    setRankChanges(changes);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSeasonLeaderboard]);
+  }, [notifications]);
 
   // Auto-select the most recent past day when match history loads
   // biome-ignore lint/correctness/useExhaustiveDependencies: pastMatchHistory[0] used but length tracks list changes

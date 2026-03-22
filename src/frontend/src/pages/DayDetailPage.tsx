@@ -42,7 +42,7 @@ import {
   type DayWeather,
   type HourlySlot,
   fetchAllWeather,
-  fetchHourlyForecastForDay,
+  fetchHourlyForecastByDate,
 } from "../services/weatherService";
 
 export default function DayDetailPage() {
@@ -80,9 +80,7 @@ export default function DayDetailPage() {
       fetchAllWeather().then((map) => {
         setWeather(map.get(weatherKey) ?? null);
       }),
-      fetchHourlyForecastForDay(weatherKey).then((slots) => {
-        setHourlySlots(slots);
-      }),
+      fetchHourlyForecastByDate(weatherKey).then(setHourlySlots),
     ]);
   }, [date]);
 
@@ -118,6 +116,43 @@ export default function DayDetailPage() {
       </div>
     </div>
   );
+
+  const renderHourlyForecast = (slots: HourlySlot[]) => {
+    if (slots.length === 0) return null;
+    return (
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          3-Hour Forecast
+        </p>
+        <div
+          className="flex gap-2 overflow-x-auto pb-2"
+          style={{ scrollbarWidth: "thin" }}
+        >
+          {slots.map((slot) => (
+            <div
+              key={slot.time}
+              className="flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-lg bg-muted/30 border border-border/30 min-w-[72px]"
+            >
+              <span className="text-[10px] text-muted-foreground font-medium whitespace-nowrap">
+                {slot.time}
+              </span>
+              <img
+                src={`https://openweathermap.org/img/wn/${slot.icon}.png`}
+                alt={slot.condition}
+                className="w-8 h-8"
+              />
+              <span className="text-sm font-bold text-foreground">
+                {slot.temp}°
+              </span>
+              <span className="text-[9px] text-muted-foreground text-center leading-tight">
+                {slot.condition}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -161,32 +196,7 @@ export default function DayDetailPage() {
         <Card>
           <CardContent className="py-6 space-y-4">
             {weather && renderWeatherCard(weather)}
-            {hourlySlots.length > 0 && (
-              <div className="overflow-x-auto -mx-1">
-                <div
-                  className="flex gap-2 pb-1 px-1"
-                  style={{ minWidth: "max-content" }}
-                >
-                  {hourlySlots.map((slot) => (
-                    <div
-                      key={slot.time}
-                      className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg bg-muted/30 border border-border/30 text-center min-w-[64px]"
-                    >
-                      <span className="text-[10px] text-muted-foreground font-medium">
-                        {slot.time}
-                      </span>
-                      <WeatherIcon condition={slot.condition} size={18} />
-                      <span className="text-sm font-semibold">
-                        {slot.temp}°
-                      </span>
-                      <span className="text-[10px] text-muted-foreground leading-tight">
-                        {slot.description}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {hourlySlots.length > 0 && renderHourlyForecast(hourlySlots)}
             <Link to="/add-availability" search={{ date }}>
               <Button className="w-full gap-2">
                 <Plus className="h-4 w-4" />
@@ -223,30 +233,7 @@ export default function DayDetailPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {weather && renderWeatherCard(weather)}
-          {hourlySlots.length > 0 && (
-            <div className="overflow-x-auto -mx-1">
-              <div
-                className="flex gap-2 pb-1 px-1"
-                style={{ minWidth: "max-content" }}
-              >
-                {hourlySlots.map((slot) => (
-                  <div
-                    key={slot.time}
-                    className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg bg-muted/30 border border-border/30 text-center min-w-[64px]"
-                  >
-                    <span className="text-[10px] text-muted-foreground font-medium">
-                      {slot.time}
-                    </span>
-                    <WeatherIcon condition={slot.condition} size={18} />
-                    <span className="text-sm font-semibold">{slot.temp}°</span>
-                    <span className="text-[10px] text-muted-foreground leading-tight">
-                      {slot.description}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {hourlySlots.length > 0 && renderHourlyForecast(hourlySlots)}
 
           <Link to="/add-availability" search={{ date }}>
             <Button className="w-full gap-2">
