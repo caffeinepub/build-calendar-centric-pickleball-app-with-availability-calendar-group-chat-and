@@ -420,10 +420,10 @@ export default function ChatPanel() {
       <div
         className="flex-shrink-0 px-4 py-3 rounded-t-xl"
         style={{
-          background: "linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%)",
+          background: "oklch(0.82 0.25 118)",
         }}
       >
-        <h2 className="text-base font-semibold text-white tracking-wide">
+        <h2 className="text-base font-semibold text-black tracking-wide">
           Group Chat
         </h2>
       </div>

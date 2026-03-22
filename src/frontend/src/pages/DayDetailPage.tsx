@@ -131,7 +131,7 @@ export default function DayDetailPage() {
           {slots.map((slot) => (
             <div
               key={slot.time}
-              className="flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-lg bg-muted/30 border border-border/30 min-w-[72px]"
+              className="flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-lg bg-muted/30 border border-border/30 min-w-[80px]"
             >
               <span className="text-[10px] text-muted-foreground font-medium whitespace-nowrap">
                 {slot.time}
@@ -147,6 +147,14 @@ export default function DayDetailPage() {
               <span className="text-[9px] text-muted-foreground text-center leading-tight">
                 {slot.condition}
               </span>
+              <span className="text-[9px] text-muted-foreground whitespace-nowrap">
+                💨 {slot.windSpeed} mph
+              </span>
+              {slot.precip !== undefined && (
+                <span className="text-[9px] text-blue-400 whitespace-nowrap">
+                  💧 {slot.precip} mm
+                </span>
+              )}
             </div>
           ))}
         </div>
