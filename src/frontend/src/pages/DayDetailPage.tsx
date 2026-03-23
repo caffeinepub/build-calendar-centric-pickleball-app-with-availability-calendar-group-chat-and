@@ -152,7 +152,7 @@ export default function DayDetailPage() {
               </span>
               {slot.precip !== undefined && (
                 <span className="text-[9px] text-blue-400 whitespace-nowrap">
-                  💧 {slot.precip} mm
+                  💧 {(slot.precip * 0.0394).toFixed(2)} in
                 </span>
               )}
             </div>

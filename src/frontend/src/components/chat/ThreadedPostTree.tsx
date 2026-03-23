@@ -115,7 +115,7 @@ function PostItem({
     identity && post.author.toString() === identity.getPrincipal().toString();
 
   const indentClass = depth > 0 ? `ml-${Math.min(depth * 4, 12)}` : "";
-  const borderClass = depth > 0 ? "border-l-2 border-muted pl-4" : "";
+  const borderClass = depth > 0 ? "border-l-2 border-primary pl-4" : "";
 
   const handleEditClick = () => {
     setEditContent(post.content);
