@@ -14,6 +14,7 @@ import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import { Input } from "../ui/input";
 import { Skeleton } from "../ui/skeleton";
+import GifPicker from "./GifPicker";
 import ThreadedPostTree from "./ThreadedPostTree";
 
 // ─── CSS animations injected once ────────────────────────────────────────────
@@ -44,6 +45,9 @@ function ensureChatStyles() {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 30n;
+
+const SPLASH_BG_URL =
+  "https://blob.caffeine.ai/v1/blob/?blob_hash=sha256%3Ac922d63f8271822d4f882642444f8f2bdb0d1941683fa577854ba343e6b0ce7d&owner_id=bjzp7-xyaaa-aaaaf-qbsta-cai&project_id=0198d89b-d4eb-711d-abfd-9b50202a1152";
 
 function getDateLabel(timestampNs: bigint): string {
   const ms = Number(timestampNs / 1_000_000n);
@@ -88,6 +92,7 @@ export default function ChatPanel() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { mutate: createPost, isPending } = useCreatePost();
 
@@ -105,12 +110,39 @@ export default function ChatPanel() {
   // Incremental polling: track the highest message ID seen
   const lastMessageIdRef = useRef<bigint | null>(null);
 
+  // Track whether initial load is fully done (including background reply fetch)
+  const initialLoadDoneRef = useRef(false);
+
   // Inject CSS animations once on mount
   useEffect(() => {
     ensureChatStyles();
   }, []);
 
   // ── Fetch helpers ────────────────────────────────────────────────────────
+
+  const fetchAndMergeReplies = useCallback(
+    async (topLevelPosts: Post[]) => {
+      if (!actor || topLevelPosts.length === 0) return;
+      try {
+        const replyArrays = await Promise.all(
+          topLevelPosts.map((p) => actor.getReplies(p.id)),
+        );
+        const allReplies = replyArrays.flat();
+        if (allReplies.length === 0) return;
+        setPosts((prev) => {
+          const existingIds = new Set(prev.map((p) => p.id.toString()));
+          const newReplies = allReplies.filter(
+            (r) => !existingIds.has(r.id.toString()),
+          );
+          if (newReplies.length === 0) return prev;
+          return [...prev, ...newReplies];
+        });
+      } catch {
+        // silent
+      }
+    },
+    [actor],
+  );
 
   const fetchRepliesForPosts = useCallback(
     async (topLevelPosts: Post[]): Promise<Post[]> => {
@@ -135,9 +167,9 @@ export default function ChatPanel() {
       if (!actor || actorFetching) return;
       try {
         const page = await actor.getPosts(PAGE_SIZE, pageOffset);
-        const withReplies = await fetchRepliesForPosts(page);
 
         if (loadOlder) {
+          const withReplies = await fetchRepliesForPosts(page);
           prependingRef.current = true;
           setPosts((prev) => {
             const existingIds = new Set(prev.map((p) => p.id.toString()));
@@ -147,36 +179,42 @@ export default function ChatPanel() {
             return [...prev, ...newPosts];
           });
         } else {
-          setPosts(withReplies);
-          // Update lastMessageId to the max ID from this initial page
-          if (withReplies.length > 0) {
-            const maxId = withReplies.reduce(
+          setPosts(page);
+
+          if (page.length > 0) {
+            const maxId = page.reduce(
               (max, p) => (p.id > max ? p.id : max),
-              withReplies[0].id,
+              page[0].id,
             );
             lastMessageIdRef.current = maxId;
           }
+
+          fetchAndMergeReplies(page);
         }
+
         setHasMore(page.length >= Number(PAGE_SIZE));
         setOffset(pageOffset + PAGE_SIZE);
       } catch {
         setLoadError("Failed to load messages.");
       }
     },
-    [actor, actorFetching, fetchRepliesForPosts],
+    [actor, actorFetching, fetchRepliesForPosts, fetchAndMergeReplies],
   );
 
-  // Initial load — also re-fetches when a reply is posted (refreshFlag changes)
   // biome-ignore lint/correctness/useExhaustiveDependencies: refreshFlag is intentional trigger
   useEffect(() => {
     if (!actor || actorFetching) return;
+    initialLoadDoneRef.current = false;
     setIsLoadingInitial(true);
     setLoadError(null);
-    fetchPage(0n, false).finally(() => setIsLoadingInitial(false));
+    fetchPage(0n, false).finally(() => {
+      setIsLoadingInitial(false);
+      initialLoadDoneRef.current = true;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actor, actorFetching, fetchPage, refreshFlag]);
 
-  // ── Incremental polling with visibility awareness ─────────────────────────
+  // Polling
   useEffect(() => {
     if (!actor || actorFetching || isLoadingInitial) return;
 
@@ -192,7 +230,6 @@ export default function ChatPanel() {
           const prevIds = new Set(prev.map((p) => p.id.toString()));
           const lastKnownId = lastMessageIdRef.current;
 
-          // Only include items genuinely newer than what we've seen
           const newItems = withReplies.filter((p) => {
             if (prevIds.has(p.id.toString())) return false;
             if (lastKnownId !== null && p.id <= lastKnownId) return false;
@@ -201,7 +238,6 @@ export default function ChatPanel() {
 
           if (newItems.length === 0) return prev;
 
-          // Update the last known ID
           const maxNew = newItems.reduce(
             (max, p) => (p.id > max ? p.id : max),
             newItems[0].id,
@@ -218,7 +254,7 @@ export default function ChatPanel() {
           return [...newTopLevel, ...newReplies, ...prev];
         });
       } catch {
-        // silent — polling failure shouldn't flash errors
+        // silent
       }
     };
 
@@ -239,12 +275,10 @@ export default function ChatPanel() {
         stopPolling();
       } else {
         startPolling();
-        // Immediately poll once when tab becomes visible again
         poll();
       }
     };
 
-    // Start polling if the tab is currently visible
     if (!document.hidden) {
       startPolling();
     }
@@ -257,15 +291,13 @@ export default function ChatPanel() {
     };
   }, [actor, actorFetching, isLoadingInitial, fetchRepliesForPosts]);
 
-  // ── Track which message IDs are "new" for animation ───────────────────────
-  // After each render, mark all rendered IDs as seen
   useEffect(() => {
     for (const post of posts) {
       seenMessageIdsRef.current.add(post.id.toString());
     }
   }, [posts]);
 
-  // ── Scroll handling ──────────────────────────────────────────────────────
+  // ── Scroll ───────────────────────────────────────────────────────────────
 
   const scrollToTop = useCallback((smooth = false) => {
     const el = scrollContainerRef.current;
@@ -303,7 +335,6 @@ export default function ChatPanel() {
     }
   }, [hasMore, isLoadingOlder, loadOlderMessages]);
 
-  // Scroll to top on initial load
   useEffect(() => {
     if (
       !isLoadingInitial &&
@@ -315,7 +346,6 @@ export default function ChatPanel() {
     }
   }, [isLoadingInitial, posts.length, scrollToTop]);
 
-  // Auto-scroll to top when new messages arrive (only if was at top)
   const prevPostsLengthRef = useRef(0);
   useEffect(() => {
     const grew = posts.length > prevPostsLengthRef.current;
@@ -396,6 +426,27 @@ export default function ChatPanel() {
     }
   };
 
+  // ── Handle GIF select ────────────────────────────────────────────────────
+  const handleGifSelect = (gifUrl: string) => {
+    setShowGifPicker(false);
+    if (!navigator.onLine) {
+      toast.error("You are offline.");
+      return;
+    }
+    createPost(
+      { content: gifUrl, parentId: null, image: null },
+      {
+        onSuccess: () => {
+          toast.success("GIF sent");
+          wasAtTopRef.current = true;
+          requestAnimationFrame(() => scrollToTop(false));
+        },
+        onError: (err: any) =>
+          toast.error(err?.message || "Failed to send GIF"),
+      },
+    );
+  };
+
   // ── Handle post deletion ─────────────────────────────────────────────────
   const handlePostDeleted = useCallback((postId: bigint) => {
     setPosts((prev) =>
@@ -403,7 +454,7 @@ export default function ChatPanel() {
     );
   }, []);
 
-  // ── Handle reply posted — trigger refresh to fetch new replies ────────────
+  // ── Handle reply posted ───────────────────────────────────────────────────
   const handleReplyPosted = useCallback(() => {
     setRefreshFlag((f) => f + 1);
   }, []);
@@ -416,7 +467,7 @@ export default function ChatPanel() {
 
   return (
     <Card className="flex flex-col h-full overflow-hidden border-0 rounded-xl">
-      {/* ── Gradient chat header ──────────────────────────────────────── */}
+      {/* ── Chat header ──────────────────────────────────────────────── */}
       <div
         className="flex-shrink-0 px-4 py-3 rounded-t-xl"
         style={{
@@ -429,197 +480,237 @@ export default function ChatPanel() {
       </div>
 
       <CardContent
-        className="flex-1 flex flex-col min-h-0 space-y-3 overflow-hidden px-3 pb-3 pt-3"
+        className="flex-1 flex flex-col min-h-0 overflow-hidden px-3 pb-3 pt-3"
         style={{
-          background: "linear-gradient(180deg, #0f172a 0%, #020617 100%)",
+          backgroundImage: `url("${SPLASH_BG_URL}")`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          position: "relative",
         }}
       >
-        {/* ── Message list ─────────────────────────────────────────────── */}
-        <div className="relative flex-1 min-h-0">
-          <div
-            ref={scrollContainerRef}
-            className="h-full overflow-y-auto pr-1"
-            onScroll={handleScroll}
-          >
-            <div className="space-y-4 pb-2" data-testid="chat-messages">
-              {isLoadingInitial ? (
-                <div className="space-y-3 pt-2" data-ocid="chat.loading_state">
-                  <div className="flex items-start gap-2">
-                    <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
-                    <div className="space-y-1.5 flex-1 max-w-[65%]">
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-10 w-full rounded-xl" />
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2 flex-row-reverse">
-                    <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
-                    <div className="space-y-1.5 flex-1 max-w-[65%] items-end flex flex-col">
-                      <Skeleton className="h-4 w-20" />
-                      <Skeleton className="h-14 w-full rounded-xl" />
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
-                    <div className="space-y-1.5 flex-1 max-w-[55%]">
-                      <Skeleton className="h-4 w-28" />
-                      <Skeleton className="h-8 w-full rounded-xl" />
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2 flex-row-reverse">
-                    <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
-                    <div className="space-y-1.5 flex-1 max-w-[70%] items-end flex flex-col">
-                      <Skeleton className="h-4 w-16" />
-                      <Skeleton className="h-12 w-full rounded-xl" />
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
-                    <div className="space-y-1.5 flex-1 max-w-[60%]">
-                      <Skeleton className="h-4 w-20" />
-                      <Skeleton className="h-16 w-full rounded-xl" />
-                    </div>
-                  </div>
-                </div>
-              ) : loadError ? (
-                <ErrorState
-                  message={loadError}
-                  onRetry={() => {
-                    setLoadError(null);
-                    setIsLoadingInitial(true);
-                    fetchPage(0n, false).finally(() =>
-                      setIsLoadingInitial(false),
-                    );
-                  }}
-                />
-              ) : posts.length === 0 ? (
-                <p
-                  className="text-center text-muted-foreground py-8 text-sm"
-                  data-ocid="chat.empty_state"
-                >
-                  No messages yet. Start the conversation!
-                </p>
-              ) : (
-                renderTreeWithDateSeparators(
-                  threadTree,
-                  topLevelPosts,
-                  seenMessageIdsRef.current,
-                  handlePostDeleted,
-                  handleReplyPosted,
-                )
-              )}
+        {/* Dark overlay */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(2, 6, 23, 0.82)",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
 
-              {/* Load-older indicator / button at bottom (oldest messages) */}
-              {isLoadingOlder && (
-                <div className="flex justify-center py-3">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                </div>
-              )}
-              {!isLoadingOlder && hasMore && posts.length > 0 && (
-                <div className="flex justify-center py-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-muted-foreground h-7"
-                    onClick={loadOlderMessages}
-                    data-ocid="chat.load_older.button"
+        {/* Content above overlay */}
+        <div
+          className="relative flex flex-col flex-1 min-h-0 space-y-3"
+          style={{ zIndex: 1 }}
+        >
+          {/* ── Message list ─────────────────────────────────────────── */}
+          <div className="relative flex-1 min-h-0">
+            <div
+              ref={scrollContainerRef}
+              className="h-full overflow-y-auto pr-1"
+              onScroll={handleScroll}
+            >
+              <div className="space-y-4 pb-2" data-testid="chat-messages">
+                {isLoadingInitial ? (
+                  <div
+                    className="space-y-3 pt-2"
+                    data-ocid="chat.loading_state"
                   >
-                    Load older messages
-                  </Button>
-                </div>
-              )}
+                    <div className="flex items-start gap-2">
+                      <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
+                      <div className="space-y-1.5 flex-1 max-w-[65%]">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-10 w-full rounded-xl" />
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 flex-row-reverse">
+                      <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
+                      <div className="space-y-1.5 flex-1 max-w-[65%] items-end flex flex-col">
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-14 w-full rounded-xl" />
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
+                      <div className="space-y-1.5 flex-1 max-w-[55%]">
+                        <Skeleton className="h-4 w-28" />
+                        <Skeleton className="h-8 w-full rounded-xl" />
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 flex-row-reverse">
+                      <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
+                      <div className="space-y-1.5 flex-1 max-w-[70%] items-end flex flex-col">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-12 w-full rounded-xl" />
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
+                      <div className="space-y-1.5 flex-1 max-w-[60%]">
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-16 w-full rounded-xl" />
+                      </div>
+                    </div>
+                  </div>
+                ) : loadError ? (
+                  <ErrorState
+                    message={loadError}
+                    onRetry={() => {
+                      setLoadError(null);
+                      setIsLoadingInitial(true);
+                      fetchPage(0n, false).finally(() =>
+                        setIsLoadingInitial(false),
+                      );
+                    }}
+                  />
+                ) : posts.length === 0 ? (
+                  <p
+                    className="text-center text-muted-foreground py-8 text-sm"
+                    data-ocid="chat.empty_state"
+                  >
+                    No messages yet. Start the conversation!
+                  </p>
+                ) : (
+                  renderTreeWithDateSeparators(
+                    threadTree,
+                    topLevelPosts,
+                    seenMessageIdsRef.current,
+                    handlePostDeleted,
+                    handleReplyPosted,
+                  )
+                )}
 
-              {/* Bottom sentinel */}
-              <div ref={bottomRef} />
+                {isLoadingOlder && (
+                  <div className="flex justify-center py-3">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+                {!isLoadingOlder && hasMore && posts.length > 0 && (
+                  <div className="flex justify-center py-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-muted-foreground h-7"
+                      onClick={loadOlderMessages}
+                      data-ocid="chat.load_older.button"
+                    >
+                      Load older messages
+                    </Button>
+                  </div>
+                )}
+
+                <div ref={bottomRef} />
+              </div>
             </div>
+
+            {showJumpToLatest && (
+              <div className="absolute top-2 left-0 right-0 flex justify-center pointer-events-none">
+                <Button
+                  size="sm"
+                  className="pointer-events-auto shadow-lg gap-1.5 text-xs h-8 px-3"
+                  onClick={() => {
+                    scrollToTop(true);
+                    setShowJumpToLatest(false);
+                  }}
+                  data-ocid="chat.jump_to_latest.button"
+                >
+                  <ArrowUp className="h-3.5 w-3.5" />
+                  Jump to Latest
+                </Button>
+              </div>
+            )}
           </div>
 
-          {/* Jump to Latest button — scrolls to TOP where newest messages are */}
-          {showJumpToLatest && (
-            <div className="absolute top-2 left-0 right-0 flex justify-center pointer-events-none">
-              <Button
-                size="sm"
-                className="pointer-events-auto shadow-lg gap-1.5 text-xs h-8 px-3"
-                onClick={() => {
-                  scrollToTop(true);
-                  setShowJumpToLatest(false);
-                }}
-                data-ocid="chat.jump_to_latest.button"
-              >
-                <ArrowUp className="h-3.5 w-3.5" />
-                Jump to Latest
-              </Button>
-            </div>
-          )}
-        </div>
+          {/* ── Compose form ─────────────────────────────────────────── */}
+          <form onSubmit={handleSend} className="flex-shrink-0 space-y-2">
+            {previewUrl && selectedImage && (
+              <div className="relative inline-block max-w-full">
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="max-w-full h-auto rounded-lg border border-border"
+                  style={{ maxHeight: "200px" }}
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                  onClick={handleClearImage}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
 
-        {/* ── Compose form ─────────────────────────────────────────────── */}
-        <form onSubmit={handleSend} className="flex-shrink-0 space-y-2">
-          {previewUrl && selectedImage && (
-            <div className="relative inline-block max-w-full">
-              <img
-                src={previewUrl}
-                alt="Preview"
-                className="max-w-full h-auto rounded-lg border border-border"
-                style={{ maxHeight: "200px" }}
+            {uploadProgress > 0 && uploadProgress < 100 && (
+              <div className="text-xs text-muted-foreground">
+                Uploading: {uploadProgress}%
+              </div>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+
+            {/* Input row: [text] [GIF] [paperclip] [send] */}
+            <div className="flex gap-2 min-w-0 items-center">
+              <Input
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Type a message..."
+                disabled={isPending}
+                className="text-[14px] min-w-0 flex-1 bg-white/5 border-white/10 text-white placeholder:text-white/40 focus-visible:ring-violet-500/50"
+                data-ocid="chat.input"
               />
+              {/* GIF button */}
+              <div className="relative flex-shrink-0">
+                {showGifPicker && (
+                  <GifPicker
+                    onSelect={handleGifSelect}
+                    onClose={() => setShowGifPicker(false)}
+                  />
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowGifPicker(!showGifPicker)}
+                  className="flex-shrink-0 text-white/60 hover:text-white hover:bg-white/10 text-xs font-bold h-9 px-2"
+                  aria-label="Search GIFs"
+                  data-ocid="chat.toggle"
+                >
+                  GIF
+                </Button>
+              </div>
               <Button
                 type="button"
-                variant="destructive"
+                variant="ghost"
                 size="icon"
-                className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                onClick={handleClearImage}
+                onClick={() => fileInputRef.current?.click()}
+                className="flex-shrink-0 text-white/60 hover:text-white hover:bg-white/10"
+                aria-label="Attach image"
+                data-ocid="chat.upload_button"
               >
-                <X className="h-3 w-3" />
+                <Paperclip className="h-4 w-4" />
+              </Button>
+              <Button
+                type="submit"
+                disabled={(!message.trim() && !selectedImage) || isPending}
+                size="icon"
+                className="flex-shrink-0 bg-violet-600 hover:bg-violet-700 text-white"
+                data-ocid="chat.submit_button"
+              >
+                <Send className="h-4 w-4" />
               </Button>
             </div>
-          )}
-
-          {uploadProgress > 0 && uploadProgress < 100 && (
-            <div className="text-xs text-muted-foreground">
-              Uploading: {uploadProgress}%
-            </div>
-          )}
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-
-          {/* Input row: [text] [paperclip] [send] */}
-          <div className="flex gap-2 min-w-0 items-center">
-            <Input
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Type a message..."
-              disabled={isPending}
-              className="text-[14px] min-w-0 flex-1 bg-white/5 border-white/10 text-white placeholder:text-white/40 focus-visible:ring-violet-500/50"
-              data-ocid="chat.input"
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex-shrink-0 text-white/60 hover:text-white hover:bg-white/10"
-              aria-label="Attach image"
-              data-ocid="chat.upload_button"
-            >
-              <Paperclip className="h-4 w-4" />
-            </Button>
-            <Button
-              type="submit"
-              disabled={(!message.trim() && !selectedImage) || isPending}
-              size="icon"
-              className="flex-shrink-0 bg-violet-600 hover:bg-violet-700 text-white"
-              data-ocid="chat.submit_button"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-        </form>
+          </form>
+        </div>
       </CardContent>
     </Card>
   );

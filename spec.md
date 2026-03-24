@@ -1,31 +1,26 @@
 # Somers Scheduler
 
 ## Current State
-- Leaderboard has a rank change indicator derived from backend notifications (newRank/oldRank fields). Bug: when rank number increases (worse), a green up arrow shows instead of red down. Toast may also show wrong rank number.
-- DayDetailPage shows daily weather (high/low, condition, wind, precip) but no 3-hour interval breakdown.
-- ChatPanel has basic polling every 5s but re-fetches full page. No gradient header/bg, no slide-in animations for new messages.
+ChatPanel.tsx has a compose form with: text input, paperclip (image attach), and send button. Messages render in ThreadedPostTree. The chat background uses a CSS linear gradient (dark navy to near-black). No GIF support exists.
 
 ## Requested Changes (Diff)
 
 ### Add
-- 3-hour interval forecast row (horizontal scrollable) in DayDetailPage — show time, temp, icon, condition label for each slot of the tapped day
-- Slide-in/fade-in animation for newly arrived chat messages
-- Subtle glowing border on new/unread messages that fades out
-- Gradient chat header (deep blue to purple)
-- Subtle gradient background on chat container (dark navy to near-black)
-- Incremental polling: track last-received message timestamp and only fetch messages newer than that
-- Stop polling when chat tab is not active (document visibility API)
+- `GifPicker.tsx` component: popup panel above the input bar with a search field; shows Giphy trending GIFs by default, search results when a term is typed. Grid layout, dark mode, mobile-friendly.
+- GIF button in the compose row (between paperclip and send): small "GIF" text button that toggles the GifPicker popup.
+- GIF sending: tapping a GIF in the picker inserts the Giphy CDN URL as a chat message (content = gif URL string), closes the picker, and posts via the existing `createPost` mutation. No backend changes.
+- GIF rendering: in `ThreadedPostTree.tsx` (and wherever message content is displayed), detect if content is a Giphy URL and render it as an `<img autoPlay>` at fixed width (max ~240px) instead of plain text. Respect left/right bubble alignment.
+- Chat background: apply the splash page background image URL as `backgroundImage` on the `CardContent` chat container div, with a dark overlay (rgba 0,0,0,0.78) on top using a pseudo-element or an absolutely positioned div, so chat content remains fully readable.
 
 ### Modify
-- Rank arrow logic: fix so that newRank < oldRank (closer to #1) = green up arrow, newRank > oldRank (further from #1) = red down arrow. Use snapshot-based comparison (store prev leaderboard in a ref) instead of relying on notification fields to avoid data ordering issues.
-- Rank toast: derive the toast rank number from the player's actual 1-based position in the current leaderboard array, not from notification metadata.
-- weatherService.ts: export raw 3-hour slot data per date (not just daily aggregates) so DayDetailPage can render them.
+- `ChatPanel.tsx`: add GIF button + GifPicker toggle state; wire GIF send; update chat container background.
+- `ThreadedPostTree.tsx`: detect Giphy URLs in message content and render inline GIF image.
 
 ### Remove
-- Nothing removed
+- Nothing removed.
 
 ## Implementation Plan
-1. Fix LeaderboardPage rank indicator: use a `prevLeaderboardRef` to store previous sort order; compare positions to determine up/down; green up = improved (lower number), red down = worsened (higher number). Fix toast to use player's actual index+1 in current sorted leaderboard.
-2. Update weatherService to expose `fetchHourlyForecastByDate(dateStr)` returning raw 3-hour slots for that date.
-3. Update DayDetailPage to call `fetchHourlyForecastByDate` and render a horizontal scrollable strip of 3-hour slots below the existing daily weather card.
-4. Update ChatPanel: add gradient header/bg via Tailwind/inline styles, add CSS keyframe animation for new messages, add glow effect on unread/new, implement incremental polling with lastMessageId ref, pause polling on visibility change.
+1. Create `src/frontend/src/components/chat/GifPicker.tsx` — Giphy API key `qohVIe02dMlAlSTnVtSwYOwF0DQ9qZDN`, trending endpoint, search endpoint, grid display, dark styling, mobile responsive, closes on GIF tap or outside click.
+2. Update `ChatPanel.tsx`: import GifPicker, add `showGifPicker` state, add GIF button in compose row, handle GIF selection (send as message), update chat background to use splash image with dark overlay.
+3. Update `ThreadedPostTree.tsx` (or the message rendering component): add `isGiphyUrl()` helper and render GIF inline when detected.
+4. Validate and fix any TypeScript errors.

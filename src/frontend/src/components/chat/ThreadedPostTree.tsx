@@ -31,6 +31,10 @@ import DeleteMessageDialog from "./DeleteMessageDialog";
 import ReactionControls from "./ReactionControls";
 import ReplyComposer from "./ReplyComposer";
 
+function isGiphyUrl(url: string): boolean {
+  return url.startsWith("https://media") && url.includes("giphy.com");
+}
+
 interface ThreadedPostTreeProps {
   nodes: ThreadNode[];
   depth?: number;
@@ -151,7 +155,6 @@ function PostItem({
       await deletePostMutation.mutateAsync(post.id);
       toast.success("Message deleted");
       setShowDeleteDialog(false);
-      // Immediately remove this post (and its replies) from the visible list
       onPostDeleted?.(post.id);
     } catch (error) {
       toast.error("Failed to delete message");
@@ -248,11 +251,21 @@ function PostItem({
           </div>
         ) : (
           <>
-            {post.content && (
-              <p className="text-sm pl-8 break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0">
-                {post.content}
-              </p>
-            )}
+            {post.content &&
+              (isGiphyUrl(post.content) ? (
+                <div className="pl-8 min-w-0">
+                  <img
+                    src={post.content}
+                    alt="GIF"
+                    className="rounded-lg border border-border"
+                    style={{ maxWidth: "240px", width: "100%", height: "auto" }}
+                  />
+                </div>
+              ) : (
+                <p className="text-sm pl-8 break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0">
+                  {post.content}
+                </p>
+              ))}
 
             {post.image && (
               <div className="pl-8 min-w-0">
