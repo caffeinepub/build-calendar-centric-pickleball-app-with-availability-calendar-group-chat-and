@@ -1,4 +1,4 @@
-import { Paperclip, Send, X } from "lucide-react";
+import { Gift, Paperclip, Send, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { ExternalBlob } from "../../backend";
@@ -7,6 +7,7 @@ import { storageService } from "../../services/storageService";
 import { validateImageFile } from "../../utils/file";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import GifPicker from "./GifPicker";
 
 interface ReplyComposerProps {
   parentId: bigint;
@@ -23,6 +24,7 @@ export default function ReplyComposer({
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { mutate: createPost, isPending } = useCreatePost();
 
@@ -47,6 +49,26 @@ export default function ReplyComposer({
     setPreviewUrl(null);
     setSelectedImage(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleGifSelect = (gifUrl: string) => {
+    setShowGifPicker(false);
+    if (!navigator.onLine) {
+      toast.error("You are offline. Please reconnect to send replies.");
+      return;
+    }
+    createPost(
+      { content: gifUrl, parentId, image: null },
+      {
+        onSuccess: () => {
+          toast.success("Reply posted");
+          onSuccess?.();
+        },
+        onError: (error: any) => {
+          toast.error(error?.message || "Failed to post reply");
+        },
+      },
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -133,7 +155,7 @@ export default function ReplyComposer({
         </div>
       )}
 
-      {/* Input row: [text input] [paperclip] [send] [cancel] */}
+      {/* Input row: [text input] [GIF] [paperclip] [send] [cancel] */}
       <div className="flex gap-1.5 min-w-0 items-center">
         <Input
           value={content}
@@ -143,6 +165,29 @@ export default function ReplyComposer({
           className="text-sm min-w-0 flex-1"
           data-ocid="chat.reply.input"
         />
+
+        {/* GIF button with picker */}
+        <div className="relative flex-shrink-0">
+          {showGifPicker && (
+            <GifPicker
+              onSelect={handleGifSelect}
+              onClose={() => setShowGifPicker(false)}
+            />
+          )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowGifPicker(!showGifPicker)}
+            disabled={isPending}
+            aria-label="Send a GIF"
+            className="flex-shrink-0 h-8 w-8 text-xs font-bold text-primary hover:text-primary"
+            data-ocid="chat.reply.gif_button"
+          >
+            <Gift className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+
         <Button
           type="button"
           variant="ghost"

@@ -119,7 +119,7 @@ function PostItem({
     identity && post.author.toString() === identity.getPrincipal().toString();
 
   const indentClass = depth > 0 ? `ml-${Math.min(depth * 4, 12)}` : "";
-  const borderClass = depth > 0 ? "border-l-2 border-primary pl-4" : "";
+  const isReply = depth > 0;
 
   const handleEditClick = () => {
     setEditContent(post.content);
@@ -162,147 +162,191 @@ function PostItem({
     }
   };
 
-  return (
-    <div className={`${indentClass} ${borderClass} min-w-0`}>
-      <div className="space-y-2 min-w-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <AvatarName
-            principal={post.author}
-            displayName={user?.displayName || "Loading..."}
-            avatarUrl={user?.avatarUrl}
-            isLoading={isLoadingDirectory}
-            size="sm"
-            avatarClassName="h-[25px] w-[25px] flex-shrink-0"
-            nameClassName="text-[14px] font-medium truncate"
-          />
-          <SeasonChampionBadge
-            earnedBadgeIds={authorBadgeIds}
-            allDefinitions={allBadgeDefinitions}
-          />
-          <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
-            {formatDateTime(post.timestamp)}
+  const postContent = (
+    <div className="space-y-2 min-w-0">
+      <div className="flex items-center gap-2 min-w-0">
+        <AvatarName
+          principal={post.author}
+          displayName={user?.displayName || "Loading..."}
+          avatarUrl={user?.avatarUrl}
+          isLoading={isLoadingDirectory}
+          size="sm"
+          avatarClassName="h-[25px] w-[25px] flex-shrink-0"
+          nameClassName="text-[14px] font-medium truncate"
+        />
+        <SeasonChampionBadge
+          earnedBadgeIds={authorBadgeIds}
+          allDefinitions={allBadgeDefinitions}
+        />
+        <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
+          {formatDateTime(post.timestamp)}
+        </span>
+        {post.edited && (
+          <span className="text-xs text-muted-foreground/70 italic whitespace-nowrap flex-shrink-0">
+            (edited)
           </span>
-          {post.edited && (
-            <span className="text-xs text-muted-foreground/70 italic whitespace-nowrap flex-shrink-0">
-              (edited)
-            </span>
-          )}
-          {isOwnPost && !isEditing && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 flex-shrink-0 ml-auto"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleEditClick}>
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setShowDeleteDialog(true)}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-
-        {isEditing ? (
-          <div className="pl-8 space-y-2 min-w-0">
-            <Textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              className="min-h-[80px] resize-none"
-              placeholder="Edit your message..."
-              disabled={editPostMutation.isPending}
-            />
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={handleSaveEdit}
-                disabled={editPostMutation.isPending || !editContent.trim()}
-              >
-                {editPostMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save"
-                )}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleCancelEdit}
-                disabled={editPostMutation.isPending}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <>
-            {post.content &&
-              (isGiphyUrl(post.content) ? (
-                <div className="pl-8 min-w-0">
-                  <img
-                    src={post.content}
-                    alt="GIF"
-                    className="rounded-lg border border-border"
-                    style={{ maxWidth: "240px", width: "100%", height: "auto" }}
-                  />
-                </div>
-              ) : (
-                <p className="text-sm pl-8 break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0">
-                  {post.content}
-                </p>
-              ))}
-
-            {post.image && (
-              <div className="pl-8 min-w-0">
-                <img
-                  src={post.image.getDirectURL()}
-                  alt="Attached"
-                  className="max-w-full h-auto rounded-lg border border-border"
-                />
-              </div>
-            )}
-
-            <div className="flex items-center gap-3 pl-8 flex-wrap">
-              <ReactionControls post={post} />
+        )}
+        {isOwnPost && !isEditing && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                size="sm"
-                onClick={() => setShowReplyComposer(!showReplyComposer)}
-                className="gap-1 h-7 px-2"
+                size="icon"
+                className="h-6 w-6 flex-shrink-0 ml-auto"
               >
-                <MessageSquare className="h-3 w-3" />
-                <span className="text-xs">Reply</span>
+                <MoreVertical className="h-4 w-4" />
               </Button>
-            </div>
-          </>
-        )}
-
-        {showReplyComposer && !isEditing && (
-          <ReplyComposer
-            parentId={post.id}
-            onSuccess={() => {
-              setShowReplyComposer(false);
-              onReplyPosted?.();
-            }}
-            onCancel={() => setShowReplyComposer(false)}
-          />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleEditClick}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
+
+      {isEditing ? (
+        <div className="pl-8 space-y-2 min-w-0">
+          <Textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            className="min-h-[80px] resize-none"
+            placeholder="Edit your message..."
+            disabled={editPostMutation.isPending}
+          />
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={handleSaveEdit}
+              disabled={editPostMutation.isPending || !editContent.trim()}
+            >
+              {editPostMutation.isPending ? (
+                <>
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save"
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCancelEdit}
+              disabled={editPostMutation.isPending}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {post.content &&
+            (isGiphyUrl(post.content) ? (
+              <div className="pl-8 min-w-0">
+                <img
+                  src={post.content}
+                  alt="GIF"
+                  className="rounded-lg border border-border"
+                  style={{ maxWidth: "240px", width: "100%", height: "auto" }}
+                />
+              </div>
+            ) : (
+              <p className="text-sm pl-8 break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0">
+                {post.content}
+              </p>
+            ))}
+
+          {post.image && (
+            <div className="pl-8 min-w-0">
+              <img
+                src={post.image.getDirectURL()}
+                alt="Attached"
+                className="max-w-full h-auto rounded-lg border border-border"
+              />
+            </div>
+          )}
+
+          <div className="flex items-center gap-3 pl-8 flex-wrap">
+            <ReactionControls post={post} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowReplyComposer(!showReplyComposer);
+              }}
+              className="gap-1 h-7 px-2"
+            >
+              <MessageSquare className="h-3 w-3" />
+              <span className="text-xs">Reply</span>
+            </Button>
+          </div>
+        </>
+      )}
+
+      {showReplyComposer && !isEditing && (
+        <ReplyComposer
+          parentId={post.id}
+          onSuccess={() => {
+            setShowReplyComposer(false);
+            onReplyPosted?.();
+          }}
+          onCancel={() => setShowReplyComposer(false)}
+        />
+      )}
+    </div>
+  );
+
+  return (
+    <div
+      className={`${isReply ? indentClass : ""} min-w-0 ${isReply ? "relative pl-4" : ""}`}
+    >
+      {isReply && (
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            width: "10px",
+          }}
+        >
+          {/* The vertical neon yellow line */}
+          <div
+            style={{
+              flex: 1,
+              width: "2px",
+              background: "oklch(0.82 0.25 118)",
+              minHeight: "8px",
+            }}
+          />
+          {/* Arrow at the base pointing down toward the quoted message */}
+          <div
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: "5px solid transparent",
+              borderRight: "5px solid transparent",
+              borderTop: "6px solid oklch(0.82 0.25 118)",
+              flexShrink: 0,
+            }}
+          />
+        </div>
+      )}
+      {postContent}
 
       {replies.length > 0 && (
         <div className="mt-4 min-w-0">
