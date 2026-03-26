@@ -120,18 +120,56 @@ export default function ChatPanel() {
 
   // ── Fetch helpers ────────────────────────────────────────────────────────
 
+  /**
+   * BFS fetch of ALL replies at all levels of nesting.
+   * Starts from a given set of posts and keeps fetching replies-of-replies
+   * until no new replies are found.
+   * Returns the original posts plus all discovered replies.
+   */
+  const fetchAllRepliesDeep = useCallback(
+    async (seedPosts: Post[]): Promise<Post[]> => {
+      if (!actor || seedPosts.length === 0) return seedPosts;
+      const allPosts = [...seedPosts];
+      const seen = new Set(seedPosts.map((p) => p.id.toString()));
+      let currentLevel = seedPosts;
+
+      // BFS: keep fetching replies until nothing new is found
+      while (currentLevel.length > 0) {
+        try {
+          const replyArrays = await Promise.all(
+            currentLevel.map((p) => actor.getReplies(p.id)),
+          );
+          const newReplies = replyArrays
+            .flat()
+            .filter((r) => !seen.has(r.id.toString()));
+          if (newReplies.length === 0) break;
+          for (const r of newReplies) seen.add(r.id.toString());
+          allPosts.push(...newReplies);
+          currentLevel = newReplies;
+        } catch {
+          break;
+        }
+      }
+
+      return allPosts;
+    },
+    [actor],
+  );
+
+  /**
+   * Background merge: fetches all replies (all levels) for the given posts
+   * and merges any new ones into the existing posts state.
+   */
   const fetchAndMergeReplies = useCallback(
     async (topLevelPosts: Post[]) => {
       if (!actor || topLevelPosts.length === 0) return;
       try {
-        const replyArrays = await Promise.all(
-          topLevelPosts.map((p) => actor.getReplies(p.id)),
-        );
-        const allReplies = replyArrays.flat();
-        if (allReplies.length === 0) return;
+        const allWithReplies = await fetchAllRepliesDeep(topLevelPosts);
+        const replyOnly = allWithReplies.slice(topLevelPosts.length);
+        if (replyOnly.length === 0) return;
         setPosts((prev) => {
           const existingIds = new Set(prev.map((p) => p.id.toString()));
-          const newReplies = allReplies.filter(
+          const newReplies = replyOnly.filter(
             (r) => !existingIds.has(r.id.toString()),
           );
           if (newReplies.length === 0) return prev;
@@ -141,25 +179,7 @@ export default function ChatPanel() {
         // silent
       }
     },
-    [actor],
-  );
-
-  const fetchRepliesForPosts = useCallback(
-    async (topLevelPosts: Post[]): Promise<Post[]> => {
-      if (!actor || topLevelPosts.length === 0) return topLevelPosts;
-      try {
-        const replyArrays = await Promise.all(
-          topLevelPosts.map((p) => actor.getReplies(p.id)),
-        );
-        const allReplies = replyArrays.flat();
-        const seen = new Set(topLevelPosts.map((p) => p.id.toString()));
-        const newReplies = allReplies.filter((r) => !seen.has(r.id.toString()));
-        return [...topLevelPosts, ...newReplies];
-      } catch {
-        return topLevelPosts;
-      }
-    },
-    [actor],
+    [actor, fetchAllRepliesDeep],
   );
 
   const fetchPage = useCallback(
@@ -169,7 +189,7 @@ export default function ChatPanel() {
         const page = await actor.getPosts(PAGE_SIZE, pageOffset);
 
         if (loadOlder) {
-          const withReplies = await fetchRepliesForPosts(page);
+          const withReplies = await fetchAllRepliesDeep(page);
           prependingRef.current = true;
           setPosts((prev) => {
             const existingIds = new Set(prev.map((p) => p.id.toString()));
@@ -189,6 +209,7 @@ export default function ChatPanel() {
             lastMessageIdRef.current = maxId;
           }
 
+          // Background: load all replies (all depths) without blocking render
           fetchAndMergeReplies(page);
         }
 
@@ -198,7 +219,7 @@ export default function ChatPanel() {
         setLoadError("Failed to load messages.");
       }
     },
-    [actor, actorFetching, fetchRepliesForPosts, fetchAndMergeReplies],
+    [actor, actorFetching, fetchAllRepliesDeep, fetchAndMergeReplies],
   );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: refreshFlag is intentional trigger
@@ -224,7 +245,8 @@ export default function ChatPanel() {
       if (!actor || document.hidden) return;
       try {
         const latestPage = await actor.getPosts(PAGE_SIZE, 0n);
-        const withReplies = await fetchRepliesForPosts(latestPage);
+        // Fetch replies at all depths for the latest page
+        const withReplies = await fetchAllRepliesDeep(latestPage);
 
         setPosts((prev) => {
           const prevIds = new Set(prev.map((p) => p.id.toString()));
@@ -232,25 +254,38 @@ export default function ChatPanel() {
 
           const newItems = withReplies.filter((p) => {
             if (prevIds.has(p.id.toString())) return false;
+            // For replies (which have parentId), always include them if not seen,
+            // regardless of their own ID vs lastKnownId (replies may have lower IDs
+            // than the top-level post they belong to if recorded before a refresh)
+            if (p.parentId !== null && p.parentId !== undefined) return true;
             if (lastKnownId !== null && p.id <= lastKnownId) return false;
             return true;
           });
 
           if (newItems.length === 0) return prev;
 
-          const maxNew = newItems.reduce(
-            (max, p) => (p.id > max ? p.id : max),
-            newItems[0].id,
+          const topLevelNew = newItems.filter(
+            (p) => p.parentId === null || p.parentId === undefined,
           );
-          if (
-            lastMessageIdRef.current === null ||
-            maxNew > lastMessageIdRef.current
-          ) {
-            lastMessageIdRef.current = maxNew;
+          if (topLevelNew.length > 0) {
+            const maxNew = topLevelNew.reduce(
+              (max, p) => (p.id > max ? p.id : max),
+              topLevelNew[0].id,
+            );
+            if (
+              lastMessageIdRef.current === null ||
+              maxNew > lastMessageIdRef.current
+            ) {
+              lastMessageIdRef.current = maxNew;
+            }
           }
 
-          const newTopLevel = newItems.filter((p) => !p.parentId);
-          const newReplies = newItems.filter((p) => p.parentId);
+          const newTopLevel = newItems.filter(
+            (p) => p.parentId === null || p.parentId === undefined,
+          );
+          const newReplies = newItems.filter(
+            (p) => p.parentId !== null && p.parentId !== undefined,
+          );
           return [...newTopLevel, ...newReplies, ...prev];
         });
       } catch {
@@ -289,7 +324,7 @@ export default function ChatPanel() {
       stopPolling();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [actor, actorFetching, isLoadingInitial, fetchRepliesForPosts]);
+  }, [actor, actorFetching, isLoadingInitial, fetchAllRepliesDeep]);
 
   useEffect(() => {
     for (const post of posts) {
@@ -455,13 +490,16 @@ export default function ChatPanel() {
   }, []);
 
   // ── Handle reply posted ───────────────────────────────────────────────────
+  // Trigger a full refresh so the new reply (and any reply-to-reply) is fetched
   const handleReplyPosted = useCallback(() => {
     setRefreshFlag((f) => f + 1);
   }, []);
 
   // ── Build thread tree ────────────────────────────────────────────────────
   const threadTree = buildThreadTree(posts);
-  const topLevelPosts = posts.filter((p) => !p.parentId);
+  const topLevelPosts = posts.filter(
+    (p) => p.parentId === null || p.parentId === undefined,
+  );
 
   // ── Render ───────────────────────────────────────────────────────────────
 

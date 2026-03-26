@@ -1,4 +1,4 @@
-import { Gift, Paperclip, Send, X } from "lucide-react";
+import { Paperclip, Send, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { ExternalBlob } from "../../backend";
@@ -166,7 +166,7 @@ export default function ReplyComposer({
           data-ocid="chat.reply.input"
         />
 
-        {/* GIF button with picker */}
+        {/* GIF button — matches the main chat input GIF button exactly */}
         <div className="relative flex-shrink-0">
           {showGifPicker && (
             <GifPicker
@@ -177,14 +177,14 @@ export default function ReplyComposer({
           <Button
             type="button"
             variant="ghost"
-            size="icon"
+            size="sm"
             onClick={() => setShowGifPicker(!showGifPicker)}
             disabled={isPending}
-            aria-label="Send a GIF"
-            className="flex-shrink-0 h-8 w-8 text-xs font-bold text-primary hover:text-primary"
+            className="flex-shrink-0 text-white/60 hover:text-white hover:bg-white/10 text-xs font-bold h-9 px-2"
+            aria-label="Search GIFs"
             data-ocid="chat.reply.gif_button"
           >
-            <Gift className="h-3.5 w-3.5" />
+            GIF
           </Button>
         </div>
 

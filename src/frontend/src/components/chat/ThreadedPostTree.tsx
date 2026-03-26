@@ -309,42 +309,39 @@ function PostItem({
 
   return (
     <div
-      className={`${isReply ? indentClass : ""} min-w-0 ${isReply ? "relative pl-4" : ""}`}
+      className={`${isReply ? indentClass : ""} min-w-0 ${isReply ? "relative pl-5" : ""}`}
     >
       {isReply && (
-        <div
+        /* Curved L-shaped reply indicator in neon yellow */
+        <svg
           style={{
             position: "absolute",
             left: 0,
             top: 0,
-            bottom: 0,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            width: "10px",
+            width: "18px",
+            height: "100%",
+            overflow: "visible",
+            pointerEvents: "none",
           }}
+          viewBox="0 0 18 40"
+          preserveAspectRatio="none"
+          aria-hidden="true"
         >
-          {/* The vertical neon yellow line */}
-          <div
-            style={{
-              flex: 1,
-              width: "2px",
-              background: "oklch(0.82 0.25 118)",
-              minHeight: "8px",
-            }}
+          {/*
+            Curved L-shape: starts at top-center, goes down,
+            then curves right toward the quoted message block.
+            Uses a quadratic bezier for the bend.
+          */}
+          <path
+            d="M 9 0 L 9 28 Q 9 36 17 36"
+            fill="none"
+            stroke="oklch(0.82 0.25 118)"
+            strokeWidth="2"
+            strokeLinecap="round"
           />
-          {/* Arrow at the base pointing down toward the quoted message */}
-          <div
-            style={{
-              width: 0,
-              height: 0,
-              borderLeft: "5px solid transparent",
-              borderRight: "5px solid transparent",
-              borderTop: "6px solid oklch(0.82 0.25 118)",
-              flexShrink: 0,
-            }}
-          />
-        </div>
+          {/* Arrowhead pointing right at the end of the curve */}
+          <polygon points="15,31 21,36 15,41" fill="oklch(0.82 0.25 118)" />
+        </svg>
       )}
       {postContent}
 
