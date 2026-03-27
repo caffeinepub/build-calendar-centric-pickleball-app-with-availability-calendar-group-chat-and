@@ -4,6 +4,7 @@ import {
   Clock,
   Flame,
   Loader2,
+  MapPin,
   Shield,
   Trash2,
   Trophy,
@@ -33,6 +34,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
+import { Input } from "../components/ui/input";
 import {
   Select,
   SelectContent,
@@ -59,9 +61,11 @@ import {
   useGetAllLoginTimestamps,
   useGetAllRegisteredUsers,
   useGetCurrentSeasonLeaderboard,
+  useGetWeatherZipCode,
   useResetUserBestLosingStreak,
   useResetUserBestStreak,
   useResetUserCurrentStreak,
+  useSetWeatherZipCode,
 } from "../hooks/useQueries";
 import { formatDateTime, formatDayId } from "../lib/date";
 
@@ -111,6 +115,11 @@ export default function AdminPage() {
     type: "current" | "best" | "cold";
     open: boolean;
   }>({ type: "current", open: false });
+  const { data: currentZip = "06071" } = useGetWeatherZipCode();
+  const { mutate: saveZip, isPending: isSavingZip } = useSetWeatherZipCode();
+  const [zipInput, setZipInput] = useState("");
+  const [zipSaved, setZipSaved] = useState(false);
+  const [zipError, setZipError] = useState("");
 
   const currentYear = new Date().getFullYear();
   const daysRemaining = getDaysRemainingInSeason();
@@ -395,6 +404,82 @@ export default function AdminPage() {
               </span>
             )}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Weather Location */}
+      <Card data-ocid="admin.weather_location.card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-blue-400" />
+            Weather Location
+          </CardTitle>
+          <CardDescription>
+            Update the zip code used for all weather data in the app. Current:{" "}
+            <span className="font-semibold text-foreground">{currentZip}</span>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Enter zip code (e.g. 06071)"
+              value={zipInput}
+              onChange={(e) => {
+                setZipInput(e.target.value);
+                setZipSaved(false);
+                setZipError("");
+              }}
+              className="max-w-[200px]"
+              maxLength={10}
+              data-ocid="admin.weather_location.input"
+            />
+            <Button
+              onClick={() => {
+                const trimmed = zipInput.trim();
+                if (!/^\d{5}(-\d{4})?$/.test(trimmed)) {
+                  setZipError("Please enter a valid 5-digit zip code.");
+                  return;
+                }
+                saveZip(trimmed, {
+                  onSuccess: () => {
+                    setZipSaved(true);
+                    setZipError("");
+                    setZipInput("");
+                  },
+                  onError: () => {
+                    setZipError("Failed to save zip code. Please try again.");
+                  },
+                });
+              }}
+              disabled={isSavingZip || !zipInput.trim()}
+              data-ocid="admin.weather_location.save_button"
+            >
+              {isSavingZip ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </span>
+              ) : (
+                "Save"
+              )}
+            </Button>
+          </div>
+          {zipError && (
+            <p
+              className="text-sm text-destructive"
+              data-ocid="admin.weather_location.error"
+            >
+              {zipError}
+            </p>
+          )}
+          {zipSaved && (
+            <p
+              className="text-sm text-green-500"
+              data-ocid="admin.weather_location.success"
+            >
+              Zip code updated successfully.
+            </p>
+          )}
         </CardContent>
       </Card>
 

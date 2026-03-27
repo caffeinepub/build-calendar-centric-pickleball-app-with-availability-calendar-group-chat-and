@@ -224,4 +224,6 @@ export interface backendInterface {
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     updateBadgeDefinition(definition: BadgeDefinition): Promise<void>;
     updateCallerStats(stats: T): Promise<void>;
+    getWeatherZipCode(): Promise<string>;
+    setWeatherZipCode(zip: string): Promise<void>;
 }

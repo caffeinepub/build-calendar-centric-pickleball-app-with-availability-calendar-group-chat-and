@@ -933,3 +933,42 @@ export function useResetUserBestLosingStreak() {
     },
   });
 }
+
+export function useGetWeatherZipCode() {
+  const { actor, isFetching } = useActor();
+  return useQuery<string>({
+    queryKey: ["weatherZipCode"],
+    queryFn: async () => {
+      if (!actor) return "06071";
+      return actor.getWeatherZipCode();
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useSetWeatherZipCode() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (zip: string) => {
+      if (!actor) throw new Error("Not authenticated");
+      return actor.setWeatherZipCode(zip);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["weatherZipCode"] });
+    },
+  });
+}
+
+export function useGetRankHistory(user: Principal | null) {
+  const { actor, isFetching } = useActor();
+  return useQuery<Array<[bigint, bigint]>>({
+    queryKey: ["rankHistory", user?.toString()],
+    queryFn: async () => {
+      if (!actor || !user) return [];
+      return actor.getRankHistory(user);
+    },
+    enabled: !!actor && !isFetching && !!user,
+  });
+}

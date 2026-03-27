@@ -250,6 +250,9 @@ export default function ChatPanel() {
 
         setPosts((prev) => {
           const prevIds = new Set(prev.map((p) => p.id.toString()));
+          const freshById = new Map(
+            withReplies.map((p) => [p.id.toString(), p]),
+          );
           const lastKnownId = lastMessageIdRef.current;
 
           const newItems = withReplies.filter((p) => {
@@ -262,7 +265,30 @@ export default function ChatPanel() {
             return true;
           });
 
-          if (newItems.length === 0) return prev;
+          // Update reaction counts on existing posts (optimistic patch)
+          let reactionsChanged = false;
+          const updatedPrev = prev.map((p) => {
+            const fresh = freshById.get(p.id.toString());
+            if (
+              fresh &&
+              (fresh.likesCount !== p.likesCount ||
+                fresh.dislikesCount !== p.dislikesCount ||
+                fresh.edited !== p.edited ||
+                fresh.content !== p.content)
+            ) {
+              reactionsChanged = true;
+              return {
+                ...p,
+                likesCount: fresh.likesCount,
+                dislikesCount: fresh.dislikesCount,
+                edited: fresh.edited,
+                content: fresh.content,
+              };
+            }
+            return p;
+          });
+
+          if (newItems.length === 0 && !reactionsChanged) return prev;
 
           const topLevelNew = newItems.filter(
             (p) => p.parentId === null || p.parentId === undefined,
@@ -280,13 +306,15 @@ export default function ChatPanel() {
             }
           }
 
+          if (newItems.length === 0) return updatedPrev;
+
           const newTopLevel = newItems.filter(
             (p) => p.parentId === null || p.parentId === undefined,
           );
           const newReplies = newItems.filter(
             (p) => p.parentId !== null && p.parentId !== undefined,
           );
-          return [...newTopLevel, ...newReplies, ...prev];
+          return [...newTopLevel, ...newReplies, ...updatedPrev];
         });
       } catch {
         // silent

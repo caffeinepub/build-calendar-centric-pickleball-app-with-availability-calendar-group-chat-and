@@ -317,6 +317,8 @@ export interface backendInterface {
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     updateBadgeDefinition(definition: BadgeDefinition): Promise<void>;
     updateCallerStats(stats: T): Promise<void>;
+    getWeatherZipCode(): Promise<string>;
+    setWeatherZipCode(zip: string): Promise<void>;
 }
 import type { Availability as _Availability, BadgeCriteria as _BadgeCriteria, BadgeDefinition as _BadgeDefinition, ExternalBlob as _ExternalBlob, IndividualMatchResult as _IndividualMatchResult, MonthCriteria as _MonthCriteria, Notification as _Notification, NotificationCategory as _NotificationCategory, Post as _Post, PostWithReplies as _PostWithReplies, ReactionType as _ReactionType, T as _T, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -1312,6 +1314,24 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.updateCallerStats(arg0);
+            return result;
+        }
+    }
+
+    async getWeatherZipCode(): Promise<string> {
+        if (this._mock) {
+            return '06071';
+        } else {
+            const result = await this.actor.getWeatherZipCode();
+            return result;
+        }
+    }
+
+    async setWeatherZipCode(zip: string): Promise<void> {
+        if (this._mock) {
+            return;
+        } else {
+            const result = await this.actor.setWeatherZipCode(zip);
             return result;
         }
     }

@@ -63,6 +63,14 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
     return null;
   });
 
+  // When the post prop is updated from outside (e.g. poll refresh), clear
+  // optimistic counts so we display the authoritative backend values.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional
+  useEffect(() => {
+    setOptimisticLikes(null);
+    setOptimisticDislikes(null);
+  }, [post.likesCount, post.dislikesCount]);
+
   // Controls visibility of the emoji picker (opened via smiley button)
   const [showPicker, setShowPicker] = useState(false);
 
@@ -116,8 +124,8 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
 
       removeReaction(post.id, {
         onSuccess: () => {
-          setOptimisticLikes(null);
-          setOptimisticDislikes(null);
+          // Keep optimistic state until the next poll updates the post prop
+          // Clearing here would revert to stale post.likesCount
         },
         onError: (error: any) => {
           setOptimisticLikes(null);
@@ -164,8 +172,7 @@ export default function ReactionControls({ post }: ReactionControlsProps) {
         { postId: post.id, reactionType },
         {
           onSuccess: () => {
-            setOptimisticLikes(null);
-            setOptimisticDislikes(null);
+            // Keep optimistic state until the next poll updates the post prop
           },
           onError: (error: any) => {
             setOptimisticLikes(null);

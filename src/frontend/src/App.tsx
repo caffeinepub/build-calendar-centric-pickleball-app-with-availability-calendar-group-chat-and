@@ -22,6 +22,7 @@ import { useGetCallerUserProfile } from "./hooks/useCurrentUserProfile";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
 import {
   useGetCallerStats,
+  useGetWeatherZipCode,
   useInitializeCallerLeaderboard,
 } from "./hooks/useQueries";
 import AddAvailabilityPage from "./pages/AddAvailabilityPage";
@@ -31,6 +32,7 @@ import ChatPage from "./pages/ChatPage";
 import DayDetailPage from "./pages/DayDetailPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import ProfilePage from "./pages/ProfilePage";
+import { setWeatherZip } from "./services/weatherService";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { identity, isInitializing, clear } = useInternetIdentity();
@@ -45,8 +47,17 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const { mutate: initializeLeaderboard } = useInitializeCallerLeaderboard();
   const queryClient = useQueryClient();
   const hasInitialized = useRef(false);
+  const { data: weatherZip } = useGetWeatherZipCode();
 
   const isAuthenticated = !!identity;
+
+  // Sync weather zip code from backend to weatherService
+  // biome-ignore lint/correctness/useExhaustiveDependencies: weatherZip is the only dep
+  useEffect(() => {
+    if (weatherZip) {
+      setWeatherZip(weatherZip);
+    }
+  }, [weatherZip]);
 
   // Initialize leaderboard stats and record login time after successful login and actor readiness
   useEffect(() => {

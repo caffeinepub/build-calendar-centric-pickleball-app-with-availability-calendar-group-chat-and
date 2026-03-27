@@ -168,6 +168,7 @@ actor {
   let badgeAwards = Map.empty<Principal, Set.Set<Text>>();
   let seasonSnapshots = Map.empty<Nat, SeasonSnapshot>();
   var messageCounter : Int = 0;
+  var weatherZipCode : Text = "06071";
   let allTimeStats = Map.empty<Principal, AllTimeStats>();
   let individualResults = Map.empty<Int, IndividualMatchResult>();
 
@@ -1375,5 +1376,16 @@ actor {
     filteredEntries.map(
       func((key, value)) { (key.1, value) }
     );
+  };
+
+  public query func getWeatherZipCode() : async Text {
+    weatherZipCode
+  };
+
+  public shared ({ caller }) func setWeatherZipCode(zip : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can update weather zip code");
+    };
+    weatherZipCode := zip;
   };
 };

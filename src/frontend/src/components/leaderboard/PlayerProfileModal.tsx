@@ -1,17 +1,23 @@
 import type { Principal } from "@dfinity/principal";
-import { Flame, Star, Trophy, X } from "lucide-react";
+import { Flame, Star, Trophy } from "lucide-react";
 import { Award, Star as StarIcon } from "lucide-react";
-import { useMemo } from "react";
-import type { DayWithLog } from "../../backend";
+import { useMemo, useState } from "react";
+import type { DayWithLog, IndividualMatchResult } from "../../backend";
+import { Variant_win_loss } from "../../backend";
 import {
   useGetAllBadgeDefinitions,
+  useGetIndividualResults,
+  useGetRankHistory,
   useGetUserAllTimeStats,
   useGetUserBadges,
   useGetUserStats,
 } from "../../hooks/useQueries";
 import { useUserDirectoryWithAvatars } from "../../hooks/useUserDirectory";
-import ProfileWinLossChart from "../profile/ProfileWinLossChart";
-import { Badge } from "../ui/badge";
+import ProfileRankHistoryChart from "../profile/ProfileRankHistoryChart";
+import ProfileWinLossChart, {
+  type TimeRange,
+  RANGE_LABELS,
+} from "../profile/ProfileWinLossChart";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Skeleton } from "../ui/skeleton";
 import AvatarName from "../user/AvatarName";
@@ -20,27 +26,49 @@ interface PlayerProfileModalProps {
   principal: Principal | null;
   open: boolean;
   onClose: () => void;
-  /** Pre-fetched match history for this player (from leaderboard data) */
   matchHistory?: DayWithLog[];
+}
+
+function toDayWithLogs(results: IndividualMatchResult[]): DayWithLog[] {
+  const map = new Map<string, { wins: bigint; losses: bigint; day: bigint }>();
+  for (const r of results) {
+    const key = r.dayInt.toString();
+    if (!map.has(key)) map.set(key, { wins: 0n, losses: 0n, day: r.dayInt });
+    const entry = map.get(key)!;
+    if (r.result === Variant_win_loss.win) {
+      entry.wins += 1n;
+    } else {
+      entry.losses += 1n;
+    }
+  }
+  return Array.from(map.values()).map((e) => ({
+    day: e.day,
+    wins: e.wins,
+    losses: e.losses,
+  }));
 }
 
 export default function PlayerProfileModal({
   principal,
   open,
   onClose,
-  matchHistory = [],
 }: PlayerProfileModalProps) {
   const principals = useMemo(() => (principal ? [principal] : []), [principal]);
   const { data: userDirectory } = useUserDirectoryWithAvatars(principals);
-  // Current season stats (for current streak and wins/losses display)
   const { data: stats, isLoading: isLoadingStats } = useGetUserStats(principal);
-  // All-time stats — this is the authoritative source for best streak ever
   const { data: allTimeStats, isLoading: isLoadingAllTime } =
     useGetUserAllTimeStats(principal);
   const { data: earnedBadgeIds = [], isLoading: isLoadingBadges } =
     useGetUserBadges(principal);
   const { data: allDefinitions = [], isLoading: isLoadingDefs } =
     useGetAllBadgeDefinitions();
+  const { data: individualResults = [], isLoading: isLoadingResults } =
+    useGetIndividualResults(principal);
+  const { data: rankHistoryData = [], isLoading: isLoadingRankHistory } =
+    useGetRankHistory(principal);
+
+  const [chartView, setChartView] = useState<"winloss" | "rank">("winloss");
+  const [chartRange, setChartRange] = useState<TimeRange>("all");
 
   const entry = principal
     ? userDirectory?.get(principal.toString())
@@ -51,19 +79,25 @@ export default function PlayerProfileModal({
   const avatarUrl = entry?.avatarUrl;
 
   const currentStreak = Number(stats?.streak ?? 0n);
-  // Use allTimeStats.bestStreakEver as the source of truth for best streak,
-  // matching what the profile tab reads from getCallerStats / allTimeStats.
-  // Fall back to stats.bestStreak if all-time data isn't available yet.
   const bestStreak =
     allTimeStats != null
       ? Number(allTimeStats.bestStreakEver)
       : Number(stats?.bestStreak ?? 0n);
 
+  const matchHistory = useMemo(
+    () => toDayWithLogs(individualResults),
+    [individualResults],
+  );
+
   const earnedSet = new Set(earnedBadgeIds);
   const earnedDefinitions = allDefinitions.filter((d) => earnedSet.has(d.id));
 
   const isLoading =
-    isLoadingStats || isLoadingAllTime || isLoadingBadges || isLoadingDefs;
+    isLoadingStats ||
+    isLoadingAllTime ||
+    isLoadingBadges ||
+    isLoadingDefs ||
+    isLoadingResults;
 
   return (
     <Dialog
@@ -94,6 +128,7 @@ export default function PlayerProfileModal({
               <Skeleton className="h-20 rounded-lg" />
             </div>
             <Skeleton className="h-24 w-full rounded-lg" />
+            <Skeleton className="h-48 w-full rounded-lg" />
           </div>
         ) : (
           <div className="space-y-5 py-2">
@@ -159,15 +194,69 @@ export default function PlayerProfileModal({
               </div>
             </div>
 
-            {/* Win/Loss Chart */}
-            {matchHistory.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold mb-3">
-                  Performance Chart
-                </h4>
-                <ProfileWinLossChart data={matchHistory} />
+            {/* Performance Charts */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-sm font-semibold">Performance</h4>
+                <div className="flex gap-1 p-1 bg-muted rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setChartView("winloss")}
+                    className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                      chartView === "winloss"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Win/Loss
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setChartView("rank")}
+                    className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                      chartView === "rank"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Rank History
+                  </button>
+                </div>
               </div>
-            )}
+
+              <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
+                {(Object.keys(RANGE_LABELS) as TimeRange[]).map((r) => (
+                  <button
+                    type="button"
+                    key={r}
+                    onClick={() => setChartRange(r)}
+                    className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                      chartRange === r
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {RANGE_LABELS[r]}
+                  </button>
+                ))}
+              </div>
+
+              {chartView === "winloss" && (
+                <ProfileWinLossChart
+                  data={matchHistory}
+                  externalRange={chartRange}
+                />
+              )}
+              {chartView === "rank" &&
+                (isLoadingRankHistory ? (
+                  <Skeleton className="h-40 w-full rounded-lg" />
+                ) : (
+                  <ProfileRankHistoryChart
+                    data={rankHistoryData}
+                    range={chartRange}
+                  />
+                ))}
+            </div>
 
             {/* Earned Badges */}
             <div>
