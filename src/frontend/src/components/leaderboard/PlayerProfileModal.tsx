@@ -91,13 +91,7 @@ export default function PlayerProfileModal({
 
   const earnedSet = new Set(earnedBadgeIds);
   const earnedDefinitions = allDefinitions.filter((d) => earnedSet.has(d.id));
-
-  const isLoading =
-    isLoadingStats ||
-    isLoadingAllTime ||
-    isLoadingBadges ||
-    isLoadingDefs ||
-    isLoadingResults;
+  const isLoadingBadgeSection = isLoadingBadges || isLoadingDefs;
 
   return (
     <Dialog
@@ -120,45 +114,46 @@ export default function PlayerProfileModal({
           </DialogTitle>
         </DialogHeader>
 
-        {isLoading ? (
-          <div className="space-y-4 py-2">
-            <Skeleton className="h-40 w-full rounded-lg" />
+        <div className="space-y-5 py-2">
+          {/* Stats summary — shows as soon as stats load */}
+          {isLoadingStats ? (
+            <div className="grid grid-cols-3 gap-2">
+              <Skeleton className="h-20 rounded-lg" />
+              <Skeleton className="h-20 rounded-lg" />
+              <Skeleton className="h-20 rounded-lg" />
+            </div>
+          ) : stats ? (
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-2xl font-bold text-green-600">
+                  {Number(stats.wins)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">Wins</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-2xl font-bold text-red-500">
+                  {Number(stats.losses)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">Losses</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-2xl font-bold">
+                  {Number(stats.wins) + Number(stats.losses) > 0
+                    ? `${Math.round((Number(stats.wins) / (Number(stats.wins) + Number(stats.losses))) * 100)}%`
+                    : "—"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">Win %</p>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Streaks — shows when stats + allTime resolve */}
+          {isLoadingStats || isLoadingAllTime ? (
             <div className="grid grid-cols-2 gap-3">
               <Skeleton className="h-20 rounded-lg" />
               <Skeleton className="h-20 rounded-lg" />
             </div>
-            <Skeleton className="h-24 w-full rounded-lg" />
-            <Skeleton className="h-48 w-full rounded-lg" />
-          </div>
-        ) : (
-          <div className="space-y-5 py-2">
-            {/* Stats summary */}
-            {stats && (
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-2xl font-bold text-green-600">
-                    {Number(stats.wins)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Wins</p>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-2xl font-bold text-red-500">
-                    {Number(stats.losses)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Losses</p>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-2xl font-bold">
-                    {Number(stats.wins) + Number(stats.losses) > 0
-                      ? `${Math.round((Number(stats.wins) / (Number(stats.wins) + Number(stats.losses))) * 100)}%`
-                      : "—"}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Win %</p>
-                </div>
-              </div>
-            )}
-
-            {/* Streaks */}
+          ) : (
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-start gap-2.5 p-3 rounded-lg bg-muted/50">
                 <div className="p-1.5 rounded-md bg-orange-500/10 text-orange-500 flex-shrink-0">
@@ -193,105 +188,114 @@ export default function PlayerProfileModal({
                 </div>
               </div>
             </div>
+          )}
 
-            {/* Performance Charts */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <h4 className="text-sm font-semibold">Performance</h4>
-                <div className="flex gap-1 p-1 bg-muted rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => setChartView("winloss")}
-                    className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                      chartView === "winloss"
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Win/Loss
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setChartView("rank")}
-                    className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                      chartView === "rank"
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Rank History
-                  </button>
-                </div>
+          {/* Performance Charts — shows when results load */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="text-sm font-semibold">Performance</h4>
+              <div className="flex gap-1 p-1 bg-muted rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setChartView("winloss")}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                    chartView === "winloss"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Win/Loss
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartView("rank")}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                    chartView === "rank"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Rank History
+                </button>
               </div>
+            </div>
 
-              <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
-                {(Object.keys(RANGE_LABELS) as TimeRange[]).map((r) => (
-                  <button
-                    type="button"
-                    key={r}
-                    onClick={() => setChartRange(r)}
-                    className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                      chartRange === r
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {RANGE_LABELS[r]}
-                  </button>
-                ))}
-              </div>
+            <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
+              {(Object.keys(RANGE_LABELS) as TimeRange[]).map((r) => (
+                <button
+                  type="button"
+                  key={r}
+                  onClick={() => setChartRange(r)}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                    chartRange === r
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {RANGE_LABELS[r]}
+                </button>
+              ))}
+            </div>
 
-              {chartView === "winloss" && (
+            {chartView === "winloss" &&
+              (isLoadingResults ? (
+                <Skeleton className="h-40 w-full rounded-lg" />
+              ) : (
                 <ProfileWinLossChart
                   data={matchHistory}
                   externalRange={chartRange}
                 />
-              )}
-              {chartView === "rank" &&
-                (isLoadingRankHistory ? (
-                  <Skeleton className="h-40 w-full rounded-lg" />
-                ) : (
-                  <ProfileRankHistoryChart
-                    data={rankHistoryData}
-                    range={chartRange}
-                  />
-                ))}
-            </div>
-
-            {/* Earned Badges */}
-            <div>
-              <h4 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
-                <Trophy className="h-4 w-4 text-yellow-500" />
-                Earned Badges ({earnedDefinitions.length})
-              </h4>
-              {earnedDefinitions.length === 0 ? (
-                <div className="text-center py-4 text-muted-foreground text-sm">
-                  <Award className="h-8 w-8 mx-auto mb-1.5 opacity-40" />
-                  No badges earned yet
-                </div>
+              ))}
+            {chartView === "rank" &&
+              (isLoadingRankHistory ? (
+                <Skeleton className="h-40 w-full rounded-lg" />
               ) : (
-                <div className="space-y-2">
-                  {earnedDefinitions.map((badge) => (
-                    <div
-                      key={badge.id}
-                      className="flex items-start gap-2 p-2 rounded-md bg-muted/40"
-                    >
-                      <StarIcon className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-yellow-500" />
-                      <div>
-                        <p className="text-xs font-semibold">{badge.name}</p>
-                        {badge.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {badge.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                <ProfileRankHistoryChart
+                  data={rankHistoryData}
+                  range={chartRange}
+                />
+              ))}
           </div>
-        )}
+
+          {/* Earned Badges — shows when badge data loads */}
+          <div>
+            <h4 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
+              <Trophy className="h-4 w-4 text-yellow-500" />
+              Earned Badges
+              {!isLoadingBadgeSection && ` (${earnedDefinitions.length})`}
+            </h4>
+            {isLoadingBadgeSection ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full rounded-md" />
+                <Skeleton className="h-10 w-full rounded-md" />
+              </div>
+            ) : earnedDefinitions.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground text-sm">
+                <Award className="h-8 w-8 mx-auto mb-1.5 opacity-40" />
+                No badges earned yet
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {earnedDefinitions.map((badge) => (
+                  <div
+                    key={badge.id}
+                    className="flex items-start gap-2 p-2 rounded-md bg-muted/40"
+                  >
+                    <StarIcon className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-yellow-500" />
+                    <div>
+                      <p className="text-xs font-semibold">{badge.name}</p>
+                      {badge.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {badge.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
