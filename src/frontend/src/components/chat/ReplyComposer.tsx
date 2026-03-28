@@ -26,6 +26,7 @@ export default function ReplyComposer({
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const gifButtonRef = useRef<HTMLButtonElement>(null);
   const { mutate: createPost, isPending } = useCreatePost();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -167,14 +168,16 @@ export default function ReplyComposer({
         />
 
         {/* GIF button — matches the main chat input GIF button exactly */}
-        <div className="relative flex-shrink-0">
+        <>
           {showGifPicker && (
             <GifPicker
               onSelect={handleGifSelect}
               onClose={() => setShowGifPicker(false)}
+              anchorRef={gifButtonRef}
             />
           )}
           <Button
+            ref={gifButtonRef}
             type="button"
             variant="ghost"
             size="sm"
@@ -186,7 +189,7 @@ export default function ReplyComposer({
           >
             GIF
           </Button>
-        </div>
+        </>
 
         <Button
           type="button"

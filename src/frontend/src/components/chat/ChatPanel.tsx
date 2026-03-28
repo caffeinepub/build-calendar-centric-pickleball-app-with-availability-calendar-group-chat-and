@@ -93,6 +93,7 @@ export default function ChatPanel() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const gifButtonRef = useRef<HTMLButtonElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { mutate: createPost, isPending } = useCreatePost();
 
@@ -735,14 +736,16 @@ export default function ChatPanel() {
                 data-ocid="chat.input"
               />
               {/* GIF button */}
-              <div className="relative flex-shrink-0">
+              <>
                 {showGifPicker && (
                   <GifPicker
                     onSelect={handleGifSelect}
                     onClose={() => setShowGifPicker(false)}
+                    anchorRef={gifButtonRef}
                   />
                 )}
                 <Button
+                  ref={gifButtonRef}
                   type="button"
                   variant="ghost"
                   size="sm"
@@ -753,7 +756,7 @@ export default function ChatPanel() {
                 >
                   GIF
                 </Button>
-              </div>
+              </>
               <Button
                 type="button"
                 variant="ghost"

@@ -1,5 +1,12 @@
 import { Loader2, Search, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 
@@ -20,9 +27,19 @@ interface GiphyGif {
 interface GifPickerProps {
   onSelect: (gifUrl: string) => void;
   onClose: () => void;
+  /** Ref to the trigger button — used to calculate viewport-aware position */
+  anchorRef?: React.RefObject<HTMLElement | null>;
 }
 
-export default function GifPicker({ onSelect, onClose }: GifPickerProps) {
+const PANEL_WIDTH = 320;
+const PANEL_HEIGHT = 370; // approx max height
+const MARGIN = 8; // gap between anchor and panel
+
+export default function GifPicker({
+  onSelect,
+  onClose,
+  anchorRef,
+}: GifPickerProps) {
   const [query, setQuery] = useState("");
   const [gifs, setGifs] = useState<GiphyGif[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -30,6 +47,59 @@ export default function GifPicker({ onSelect, onClose }: GifPickerProps) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // ── Viewport-aware position ──────────────────────────────────────────────
+  const [style, setStyle] = useState<React.CSSProperties>({
+    position: "fixed",
+    left: 0,
+    bottom: 0,
+    opacity: 0, // hide until positioned
+    zIndex: 99999,
+  });
+
+  useLayoutEffect(() => {
+    const anchor = anchorRef?.current;
+    if (!anchor) return;
+
+    const rect = anchor.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    // Horizontal: align left edge of panel with left edge of button, clamped to viewport
+    let left = rect.left;
+    if (left + PANEL_WIDTH > vw - MARGIN) {
+      left = vw - PANEL_WIDTH - MARGIN;
+    }
+    if (left < MARGIN) left = MARGIN;
+
+    // Vertical: prefer opening upward (above the button)
+    const spaceAbove = rect.top - MARGIN;
+    const spaceBelow = vh - rect.bottom - MARGIN;
+
+    let top: number | undefined;
+    let bottom: number | undefined;
+
+    if (spaceAbove >= PANEL_HEIGHT || spaceAbove >= spaceBelow) {
+      // Open upward — anchor bottom of panel to top of button
+      bottom = vh - rect.top + MARGIN;
+      top = undefined;
+    } else {
+      // Not enough room above — open downward
+      top = rect.bottom + MARGIN;
+      bottom = undefined;
+    }
+
+    setStyle({
+      position: "fixed",
+      left,
+      top,
+      bottom,
+      width: PANEL_WIDTH,
+      zIndex: 99999,
+      opacity: 1,
+    });
+  }, [anchorRef]);
+
+  // ── Data fetching ────────────────────────────────────────────────────────
   const fetchGifs = useCallback(async (searchQuery: string) => {
     setIsLoading(true);
     setError(null);
@@ -49,12 +119,10 @@ export default function GifPicker({ onSelect, onClose }: GifPickerProps) {
     }
   }, []);
 
-  // Initial load: trending
   useEffect(() => {
     fetchGifs("");
   }, [fetchGifs]);
 
-  // Debounced search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -65,28 +133,35 @@ export default function GifPicker({ onSelect, onClose }: GifPickerProps) {
     };
   }, [query, fetchGifs]);
 
-  // Close on outside click
+  // ── Close on outside click ───────────────────────────────────────────────
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
+      const anchor = anchorRef?.current;
       if (
         containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
+        !containerRef.current.contains(e.target as Node) &&
+        (!anchor || !anchor.contains(e.target as Node))
       ) {
         onClose();
       }
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [onClose]);
+  }, [onClose, anchorRef]);
 
-  return (
+  // ── Render via portal so no parent overflow/z-index can clip it ──────────
+  const panel = (
     <div
       ref={containerRef}
-      className="absolute bottom-full mb-2 left-0 z-50 rounded-xl border border-white/10 shadow-2xl overflow-hidden"
       style={{
-        width: "320px",
+        ...style,
         background: "rgba(15, 23, 42, 0.97)",
         backdropFilter: "blur(12px)",
+        borderRadius: "0.75rem",
+        border: "1px solid rgba(255,255,255,0.1)",
+        boxShadow:
+          "0 25px 50px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05)",
+        overflow: "hidden",
       }}
     >
       {/* Header */}
@@ -163,4 +238,6 @@ export default function GifPicker({ onSelect, onClose }: GifPickerProps) {
       </div>
     </div>
   );
+
+  return createPortal(panel, document.body);
 }
