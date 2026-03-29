@@ -266,7 +266,7 @@ export default function ProfilePage() {
             Badges & Achievements
           </CardTitle>
           <CardDescription>
-            All available badges \u2014 earned and in progress
+            All available badges, earned and in progress.
           </CardDescription>
         </CardHeader>
         <CardContent>
